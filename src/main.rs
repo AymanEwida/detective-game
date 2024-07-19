@@ -6,8 +6,10 @@ use constants::{
     WIDTH,
     HEIGHT
 };
+use renderer::render::Render;
 
 mod constants;
+mod renderer;
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -26,8 +28,9 @@ fn main() {
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
 
-    let mut last_update = Instant::now();
+    let render = Render::new().expect("Failed to created a render");
 
+    let mut last_update = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -51,6 +54,7 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
+                render.draw();
                 gl_context.swap_buffers().unwrap();
             }
             _ => ()
