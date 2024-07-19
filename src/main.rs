@@ -28,7 +28,9 @@ fn main() {
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
 
-    let render = Render::new().expect("Failed to created a render");
+    let window_size = gl_context.window().inner_size();
+
+    let render = Render::new((window_size.width as usize, window_size.height as usize)).expect("Failed to created a render");
 
     let mut last_update = Instant::now();
     event_loop.run(move |event, _, control_flow| {

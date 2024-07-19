@@ -1,19 +1,21 @@
-use super::{error::Result, program::Program, shader::Shader, source_code::{VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}};
+use super::{error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}};
 
 pub type Size = (usize, usize);
 
 pub struct Render {
+    size: Size,
     program: Program
 }
 
 impl Render {
-    pub fn new() -> Result<Self> {
+    pub fn new(size: Size) -> Result<Self> {
         unsafe {
-            let vertex_shader = Shader::new(VERTICES_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
-            let fragment_shader = Shader::new(VERTICES_FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER)?;
+            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(size)).get_source_code(), gl::VERTEX_SHADER)?;
+            let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
             let program = Program::new(&[vertex_shader, fragment_shader])?;
 
             Ok(Self {
+                size,
                 program
             })
         }
