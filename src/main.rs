@@ -2,14 +2,14 @@ use std::time::{Duration, Instant};
 
 use glutin::{dpi::PhysicalSize, event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
 
-use constants::{
+use library::constants::{
     WIDTH,
     HEIGHT
 };
 use renderer::render::Render;
 
-mod constants;
 mod renderer;
+mod library;
 
 fn main() {
     let event_loop = EventLoop::new();
