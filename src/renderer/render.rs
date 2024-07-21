@@ -5,7 +5,7 @@ use super::{buffer::Buffer, color::Color, error::Result, program::Program, shade
 pub type Size = (usize, usize);
 
 pub struct Render {
-    _size: Size,
+    size: Size,
     program: Program,
     vertex_buffer: Buffer,
     vertex_array: VertexArray,
@@ -24,7 +24,7 @@ impl Render {
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
 
             Ok(Self {
-                _size: size,
+                size,
                 program,
                 vertex_buffer,
                 vertex_array
@@ -34,6 +34,20 @@ impl Render {
 }
 
 impl Render {
+    pub fn resize(&mut self, new_size: Size) -> Result<()> {
+        self.size = new_size;
+
+        unsafe {
+            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(new_size)).get_source_code(), gl::VERTEX_SHADER)?;
+            let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let program = Program::new(&[vertex_shader, fragment_shader])?;
+
+            self.program = program;
+        }
+
+        Ok(())
+    }
+
     pub fn fill_with_color(&self, color: Color) {
         unsafe {
             let (red, green, blue, alpha) = color.get_color_in_f32();

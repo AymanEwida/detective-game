@@ -30,7 +30,7 @@ fn main() {
 
     let window_size = gl_context.window().inner_size();
 
-    let render = Render::new((window_size.width as usize, window_size.height as usize)).expect("Failed to created a render");
+    let mut render = Render::new((window_size.width as usize, window_size.height as usize)).expect("Failed to created a render");
 
     let mut last_update = Instant::now();
     event_loop.run(move |event, _, control_flow| {
@@ -41,7 +41,10 @@ fn main() {
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(new_physical_size) => gl_context.resize(new_physical_size),
+                    WindowEvent::Resized(new_physical_size) => {
+                        gl_context.resize(new_physical_size);
+                        render.resize((new_physical_size.width as usize, new_physical_size.height as usize)).expect("Faild to resize render");
+                    },
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == ElementState::Pressed {
                             if let Some(virtual_keycode) = input.virtual_keycode {
@@ -94,8 +97,8 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 render.draw_triangle([
-                    Vertice([-100.0, -300.0], Color::Red),
-                    Vertice([100.0, -300.0], Color::Green),
+                    Vertice([-200.0, -300.0], Color::Red),
+                    Vertice([200.0, -300.0], Color::Green),
                     Vertice([0.0, 300.0], Color::Blue),
                 ]);
                 render.draw();
