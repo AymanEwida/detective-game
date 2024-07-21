@@ -40,17 +40,20 @@ impl SourceCode {
                 }
             },
             _ => {
-                if let Some((width, height)) = size {
-                    let width_string = &(width as f32/2.0).to_string();
-                    let height_string = &(height as f32).to_string();
-            
-                    return Self {
-                        source_code: template_literal(source_code, Some(&[width_string, height_string])),
-                    };
-                } else {
-                    return Self {
-                        source_code: source_code.to_string(),
-                    };
+                match size {
+                    Some((width, height)) => {
+                        let width_string = &(width as f32/2.0).to_string();
+                        let height_string = &(height as f32).to_string();
+                
+                        Self {
+                            source_code: template_literal(source_code, Some(&[width_string, height_string])),
+                        }
+                    },
+                    None => {
+                        Self {
+                            source_code: source_code.to_string(),
+                        }
+                    }
                 }
             }
         }
