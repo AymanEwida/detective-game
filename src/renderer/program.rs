@@ -1,3 +1,5 @@
+use std::ffi::CString;
+
 use gl::types::*;
 
 use super::{error::{Error, Result}, shader::Shader};
@@ -55,5 +57,12 @@ impl Program {
 impl Program {
     pub unsafe fn apply(&self) {
         gl::UseProgram(self.id);
+    }
+
+    pub unsafe fn get_attrib_location(&self, attrib: &str) -> Result<GLuint> {
+        let attrib = CString::new(attrib)
+            .map_err(|_| Error::AttributeLocationError("Unable to get attrib as CString".to_string()))?;
+        
+        Ok(gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint)
     }
 }
