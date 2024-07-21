@@ -2,9 +2,10 @@ use super::color::Color;
 
 pub type Position = [f32; 2];
 
-#[repr(C, packed)]
+#[derive(Debug)]
 pub struct Vertice(pub Position, pub Color);
 
+#[repr(C, packed)]
 #[derive(Debug, PartialEq)]
 pub struct _VerticeData(pub Position, pub [f32; 3]);
 

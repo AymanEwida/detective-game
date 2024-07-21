@@ -35,7 +35,7 @@ fn main() {
     let mut last_update = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
-
+        
         match event {
             Event::LoopDestroyed => (),
             Event::WindowEvent { event, .. } => {
@@ -69,7 +69,10 @@ fn main() {
                                     },
                                     VirtualKeyCode::Left => {
                                         render.fill_with_color(Color::Red);
-                                    }
+                                    },
+                                    VirtualKeyCode::Right => {
+                                        todo!()
+                                    },
                                     _ => ()
                                 }
                             }
