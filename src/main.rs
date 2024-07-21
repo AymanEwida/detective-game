@@ -6,7 +6,7 @@ use library::constants::{
     WIDTH,
     HEIGHT
 };
-use renderer::{color::Color, render::Render};
+use renderer::{color::Color, render::Render, vertice::Vertice};
 
 mod renderer;
 mod library;
@@ -93,6 +93,11 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
+                render.draw_triangle([
+                    Vertice([-100.0, -300.0], Color::Red),
+                    Vertice([100.0, -300.0], Color::Green),
+                    Vertice([0.0, 300.0], Color::Blue),
+                ]);
                 render.draw();
                 gl_context.swap_buffers().unwrap();
             }

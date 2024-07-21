@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use gl::types::*;
 
 pub struct Buffer {
@@ -27,7 +29,7 @@ impl Buffer {
         gl::BindBuffer(self.target, self.id);
     }
 
-    pub unsafe fn set_data<V>(&self, vertices_data: &[V], usage: GLuint) {
+    pub unsafe fn set_data<V: Debug + PartialEq>(&self, vertices_data: &[V], usage: GLuint) {
         self.bind();
 
         let (_, data_bytes, _) = vertices_data.align_to::<u8>();
