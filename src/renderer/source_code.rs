@@ -1,14 +1,12 @@
 use crate::library::utils::template_literal;
 
-use super::render::Size;
-
 pub const VERTICES_VERTEX_SHADER_SOURCE: &str = r#"
 #version 330
 in vec2 position;
 in vec3 color;
 out vec3 vertexColor;
 void main() {
-    gl_Position = vec4(position, {}, {});
+    gl_Position = vec4(position, 0.0, {});
     vertexColor = color;
 }
 "#;
@@ -32,7 +30,7 @@ pub struct SourceCode {
 }
 
 impl SourceCode {
-    pub fn new(soruce_type: SourceCodeType, source_code: &str, size: Option<Size>) -> Self {
+    pub fn new(soruce_type: SourceCodeType, source_code: &str, height: Option<usize>) -> Self {
         match soruce_type {
             SourceCodeType::Fragment => {
                 Self {
@@ -40,21 +38,22 @@ impl SourceCode {
                 }
             },
             _ => {
-                if let Some((width, height)) = size {
-                    let width_string = &(width as f32/2.0).to_string();
-                    let height_string = &(height as f32).to_string();
-            
-                    return Self {
-                        source_code: template_literal(source_code, Some(&[width_string, height_string])),
-                    };
-                } else {
-                    return Self {
-                        source_code: source_code.to_string(),
-                    };
+                match height {
+                    Some(height) => {
+                        let height_string = &height.to_string();
+                
+                        Self {
+                            source_code: template_literal(source_code, Some(&[height_string])),
+                        }
+                    },
+                    None => {
+                        Self {
+                            source_code: source_code.to_string(),
+                        }
+                    }
                 }
             }
         }
-        
     }
 }
 
@@ -70,9 +69,9 @@ mod tests {
 
     #[test]
     fn test_vertices_vertex_source_code() {
-        let vertices_vertex_source_code = SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some((5, 1)));
+        let vertices_vertex_source_code = SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(1));
         let actual = vertices_vertex_source_code.get_source_code();
-        let expected = "\n#version 330\nin vec2 position;\nin vec3 color;\nout vec3 vertexColor;\nvoid main() {\n    gl_Position = vec4(position, 2.5, 1);\n    vertexColor = color;\n}\n";
+        let expected = "\n#version 330\nin vec2 position;\nin vec3 color;\nout vec3 vertexColor;\nvoid main() {\n    gl_Position = vec4(position, 0.0, 1);\n    vertexColor = color;\n}\n";
 
         assert_eq!(actual, expected);
     }

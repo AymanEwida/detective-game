@@ -6,7 +6,7 @@ use library::constants::{
     WIDTH,
     HEIGHT
 };
-use renderer::{color::Color, render::Render};
+use renderer::{color::Color, render::{Render, Size}, vertice::{Position, Vertice}};
 
 mod renderer;
 mod library;
@@ -30,18 +30,21 @@ fn main() {
 
     let window_size = gl_context.window().inner_size();
 
-    let render = Render::new((window_size.width as usize, window_size.height as usize)).expect("Failed to created a render");
+    let mut render = Render::new(Size{ width: window_size.width as usize, height: window_size.height as usize }).expect("Failed to created a render");
 
     let mut last_update = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
-
+        
         match event {
             Event::LoopDestroyed => (),
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(new_physical_size) => gl_context.resize(new_physical_size),
+                    WindowEvent::Resized(new_physical_size) => {
+                        gl_context.resize(new_physical_size);
+                        render.resize(Size { width: new_physical_size.width as usize, height: new_physical_size.height as usize }).expect("Faild to resize render");
+                    },
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == ElementState::Pressed {
                             if let Some(virtual_keycode) = input.virtual_keycode {
@@ -66,7 +69,10 @@ fn main() {
                                     },
                                     VirtualKeyCode::Left => {
                                         render.fill_with_color(Color::Red);
-                                    }
+                                    },
+                                    VirtualKeyCode::Right => {
+                                        print!("TODO!\n");
+                                    },
                                     _ => ()
                                 }
                             }
@@ -93,6 +99,13 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
+                render.draw_triangle([
+                    Vertice(Position { x: -100.0, y: -100.0 }, Color::Red),
+                    Vertice(Position { x: 100.0, y: -100.0 }, Color::Green),
+                    Vertice(Position { x: 0.0, y: -50.0 }, Color::Blue),
+                ]);
+                render.draw_rectangle(Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255));
+
                 render.draw();
                 gl_context.swap_buffers().unwrap();
             }
