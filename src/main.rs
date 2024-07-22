@@ -71,7 +71,7 @@ fn main() {
                                         render.fill_with_color(Color::Red);
                                     },
                                     VirtualKeyCode::Right => {
-                                        todo!()
+                                        print!("TODO!\n");
                                     },
                                     _ => ()
                                 }
@@ -99,11 +99,13 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
+                render.draw_rectangle([-200.0, 300.0], (200, 200), Color::Red);
                 render.draw_triangle([
-                    Vertice([-200.0, -300.0], Color::Red),
-                    Vertice([200.0, -300.0], Color::Green),
-                    Vertice([0.0, 300.0], Color::Blue),
+                    Vertice([-100.0, -100.0], Color::Red),
+                    Vertice([100.0, -100.0], Color::Green),
+                    Vertice([0.0, -50.0], Color::Blue),
                 ]);
+
                 render.draw();
                 gl_context.swap_buffers().unwrap();
             }
