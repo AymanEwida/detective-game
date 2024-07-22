@@ -5,6 +5,9 @@ pub type Position = [f32; 2];
 #[derive(Debug)]
 pub struct Vertice(pub Position, pub Color);
 
+#[derive(Debug)]
+pub struct TextureVertice(pub Position);
+
 #[repr(C, packed)]
 #[derive(Debug, PartialEq)]
 pub struct _VerticeData(pub Position, pub [f32; 3]);
