@@ -6,7 +6,7 @@ use library::constants::{
     WIDTH,
     HEIGHT
 };
-use renderer::{color::Color, render::Render, vertice::Vertice};
+use renderer::{color::Color, render::{Render, Size}, vertice::{Position, Vertice}};
 
 mod renderer;
 mod library;
@@ -30,7 +30,7 @@ fn main() {
 
     let window_size = gl_context.window().inner_size();
 
-    let mut render = Render::new((window_size.width as usize, window_size.height as usize)).expect("Failed to created a render");
+    let mut render = Render::new(Size{ width: window_size.width as usize, height: window_size.height as usize }).expect("Failed to created a render");
 
     let mut last_update = Instant::now();
     event_loop.run(move |event, _, control_flow| {
@@ -43,7 +43,7 @@ fn main() {
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                     WindowEvent::Resized(new_physical_size) => {
                         gl_context.resize(new_physical_size);
-                        render.resize((new_physical_size.width as usize, new_physical_size.height as usize)).expect("Faild to resize render");
+                        render.resize(Size { width: new_physical_size.width as usize, height: new_physical_size.height as usize }).expect("Faild to resize render");
                     },
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == ElementState::Pressed {
@@ -99,12 +99,12 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-                render.draw_rectangle([-200.0, 300.0], (200, 200), Color::Red);
                 render.draw_triangle([
-                    Vertice([-100.0, -100.0], Color::Red),
-                    Vertice([100.0, -100.0], Color::Green),
-                    Vertice([0.0, -50.0], Color::Blue),
+                    Vertice(Position { x: -100.0, y: -100.0 }, Color::Red),
+                    Vertice(Position { x: 100.0, y: -100.0 }, Color::Green),
+                    Vertice(Position { x: 0.0, y: -50.0 }, Color::Blue),
                 ]);
+                render.draw_rectangle(Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(50, 50, 50));
 
                 render.draw();
                 gl_context.swap_buffers().unwrap();

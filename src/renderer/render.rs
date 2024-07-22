@@ -4,7 +4,13 @@ use crate::set_attribute;
 
 use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
 
-pub type Size = (usize, usize);
+// pub type Size = (usize, usize);
+
+#[derive(Debug)]
+pub struct Size {
+    pub width: usize,
+    pub height: usize
+}
 
 pub struct Render {
     size: Size,
@@ -17,7 +23,7 @@ pub struct Render {
 impl Render {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
-            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(size)).get_source_code(), gl::VERTEX_SHADER)?;
+            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(size.height)).get_source_code(), gl::VERTEX_SHADER)?;
             let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
             let program = Program::new(&[vertex_shader, fragment_shader])?;
 
@@ -43,7 +49,7 @@ impl Render {
         self.size = new_size;
 
         unsafe {
-            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(new_size)).get_source_code(), gl::VERTEX_SHADER)?;
+            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(self.size.height)).get_source_code(), gl::VERTEX_SHADER)?;
             let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
             let program = Program::new(&[vertex_shader, fragment_shader])?;
 
@@ -84,14 +90,14 @@ impl Render {
 
     pub fn draw_rectangle(&self, position: Position, size: Size, color: Color) {
         unsafe {
-            let vertices: [Vertice; 4] = [
-                Vertice(position, color),
-                Vertice([position[0]+size.0 as f32, position[1]], Color::Green),
-                Vertice([position[0]+size.0 as f32, position[1]-size.1 as f32], Color::Blue),
-                Vertice([position[0], position[1]-size.1 as f32], Color::White),
+            let vertices: [_VerticeData; 4] = [
+                _VerticeData(position.get_vertice_position(None), color.get_vertices_color_in_f32()),
+                _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0 })), color.get_vertices_color_in_f32()),
+                _VerticeData(position.get_vertice_position(Some(&size)), color.get_vertices_color_in_f32()),
+                _VerticeData(position.get_vertice_position(Some(&Size { width: 0, height: size.height })), color.get_vertices_color_in_f32()),
             ];
 
-            self.vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertices_data()), gl::STATIC_DRAW);
+            self.vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
             self.index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
 
             let vertex_array = &self.vertex_array;
