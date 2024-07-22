@@ -4,8 +4,6 @@ use crate::set_attribute;
 
 use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
 
-// pub type Size = (usize, usize);
-
 #[derive(Debug)]
 pub struct Size {
     pub width: usize,
@@ -83,7 +81,6 @@ impl Render {
 
             self.program.apply();
             self.vertex_array.bind();
-            gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::DrawElements(gl::TRIANGLES, 5, gl::UNSIGNED_INT, ptr::null());
         }
     }
@@ -110,7 +107,6 @@ impl Render {
 
             self.program.apply();
             self.vertex_array.bind();
-            gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
         }
     }
@@ -118,6 +114,7 @@ impl Render {
     pub fn draw(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
+            self.program.apply();
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
         }
     }
