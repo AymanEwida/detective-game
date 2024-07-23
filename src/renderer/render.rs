@@ -12,6 +12,7 @@ pub struct Size {
 
 #[derive(Debug)]
 pub struct Object {
+    key: String,
     vertex_array: VertexArray,
     count: i32
 }
@@ -62,7 +63,7 @@ impl<'a> Render {
         }
     }
 
-    pub fn draw_triangle(&self, vertices: [Vertice; 3]) -> Result<Object> {
+    pub fn draw_triangle(&self, key: String, vertices: [Vertice; 3]) -> Result<Object> {
         unsafe {
             let vertex_array = VertexArray::new();
             vertex_array.bind();
@@ -81,11 +82,11 @@ impl<'a> Render {
 
             VertexArray::unbind();
 
-            Ok(Object { vertex_array, count: 3 })
+            Ok(Object { key, vertex_array, count: 3 })
         }
     }
 
-    pub fn draw_rectangle(&self, position: Position, size: Size, color: Color) -> Result<Object> {
+    pub fn draw_rectangle(&self, key: String, position: Position, size: Size, color: Color) -> Result<Object> {
         unsafe {
             let vertex_array = VertexArray::new();
             vertex_array.bind();
@@ -111,12 +112,26 @@ impl<'a> Render {
 
             VertexArray::unbind();
 
-            Ok(Object { vertex_array, count: 6 })
+            Ok(Object { key, vertex_array, count: 6 })
         }
     }
 
     pub fn update(&mut self, objects: Vec<Object>) {
-        self.objects = objects;
+        for object in objects {
+            let mut flag = false;
+
+            for i in 0..self.objects.len() {
+                if self.objects[i].key == object.key {
+                    flag = true;
+                    
+                    break;
+                }
+            }
+
+            if !flag {
+                self.objects.push(object);
+            }
+        }
     }
 
     pub fn draw(&self) {
@@ -124,6 +139,8 @@ impl<'a> Render {
             self.program.apply();
             
             gl::Clear(gl::COLOR_BUFFER_BIT);
+
+            print!("{:?}\n", self.objects);
 
             for object in self.objects.iter() {
                 object.vertex_array.bind();
