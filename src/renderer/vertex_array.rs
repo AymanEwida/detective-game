@@ -19,6 +19,10 @@ impl VertexArray {
 
         Self { id }
     }
+
+    pub unsafe fn unbind() {
+        gl::BindVertexArray(0);
+    }
 }
 
 impl VertexArray {
