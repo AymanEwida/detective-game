@@ -1,6 +1,6 @@
 mod shader;
 mod program;
-mod source_code;
+pub mod source_code;
 mod buffer;
 mod vertex_array;
 mod texture;

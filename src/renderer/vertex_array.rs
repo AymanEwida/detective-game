@@ -1,5 +1,6 @@
 use gl::types::*;
 
+#[derive(Debug)]
 pub struct VertexArray {
     pub id: GLuint
 }
@@ -18,6 +19,10 @@ impl VertexArray {
         gl::GenVertexArrays(1, &mut id);
 
         Self { id }
+    }
+
+    pub unsafe fn unbind() {
+        gl::BindVertexArray(0);
     }
 }
 
