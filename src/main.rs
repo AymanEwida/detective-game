@@ -99,12 +99,14 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-                render.draw_triangle([
+                let triangle = render.draw_triangle([
                     Vertice(Position { x: -100.0, y: -100.0 }, Color::Red),
                     Vertice(Position { x: 100.0, y: -100.0 }, Color::Green),
                     Vertice(Position { x: 0.0, y: -50.0 }, Color::Blue),
-                ]);
-                render.draw_rectangle(Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255));
+                ]).expect("Unable to draw triangle");
+                let rectangle = render.draw_rectangle(Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");
+
+                render.update(vec![triangle, rectangle]);
 
                 render.draw();
                 gl_context.swap_buffers().unwrap();

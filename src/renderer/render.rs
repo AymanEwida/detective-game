@@ -10,12 +10,16 @@ pub struct Size {
     pub height: usize
 }
 
+#[derive(Debug)]
+pub struct Object {
+    vertex_array: VertexArray,
+    count: i32
+}
+
 pub struct Render {
     size: Size,
     program: Program,
-    vertex_buffer: Buffer,
-    index_buffer: Buffer,
-    vertex_array: VertexArray,
+    objects: Vec<Object>
 }
 
 impl Render {
@@ -25,24 +29,16 @@ impl Render {
             let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
             let program = Program::new(&[vertex_shader, fragment_shader])?;
 
-            let vertex_array = VertexArray::new();
-            vertex_array.bind();
-
-            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
-            let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
-
             Ok(Self {
                 size,
                 program,
-                vertex_buffer,
-                index_buffer,
-                vertex_array
+                objects: Vec::new(),
             })
         }
     }
 }
 
-impl Render {
+impl<'a> Render {
     pub fn resize(&mut self, new_size: Size) -> Result<()> {
         self.size = new_size;
 
@@ -66,27 +62,34 @@ impl Render {
         }
     }
 
-    pub fn draw_triangle(&self, vertices: [Vertice; 3]) {
+    pub fn draw_triangle(&self, vertices: [Vertice; 3]) -> Result<Object> {
         unsafe {
-            self.vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertices_data()), gl::STATIC_DRAW);
-            self.index_buffer.set_data(&[0, 1, 2, 2, 0], gl::STATIC_DRAW);
+            let vertex_array = VertexArray::new();
+            vertex_array.bind();
 
-            let vertex_array = &self.vertex_array;
+            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertices_data()), gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position").expect("Unable to get attribute location");
+            let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+            index_buffer.set_data(&[0, 1, 2], gl::STATIC_DRAW);
+
+            let pos_attrib = self.program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color").expect("Unable to get attribute location");
+            let color_attrib = self.program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
-            self.program.apply();
-            self.vertex_array.bind();
-            gl::DrawElements(gl::TRIANGLES, 5, gl::UNSIGNED_INT, ptr::null());
+            VertexArray::unbind();
+
+            Ok(Object { vertex_array, count: 3 })
         }
     }
 
-    pub fn draw_rectangle(&self, position: Position, size: Size, color: Color) {
+    pub fn draw_rectangle(&self, position: Position, size: Size, color: Color) -> Result<Object> {
         unsafe {
+            let vertex_array = VertexArray::new();
+            vertex_array.bind();
+
             let vertices: [_VerticeData; 4] = [
                 _VerticeData(position.get_vertice_position(None), color.get_vertices_color_in_f32()),
                 _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0 })), color.get_vertices_color_in_f32()),
@@ -94,28 +97,39 @@ impl Render {
                 _VerticeData(position.get_vertice_position(Some(&Size { width: 0, height: size.height })), color.get_vertices_color_in_f32()),
             ];
 
-            self.vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
-            self.index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
+            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
 
-            let vertex_array = &self.vertex_array;
+            let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+            index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position").expect("Unable to get attribute location");
+            let pos_attrib = self.program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color").expect("Unable to get attribute location");
+            let color_attrib = self.program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
-            self.program.apply();
-            self.vertex_array.bind();
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            VertexArray::unbind();
+
+            Ok(Object { vertex_array, count: 6 })
         }
+    }
+
+    pub fn update(&mut self, objects: Vec<Object>) {
+        self.objects = objects;
     }
 
     pub fn draw(&self) {
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
             self.program.apply();
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+
+            for object in self.objects.iter() {
+                object.vertex_array.bind();
+                gl::DrawElements(gl::TRIANGLES, object.count, gl::UNSIGNED_INT, ptr::null());
+            }
+
         }
     }
 }
