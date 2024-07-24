@@ -2,7 +2,7 @@ use std::ptr;
 
 use gl::types::GLenum;
 
-use crate::{library::constants::TWICE_PI, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{calc_mid_point, length_of_line}}, set_attribute};
 
 use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
 
@@ -165,6 +165,41 @@ impl<'a> Render {
         }
     }
 
+    pub fn draw_curved_line(&self, key: String, start: Position, end: Position, color: Color, num_segments: Option<u32>) -> Result<Object> {
+        let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
+
+        let mut vertices: Vec<_VerticeData> = Vec::new();
+
+        let mid_point = calc_mid_point(&start, &end);
+
+        for num in 0..=num_segments {
+            let t = num as f32 / num_segments as f32;
+
+            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * mid_point.x + t.powi(2) * end.x;
+            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * (mid_point.y * 2.0) + t.powi(2) * end.y;
+
+            vertices.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
+        }
+        
+        unsafe {
+            let vertex_array = VertexArray::new();
+            vertex_array.bind();
+
+            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+
+            let pos_attrib = self.program.get_attrib_location("position")?;
+            set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+            
+            let color_attrib = self.program.get_attrib_location("color")?;
+            set_attribute!(vertex_array, color_attrib, _VerticeData::1);
+
+            VertexArray::unbind();
+
+            Ok(Object { key, vertex_array, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::LINE_STRIP })
+        }
+    }
+
     pub fn update(&mut self, objects: Vec<Object>) {
         for object in objects {
             let mut flag = false;
@@ -194,7 +229,7 @@ impl<'a> Render {
 
                 match object.draw_type {
                     DrawType::INDEX => {
-                        gl::DrawElements(gl::TRIANGLES, object.count, gl::UNSIGNED_INT, ptr::null());
+                        gl::DrawElements(object.mode, object.count, gl::UNSIGNED_INT, ptr::null());
                     },
                     DrawType::ARRAY => {
                         gl::DrawArrays(object.mode, 0, object.count);
