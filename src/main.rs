@@ -71,8 +71,8 @@ fn main() {
                                         render.fill_with_color(Color::Red);
                                     },
                                     VirtualKeyCode::Right => {
-                                        let rectangle2 = render.draw_rectangle("rectangle2".to_string(), Position { x: -400.0, y: -100.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");
-                                        render.update(vec![rectangle2]);
+                                        let circle = render.draw_circle("circle".to_string(), Position { x: -400.0, y: -100.0 }, 100.0, Color::RGB(0, 255, 255), None).expect("Unable to draw circle");
+                                        render.update(vec![circle]);
                                     },
                                     _ => ()
                                 }
@@ -101,11 +101,11 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 let triangle = render.draw_triangle(
-                "triangle".to_string(),
-            [
-                    Vertice(Position { x: -100.0, y: -100.0 }, Color::Red),
-                    Vertice(Position { x: 100.0, y: -100.0 }, Color::Green),
-                    Vertice(Position { x: 0.0, y: -50.0 }, Color::Blue),
+                    "triangle".to_string(),
+                    [
+                        Vertice(Position { x: -100.0, y: -100.0 }, Color::Red),
+                        Vertice(Position { x: 100.0, y: -100.0 }, Color::Green),
+                        Vertice(Position { x: 0.0, y: -50.0 }, Color::Blue),
                     ]
                 ).expect("Unable to draw triangle");
                 let rectangle1 = render.draw_rectangle("rectangle1".to_string(), Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");
