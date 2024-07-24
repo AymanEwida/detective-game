@@ -2,7 +2,7 @@ use super::{color::Color, render::Size};
 
 pub type PositionType = [f32; 2];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Position {
     pub x: f32,
     pub y: f32,
@@ -30,7 +30,7 @@ pub struct TextureVertice(pub Position);
 
 #[repr(C, packed)]
 #[derive(Debug, PartialEq)]
-pub struct _VerticeData(pub PositionType, pub [f32; 3]);
+pub struct _VerticeData(pub PositionType, pub [f32; 4]);
 
 impl Vertice {
     pub fn get_vertices_data(self) -> _VerticeData {
