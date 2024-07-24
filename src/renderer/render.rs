@@ -200,6 +200,32 @@ impl<'a> Render {
         }
     }
 
+    pub fn draw_line(&self, key: String, start: Position, end: Position, color: Color) -> Result<Object> {
+
+        let vertices: [_VerticeData; 2] = [
+            _VerticeData(start.get_vertice_position(None), color.get_vertices_color_in_f32()),
+            _VerticeData(end.get_vertice_position(None), color.get_vertices_color_in_f32()),
+        ];
+        
+        unsafe {
+            let vertex_array = VertexArray::new();
+            vertex_array.bind();
+
+            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+
+            let pos_attrib = self.program.get_attrib_location("position")?;
+            set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+            
+            let color_attrib = self.program.get_attrib_location("color")?;
+            set_attribute!(vertex_array, color_attrib, _VerticeData::1);
+
+            VertexArray::unbind();
+
+            Ok(Object { key, vertex_array, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::LINE_STRIP })
+        }
+    }
+
     pub fn update(&mut self, objects: Vec<Object>) {
         for object in objects {
             let mut flag = false;
