@@ -40,7 +40,7 @@ fn test_get_vertice_position_with_full_size() {
 fn test_get_vertices_data() {
     let vertice = Vertice(Position { x: 50.0, y: 25.0 }, Color::Black);
     let actual = vertice.get_vertices_data();
-    let expected = _VerticeData([50.0, 25.0], [0.0, 0.0, 0.0]);
+    let expected = _VerticeData([50.0, 25.0], [0.0, 0.0, 0.0, 1.0]);
 
     assert_eq!(actual, expected);
 }
