@@ -2,7 +2,7 @@ use super::{color::Color, render::Size};
 
 pub type PositionType = [f32; 2];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Position {
     pub x: f32,
     pub y: f32,
