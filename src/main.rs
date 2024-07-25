@@ -130,9 +130,10 @@ fn main() {
                 let curved_line = render.draw_curved_line("curved_line".to_string(), Position { x: 100.0, y: 100.0 }, Position { x: 200.0, y: 200.0 }, Color::Red, None).expect("Unable to draw curved line");
                 let line1 = render.draw_line("line1".to_string(), Position { x: 50.0, y: 50.0 }, Position { x: 150.0, y: 50.0 }, Color::Red).expect("Unable to draw line");
                 let line2 = render.draw_line("line2".to_string(), Position { x: 150.0, y: 50.0 }, Position { x: 150.0, y: 0.0 }, Color::Red).expect("Unable to draw line");
-                let image = render.load_image("image".to_string(), "assets/test-ferris.png", Position { x: -500.0, y: 250.0 }, Size { width: 100, height: 100 }).expect("Unable to load image");
+                let image1 = render.load_image("image1".to_string(), "assets/test-ferris.png", Position { x: -500.0, y: 250.0 }, Size { width: 100, height: 100 }).expect("Unable to load image");
+                let image2 = render.load_image("image2".to_string(), "assets/test.jpg", Position { x: -500.0, y: 150.0 }, Size { width: 100, height: 100 }).expect("Unable to load image");
 
-                render.update(vec![triangle, rectangle1, curved_line, line1, line2, image]);
+                render.update(vec![triangle, rectangle1, curved_line, line1, line2, image1, image2]);
 
                 render.draw();
                 gl_context.swap_buffers().unwrap();
