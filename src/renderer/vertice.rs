@@ -25,8 +25,9 @@ impl Position {
 #[derive(Debug)]
 pub struct Vertice(pub Position, pub Color);
 
-#[derive(Debug)]
-pub struct TextureVertice(pub Position);
+#[repr(C, packed)]
+#[derive(Debug, PartialEq)]
+pub struct _TextureVerticeData(pub PositionType, pub [f32; 2]);
 
 #[repr(C, packed)]
 #[derive(Debug, PartialEq)]

@@ -1,10 +1,10 @@
-use std::ptr;
+use std::{path::Path, ptr};
 
 use gl::types::GLenum;
 
-use crate::{library::{constants::TWICE_PI, utils::{calc_mid_point, length_of_line}}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{calc_mid_point, length_of_line}}, renderer::{texture::Texture, vertice::_TextureVerticeData}, set_attribute};
 
-use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
+use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
 
 #[derive(Debug)]
 pub struct Size {
@@ -28,6 +28,7 @@ impl Default for DrawType {
 pub struct Object {
     key: String,
     vertex_array: VertexArray,
+    texture: Option<Texture>,
     count: i32,
     draw_type: DrawType,
     mode: GLenum
@@ -35,36 +36,47 @@ pub struct Object {
 
 pub struct Render {
     size: Size,
-    program: Program,
+    vertices_program: Program,
+    texture_program: Program,
     objects: Vec<Object>
 }
 
 impl Render {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
-            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(size.height)).get_source_code(), gl::VERTEX_SHADER)?;
-            let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
-            let program = Program::new(&[vertex_shader, fragment_shader])?;
+            let vertices_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(size.height)).get_source_code(), gl::VERTEX_SHADER)?;
+            let vertices_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let vertices_program = Program::new(&[vertices_vertex_shader, vertices_fragment_shader])?;
+
+            let texture_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, TEXTURE_VERTEX_SHADER_SOURCE, Some(size.height)).get_source_code(), gl::VERTEX_SHADER)?;
+            let texture_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, TEXTURE_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
 
             Ok(Self {
                 size,
-                program,
+                vertices_program,
+                texture_program,
                 objects: Vec::new(),
             })
         }
     }
 }
 
-impl<'a> Render {
+impl Render {
     pub fn resize(&mut self, new_size: Size) -> Result<()> {
         self.size = new_size;
 
         unsafe {
-            let vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(self.size.height)).get_source_code(), gl::VERTEX_SHADER)?;
-            let fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
-            let program = Program::new(&[vertex_shader, fragment_shader])?;
+            let vertices_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(self.size.height)).get_source_code(), gl::VERTEX_SHADER)?;
+            let vertices_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let vertices_program = Program::new(&[vertices_vertex_shader, vertices_fragment_shader])?;
 
-            self.program = program;
+            let texture_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, TEXTURE_VERTEX_SHADER_SOURCE, Some(self.size.height)).get_source_code(), gl::VERTEX_SHADER)?;
+            let texture_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, TEXTURE_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
+
+            self.vertices_program = vertices_program;
+            self.texture_program = texture_program;
         }
 
         Ok(())
@@ -90,15 +102,15 @@ impl<'a> Render {
             let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
             index_buffer.set_data(&[0, 1, 2], gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position")?;
+            let pos_attrib = self.vertices_program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color")?;
+            let color_attrib = self.vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
             VertexArray::unbind();
 
-            Ok(Object { key, vertex_array, count: 3, draw_type: DrawType::default(), mode: gl::TRIANGLES })
+            Ok(Object { key, vertex_array, texture: None, count: 3, draw_type: DrawType::default(), mode: gl::TRIANGLES })
         }
     }
 
@@ -120,15 +132,15 @@ impl<'a> Render {
             let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
             index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position")?;
+            let pos_attrib = self.vertices_program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color")?;
+            let color_attrib = self.vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
             VertexArray::unbind();
 
-            Ok(Object { key, vertex_array, count: 6, draw_type: DrawType::default(), mode: gl::TRIANGLES })
+            Ok(Object { key, vertex_array, texture: None, count: 6, draw_type: DrawType::default(), mode: gl::TRIANGLES })
         }
     }
 
@@ -153,15 +165,15 @@ impl<'a> Render {
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
             vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position")?;
+            let pos_attrib = self.vertices_program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color")?;
+            let color_attrib = self.vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
             VertexArray::unbind();
 
-            Ok(Object { key, vertex_array, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::TRIANGLE_FAN })
+            Ok(Object { key, vertex_array, texture: None, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::TRIANGLE_FAN })
         }
     }
 
@@ -188,15 +200,15 @@ impl<'a> Render {
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
             vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position")?;
+            let pos_attrib = self.vertices_program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color")?;
+            let color_attrib = self.vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
             VertexArray::unbind();
 
-            Ok(Object { key, vertex_array, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::LINE_STRIP })
+            Ok(Object { key, vertex_array, texture: None, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::LINE_STRIP })
         }
     }
 
@@ -214,15 +226,51 @@ impl<'a> Render {
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
             vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
 
-            let pos_attrib = self.program.get_attrib_location("position")?;
+            let pos_attrib = self.vertices_program.get_attrib_location("position")?;
             set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
             
-            let color_attrib = self.program.get_attrib_location("color")?;
+            let color_attrib = self.vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
             VertexArray::unbind();
 
-            Ok(Object { key, vertex_array, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::LINE_STRIP })
+            Ok(Object { key, vertex_array, texture: None, count: vertices.len() as i32, draw_type: DrawType::ARRAY, mode: gl::LINE_STRIP })
+        }
+    }
+
+    pub fn load_image(&self, key: String, image_path: &str, position: Position, size: Size) -> Result<Object> {
+        let texture_vertices: [_TextureVerticeData; 4] = [
+            _TextureVerticeData(position.get_vertice_position(None), [0.0, 0.0]),
+            _TextureVerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0 })), [1.0, 0.0]),
+            _TextureVerticeData(position.get_vertice_position(Some(&size)), [1.0, 1.0]),
+            _TextureVerticeData(position.get_vertice_position(Some(&Size { width: 0, height: size.height })), [0.0, 1.0]),
+        ];
+
+        unsafe {
+            let vertex_array = VertexArray::new();
+            vertex_array.bind();
+
+            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_data(&texture_vertices, gl::STATIC_DRAW);
+
+            let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+            index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
+
+            let pos_attrib = self.texture_program.get_attrib_location("position")?;
+            set_attribute!(vertex_array, pos_attrib, _TextureVerticeData::0);
+            
+            let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
+            set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
+
+            let texture = Texture::new();
+            texture.load(&Path::new(image_path))?;
+
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            gl::Enable(gl::BLEND);
+
+            VertexArray::unbind();
+
+            Ok(Object { key, vertex_array, texture: Some(texture), count: 6, draw_type: DrawType::default(), mode: gl::TRIANGLES })
         }
     }
 
@@ -246,18 +294,32 @@ impl<'a> Render {
 
     pub fn draw(&self) {
         unsafe {
-            self.program.apply();
-            
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             for object in self.objects.iter() {
-                object.vertex_array.bind();
-
                 match object.draw_type {
                     DrawType::INDEX => {
+                        if let Some(texture) = &object.texture {
+                            self.texture_program.apply();
+                            texture.bind();
+                        } else {
+                            self.vertices_program.apply();
+                        }
+
+                        object.vertex_array.bind();
+
                         gl::DrawElements(object.mode, object.count, gl::UNSIGNED_INT, ptr::null());
                     },
                     DrawType::ARRAY => {
+                        if let Some(texture) = &object.texture {
+                            self.texture_program.apply();
+                            texture.bind();
+                        } else {
+                            self.vertices_program.apply();
+                        }
+
+                        object.vertex_array.bind();
+
                         gl::DrawArrays(object.mode, 0, object.count);
                     }
                 }

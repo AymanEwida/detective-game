@@ -5,6 +5,7 @@ pub enum Error {
     CompilationError(String),
     LinkingError(String),
     AttributeLocationError(String),
+    LoadImageError(String),
 }
 
 
@@ -15,7 +16,8 @@ impl std::fmt::Display for Error {
         match self {
             Self::CompilationError(message) => write!(f, "Compilation Error: {}", message),
             Self::LinkingError(message) => write!(f, "Linking Error: {}", message),
-            Self::AttributeLocationError(message) => write!(f, "Attribute Location Error: {}", message)
+            Self::AttributeLocationError(message) => write!(f, "Attribute Location Error: {}", message),
+            Self::LoadImageError(message) => write!(f, "Load Image Error: {}", message)
         }
     }
 }

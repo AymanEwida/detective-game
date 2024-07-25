@@ -1,5 +1,11 @@
-use gl::types::*;
+use std::path::Path;
 
+use gl::types::*;
+use image::EncodableLayout;
+
+use super::error::{Error, Result};
+
+#[derive(Debug)]
 pub struct Texture {
     pub id: GLuint
 }
@@ -24,5 +30,29 @@ impl Texture {
 impl Texture {
     pub unsafe fn bind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, self.id);
-    } 
+    }
+
+    pub unsafe fn load(&self, path: &Path) -> Result<()> {
+        self.bind();
+
+        let image = image::open(path)
+            .map_err(|_| Error::LoadImageError("Unable to get image in RGBA format".to_string()))
+            ?.into_rgba8();
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D, 
+            0, 
+            gl::RGBA as i32, 
+            image.width() as i32, 
+            image.height() as i32, 
+            0, 
+            gl::RGBA, 
+            gl::UNSIGNED_BYTE, 
+            image.as_bytes().as_ptr() as *const _
+        );
+
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        Ok(())
+    }
 }
