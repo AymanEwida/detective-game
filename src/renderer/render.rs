@@ -4,7 +4,7 @@ use gl::types::GLenum;
 
 use crate::{library::{constants::TWICE_PI, utils::{calc_mid_point, length_of_line}}, renderer::{texture::Texture, vertice::_TextureVerticeData}, set_attribute};
 
-use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{SourceCode, SourceCodeType, TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
+use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
 
 #[derive(Debug)]
 pub struct Size {
@@ -44,12 +44,12 @@ pub struct Render {
 impl Render {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
-            let vertices_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(size.height)).get_source_code(), gl::VERTEX_SHADER)?;
-            let vertices_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let vertices_vertex_shader = Shader::new(VERTICES_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
+            let vertices_fragment_shader = Shader::new(VERTICES_FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER)?;
             let vertices_program = Program::new(&[vertices_vertex_shader, vertices_fragment_shader])?;
 
-            let texture_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, TEXTURE_VERTEX_SHADER_SOURCE, Some(size.height)).get_source_code(), gl::VERTEX_SHADER)?;
-            let texture_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, TEXTURE_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
+            let texture_vertex_shader = Shader::new(TEXTURE_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
+            let texture_fragment_shader = Shader::new(TEXTURE_FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER)?;
             let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
 
             Ok(Self {
@@ -63,23 +63,12 @@ impl Render {
 }
 
 impl Render {
-    pub fn resize(&mut self, new_size: Size) -> Result<()> {
+    pub fn resize(&mut self, new_size: Size) {
         self.size = new_size;
 
         unsafe {
-            let vertices_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, VERTICES_VERTEX_SHADER_SOURCE, Some(self.size.height)).get_source_code(), gl::VERTEX_SHADER)?;
-            let vertices_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, VERTICES_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
-            let vertices_program = Program::new(&[vertices_vertex_shader, vertices_fragment_shader])?;
-
-            let texture_vertex_shader = Shader::new(SourceCode::new(SourceCodeType::Vertex, TEXTURE_VERTEX_SHADER_SOURCE, Some(self.size.height)).get_source_code(), gl::VERTEX_SHADER)?;
-            let texture_fragment_shader = Shader::new(SourceCode::new(SourceCodeType::Fragment, TEXTURE_FRAGMENT_SHADER_SOURCE, None).get_source_code(), gl::FRAGMENT_SHADER)?;
-            let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
-
-            self.vertices_program = vertices_program;
-            self.texture_program = texture_program;
+            gl::Viewport(0, 0, self.size.width as i32, self.size.height as i32);
         }
-
-        Ok(())
     }
 
     pub fn fill_with_color(&self, color: Color) {
@@ -213,7 +202,6 @@ impl Render {
     }
 
     pub fn draw_line(&self, key: String, start: Position, end: Position, color: Color) -> Result<Object> {
-
         let vertices: [_VerticeData; 2] = [
             _VerticeData(start.get_vertice_position(None), color.get_vertices_color_in_f32()),
             _VerticeData(end.get_vertice_position(None), color.get_vertices_color_in_f32()),

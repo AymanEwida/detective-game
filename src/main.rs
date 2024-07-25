@@ -45,7 +45,7 @@ fn main() {
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                     WindowEvent::Resized(new_physical_size) => {
                         gl_context.resize(new_physical_size);
-                        render.resize(Size { width: new_physical_size.width as usize, height: new_physical_size.height as usize }).expect("Faild to resize render");
+                        render.resize(Size { width: new_physical_size.width as usize, height: new_physical_size.height as usize });
                     },
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == ElementState::Pressed {
@@ -121,9 +121,9 @@ fn main() {
                 let triangle = render.draw_triangle(
                     "triangle".to_string(),
                     [
-                        Vertice(Position { x: -100.0, y: -100.0 }, Color::Red),
-                        Vertice(Position { x: 100.0, y: -100.0 }, Color::Green),
-                        Vertice(Position { x: 0.0, y: -50.0 }, Color::Blue),
+                        Vertice(Position { x: -0.5, y: -0.5 }, Color::Red),
+                        Vertice(Position { x: 0.5, y: -0.5 }, Color::Green),
+                        Vertice(Position { x: -1.0, y: 1.0 }, Color::Blue),
                     ]
                 ).expect("Unable to draw triangle");
                 let rectangle1 = render.draw_rectangle("rectangle1".to_string(), Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");

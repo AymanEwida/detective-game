@@ -1,49 +1,4 @@
-use detective_game::{library::utils::*, renderer::vertice::Position};
-
-#[test]
-fn test_template_literal_one_input() {
-    let input_string = "My name is {}";
-    let actual = template_literal(input_string, Some(&["Ayman"]));
-    let expected = "My name is Ayman";
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_template_literal_multiple_input() {
-    let input_string = "My name is {}, and this is {}";
-    let actual = template_literal(input_string, Some(&["Ayman", "test"]));
-    let expected = "My name is Ayman, and this is test";
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_template_literal_multiple_with_number_input() {
-    let input_string = "My name is {}, and i am {} years old";
-    let actual = template_literal(input_string, Some(&["Ayman", 19.to_string().as_str()]));
-    let expected = "My name is Ayman, and i am 19 years old";
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_template_literal_with_no_input() {
-    let input_string = "My name is Adam";
-    let actual = template_literal(input_string, None);
-    let expected = "My name is Adam";
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_template_literal_with_no_template_literal() {
-    let input_string = "This a test";
-    let actual = template_literal(input_string, Some(&["Name"]));
-    let expected = "This a test";
-
-    assert_eq!(actual, expected);
-}
+use detective_game::{library::utils::*, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -101,6 +56,46 @@ fn test_calc_mid_point_different_coordinates() {
     let input_end = Position { x: 5.0, y: 7.0 };
     let actual = calc_mid_point(&input_start, &input_end);
     let expected = Position { x: 3.0, y: 5.5 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_coordinates_start() {
+    let input_coordinate = Position { x: 0.0, y: 0.0 };
+    let input_size = Size { width: 8, height: 6 };
+    let actual = convert_coordinates(input_coordinate, input_size);
+    let expected = Position { x: -1.0, y: 1.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_coordinates_middle() {
+    let input_coordinate = Position { x: 4.0, y: 3.0 };
+    let input_size = Size { width: 8, height: 6 };
+    let actual = convert_coordinates(input_coordinate, input_size);
+    let expected = Position { x: 0.0, y: 0.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_coordinates_random() {
+    let input_coordinate = Position { x: 6.0, y: 1.5 };
+    let input_size = Size { width: 8, height: 6 };
+    let actual = convert_coordinates(input_coordinate, input_size);
+    let expected = Position { x: 0.5, y: 0.5 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_coordinates_whole() {
+    let input_coordinate = Position { x: 8.0, y: 6.0 };
+    let input_size = Size { width: 8, height: 6 };
+    let actual = convert_coordinates(input_coordinate, input_size);
+    let expected = Position { x: 1.0, y: -1.0 };
 
     assert_eq!(actual, expected);
 }
