@@ -17,7 +17,7 @@ pub fn calc_mid_point(start: &Position, end: &Position) -> Position {
     Position { x: x_middle, y: y_middle }
 }
 
-pub fn convert_coordinates(coordinate: Position, size: Size) -> Position {
+pub fn convert_coordinates(coordinate: Position, size: &Size) -> Position {
     let half_width = size.width as f32 / 2.0;
     let half_height = size.height as f32 / 2.0;
 
@@ -25,7 +25,7 @@ pub fn convert_coordinates(coordinate: Position, size: Size) -> Position {
     let new_y = ((coordinate.y - half_height) / half_height).abs();
 
     if coordinate.x < half_width {
-        if coordinate.y < half_height {
+        if coordinate.y <= half_height {
             Position {
                 x: new_x * -1.0,
                 y: new_y
@@ -37,7 +37,7 @@ pub fn convert_coordinates(coordinate: Position, size: Size) -> Position {
             }
         }
     } else {
-        if coordinate.y < half_height {
+        if coordinate.y <= half_height {
             Position {
                 x: new_x,
                 y: new_y
@@ -49,4 +49,8 @@ pub fn convert_coordinates(coordinate: Position, size: Size) -> Position {
             }
         }
     }
+}
+
+pub fn convert_size(object_size: Size, window: &Size) -> Size {
+    Size { width: (object_size.width * 2.0) / window.width, height: (object_size.height * 2.0) / window.height }
 }
