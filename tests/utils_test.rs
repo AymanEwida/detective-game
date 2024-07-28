@@ -1,4 +1,4 @@
-use detective_game::{library::utils::*, renderer::{render::Size, vertice::Position}};
+use detective_game::{library::utils::*, renderer::{render::{Object, Size}, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {

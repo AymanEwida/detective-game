@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use gl::types::*;
 
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Buffer {
     pub id: GLuint,
     target: GLuint

@@ -5,12 +5,13 @@ use image::EncodableLayout;
 
 use super::error::{Error, Result};
 
-#[derive(Debug)]
-pub struct Texture {
-    pub id: GLuint
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Texture<'a> {
+    pub id: GLuint,
+    pub loaded_image_path: Option<&'a str>,
 }
 
-impl Drop for Texture {
+impl Drop for Texture<'_> {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteTextures(1, [self.id].as_ptr());
@@ -18,16 +19,16 @@ impl Drop for Texture {
     }
 }
 
-impl Texture {
+impl Texture<'_> {
     pub unsafe fn new() -> Self {
         let mut id: GLuint = 0;
         gl::GenTextures(1, &mut id);
 
-        Self { id }
+        Self { id, loaded_image_path: None }
     }
 }
 
-impl Texture {
+impl<'a> Texture<'a> {
     pub unsafe fn bind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, self.id);
     }
@@ -54,5 +55,17 @@ impl Texture {
         gl::GenerateMipmap(gl::TEXTURE_2D);
 
         Ok(())
+    }
+
+    pub unsafe fn set_wrapping(&self, mode: GLuint) {
+        self.bind();
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode as GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode as GLint);
+    }
+
+    pub unsafe fn set_filtering(&self, mode: GLuint) {
+        self.bind();
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, mode as GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, mode as GLint);
     }
 }
