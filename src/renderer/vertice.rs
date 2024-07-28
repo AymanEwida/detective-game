@@ -1,3 +1,5 @@
+use crate::library::utils::convert_coordinates;
+
 use super::{color::Color, render::Size};
 
 pub type PositionType = [f32; 2];
@@ -25,15 +27,18 @@ impl Position {
 #[derive(Debug)]
 pub struct Vertice(pub Position, pub Color);
 
-#[derive(Debug)]
-pub struct TextureVertice(pub Position);
+#[repr(C, packed)]
+#[derive(Debug, PartialEq)]
+pub struct _TextureVerticeData(pub PositionType, pub [f32; 2]);
 
 #[repr(C, packed)]
 #[derive(Debug, PartialEq)]
 pub struct _VerticeData(pub PositionType, pub [f32; 4]);
 
 impl Vertice {
-    pub fn get_vertices_data(self) -> _VerticeData {
-        _VerticeData(self.0.get_vertice_position(None), self.1.get_vertices_color_in_f32())
+    pub fn get_vertice_data(self, size: &Size) -> _VerticeData {
+        let new_position = convert_coordinates(self.0, size);
+
+        _VerticeData(new_position.get_vertice_position(None), self.1.get_vertices_color_in_f32())
     }
 }

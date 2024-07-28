@@ -1,3 +1,5 @@
+pub type ColorType = (f32, f32, f32, f32);
+
 #[derive(Debug)]
 pub enum Color {
     White,
@@ -10,7 +12,7 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn get_color_in_f32(self) -> (f32, f32, f32, f32) {
+    pub fn get_color_in_f32(self) -> ColorType {
         match self {
             Self::White => (1.0, 1.0, 1.0, 1.0),
             Self::Black => (0.0, 0.0, 0.0, 1.0),
