@@ -4,7 +4,7 @@ use gl::types::GLenum;
 
 use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, texture::Texture, color::Color, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData, _TextureVerticeData}};
+use super::{buffer::Buffer, color::{self, Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, texture::{self, Texture}, vertex_array::{self, VertexArray}, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 pub struct Size {
@@ -34,10 +34,41 @@ pub struct Object {
     mode: GLenum
 }
 
+#[derive(Debug)]
+struct Image {
+    vertex_array: VertexArray,
+    texture: Texture,
+}
+
+impl Image {
+    fn new(vertex_array: VertexArray, texture: Texture) -> Self {
+        Self {
+            vertex_array,
+            texture
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Background {
+    color: ColorType,
+    image: Option<Image>
+}
+
+impl Default for Background {
+    fn default() -> Self {
+        Self {
+            color: Color::Black.get_color_in_f32(),
+            image: None
+        }
+    }
+}
+
 pub struct Render {
     size: Size,
     vertices_program: Program,
     texture_program: Program,
+    background: Background,
     objects: Vec<Object>
 }
 
@@ -56,6 +87,7 @@ impl Render {
                 size,
                 vertices_program,
                 texture_program,
+                background: Background::default(),
                 objects: Vec::new(),
             })
         }
@@ -71,12 +103,45 @@ impl Render {
         }
     }
 
-    pub fn fill_with_color(&self, color: Color) {
-        unsafe {
-            let (red, green, blue, alpha) = color.get_color_in_f32();
+    pub fn fill_with_color(&self, color: Color) -> Background {
+        let colot_data = color.get_color_in_f32();
+        
+        Background { color: colot_data, image: None }
+    }
 
-            gl::ClearColor(red, green, blue, alpha);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+    pub fn fill_with_image(&self, image_path: &str) -> Result<Background> {
+        let vertices: [_TextureVerticeData; 4] = [
+            _TextureVerticeData([-1.0, 1.0], [0.0, 0.0]),
+            _TextureVerticeData([1.0, 1.0], [1.0, 0.0]),
+            _TextureVerticeData([1.0, -1.0], [1.0, 1.0]),
+            _TextureVerticeData([-1.0, -1.0], [0.0, 1.0]),
+        ];
+
+        unsafe {
+            let vertex_array = VertexArray::new();
+            vertex_array.bind();
+
+            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+
+            let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+            index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
+
+            let pos_attrib = self.texture_program.get_attrib_location("position")?;
+            set_attribute!(vertex_array, pos_attrib, _TextureVerticeData::0);
+            
+            let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
+            set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
+
+            let texture = Texture::new();
+            texture.load(&Path::new(image_path))?;
+
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            gl::Enable(gl::BLEND);
+
+            VertexArray::unbind();
+
+            Ok(Background { color: Color::Black.get_color_in_f32(), image: Some(Image::new(vertex_array, texture)) })
         }
     }
 
@@ -279,7 +344,13 @@ impl Render {
         }
     }
 
-    pub fn update(&mut self, objects: Vec<Object>) {
+    pub fn update(&mut self, background: Option<Background>, objects: Vec<Object>) {
+        print!("{:?}\n", background);
+
+        if background.is_some() {
+            self.background = background.unwrap_or(Background::default());
+        }
+        
         for object in objects {
             let mut flag = false;
 
@@ -300,7 +371,20 @@ impl Render {
     pub fn render(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
+            
+            if let Some(background_image) = &self.background.image {
+                print!("here1\n");
+                self.texture_program.apply();
+                background_image.texture.bind();
+                background_image.vertex_array.bind();
 
+                gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null()); 
+            } else {
+                let (red, green, blue, alpha) = self.background.color;
+    
+                gl::ClearColor(red, green, blue, alpha);
+            }
+            
             for object in self.objects.iter() {
                 match object.draw_type {
                     DrawType::INDEX => {
