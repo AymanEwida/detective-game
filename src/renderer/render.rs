@@ -2,14 +2,14 @@ use std::{path::Path, ptr};
 
 use gl::types::GLenum;
 
-use crate::{library::{constants::TWICE_PI, utils::{calc_mid_point, length_of_line}}, renderer::{texture::Texture, vertice::_TextureVerticeData}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, color::Color, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData}};
+use super::{buffer::Buffer, texture::Texture, color::Color, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, vertex_array::VertexArray, vertice::{Position, Vertice, _VerticeData, _TextureVerticeData}};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Size {
-    pub width: usize,
-    pub height: usize
+    pub width: f32,
+    pub height: f32
 }
 
 #[derive(Debug)]
@@ -86,7 +86,7 @@ impl Render {
             vertex_array.bind();
 
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
-            vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertices_data()), gl::STATIC_DRAW);
+            vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertice_data(&self.size)), gl::STATIC_DRAW);
 
             let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
             index_buffer.set_data(&[0, 1, 2], gl::STATIC_DRAW);
@@ -104,11 +104,14 @@ impl Render {
     }
 
     pub fn draw_rectangle(&self, key: String, position: Position, size: Size, color: Color) -> Result<Object> {
+        let position = convert_coordinates(position, &self.size);
+        let size = convert_size(size, &self.size);
+
         let vertices: [_VerticeData; 4] = [
             _VerticeData(position.get_vertice_position(None), color.get_vertices_color_in_f32()),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0 })), color.get_vertices_color_in_f32()),
+            _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), color.get_vertices_color_in_f32()),
             _VerticeData(position.get_vertice_position(Some(&size)), color.get_vertices_color_in_f32()),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: 0, height: size.height })), color.get_vertices_color_in_f32()),
+            _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), color.get_vertices_color_in_f32()),
         ];
 
         unsafe {
@@ -138,11 +141,16 @@ impl Render {
 
         let mut vertices: Vec<_VerticeData> = Vec::new();
 
+        let center = convert_coordinates(center, &self.size);
+        
+        let radius_x = (radius * 2.0) / self.size.width;
+        let radius_y = (radius * 2.0) / self.size.height; 
+
         for num in 0..=num_segments {
             let theta = TWICE_PI * (num as f32) / (num_segments as f32);
             
-            let x = theta.cos() * radius + center.x;
-            let y = theta.sin() * radius + center.y;
+            let x = theta.cos() * radius_x + center.x;
+            let y = theta.sin() * radius_y + center.y;
 
             vertices.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
         }
@@ -171,13 +179,16 @@ impl Render {
 
         let mut vertices: Vec<_VerticeData> = Vec::new();
 
-        let mid_point = calc_mid_point(&start, &end);
+        let start = convert_coordinates(start, &self.size);
+        let end = convert_coordinates(end, &self.size);
+
+        let control_point = calc_control_point(&start, &end);
 
         for num in 0..=num_segments {
             let t = num as f32 / num_segments as f32;
 
-            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * mid_point.x + t.powi(2) * end.x;
-            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * (mid_point.y * 2.0) + t.powi(2) * end.y;
+            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * control_point.x + t.powi(2) * end.x;
+            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * end.y;
 
             vertices.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
         }
@@ -202,6 +213,9 @@ impl Render {
     }
 
     pub fn draw_line(&self, key: String, start: Position, end: Position, color: Color) -> Result<Object> {
+        let start = convert_coordinates(start, &self.size);
+        let end = convert_coordinates(end, &self.size);
+        
         let vertices: [_VerticeData; 2] = [
             _VerticeData(start.get_vertice_position(None), color.get_vertices_color_in_f32()),
             _VerticeData(end.get_vertice_position(None), color.get_vertices_color_in_f32()),
@@ -227,11 +241,14 @@ impl Render {
     }
 
     pub fn load_image(&self, key: String, image_path: &str, position: Position, size: Size) -> Result<Object> {
+        let position = convert_coordinates(position, &self.size);
+        let size = convert_size(size, &self.size);
+
         let texture_vertices: [_TextureVerticeData; 4] = [
             _TextureVerticeData(position.get_vertice_position(None), [0.0, 0.0]),
-            _TextureVerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0 })), [1.0, 0.0]),
+            _TextureVerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), [1.0, 0.0]),
             _TextureVerticeData(position.get_vertice_position(Some(&size)), [1.0, 1.0]),
-            _TextureVerticeData(position.get_vertice_position(Some(&Size { width: 0, height: size.height })), [0.0, 1.0]),
+            _TextureVerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), [0.0, 1.0]),
         ];
 
         unsafe {
@@ -280,7 +297,7 @@ impl Render {
         }
     }
 
-    pub fn draw(&self) {
+    pub fn render(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 

@@ -30,7 +30,7 @@ fn main() {
 
     let window_size = gl_context.window().inner_size();
 
-    let mut render = Render::new(Size{ width: window_size.width as usize, height: window_size.height as usize }).expect("Failed to created a render");
+    let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
 
     let mut last_update = Instant::now();
 
@@ -45,7 +45,7 @@ fn main() {
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                     WindowEvent::Resized(new_physical_size) => {
                         gl_context.resize(new_physical_size);
-                        render.resize(Size { width: new_physical_size.width as usize, height: new_physical_size.height as usize });
+                        render.resize(Size { width: new_physical_size.width as f32, height: new_physical_size.height as f32 });
                     },
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == ElementState::Pressed {
@@ -73,7 +73,7 @@ fn main() {
                                         render.fill_with_color(Color::Red);
                                     },
                                     VirtualKeyCode::Right => {
-                                        let circle = render.draw_circle("circle".to_string(), Position { x: -400.0, y: -100.0 }, 100.0, Color::RGBA(0, 255, 255, 50), None).expect("Unable to draw circle");
+                                        let circle = render.draw_circle("circle".to_string(), Position { x: 400.0, y: 300.0 }, 200.0, Color::RGBA(0, 255, 255, 50), Some(10000)).expect("Unable to draw circle");
                                         render.update(vec![circle]);
                                     },
                                     _ => ()
@@ -118,24 +118,25 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-                let triangle = render.draw_triangle(
-                    "triangle".to_string(),
-                    [
-                        Vertice(Position { x: -0.5, y: -0.5 }, Color::Red),
-                        Vertice(Position { x: 0.5, y: -0.5 }, Color::Green),
-                        Vertice(Position { x: -1.0, y: 1.0 }, Color::Blue),
-                    ]
-                ).expect("Unable to draw triangle");
-                let rectangle1 = render.draw_rectangle("rectangle1".to_string(), Position { x: -200.0, y: 300.0 }, Size { width: 200, height: 200 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");
-                let curved_line = render.draw_curved_line("curved_line".to_string(), Position { x: 100.0, y: 100.0 }, Position { x: 200.0, y: 200.0 }, Color::Red, None).expect("Unable to draw curved line");
+                // let triangle = render.draw_triangle(
+                //     "triangle".to_string(),
+                //     [
+                //         Vertice(Position { x: 200.0, y: 300.0 }, Color::Red),
+                //         Vertice(Position { x: 600.0, y: 300.0 }, Color::Green),
+                //         Vertice(Position { x: 0.0, y: 0.0 }, Color::Blue),
+                //     ]
+                // ).expect("Unable to draw triangle");
+                //let rectangle1 = render.draw_rectangle("rectangle1".to_string(), Position { x: 200.0, y: 150.0 }, Size { width: 400.0, height: 300.0 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");
+                let curved_line = render.draw_curved_line("curved_line".to_string(), Position { x: 200.0, y: 200.0 }, Position { x: 500.0, y: 100.0 }, Color::Red, None).expect("Unable to draw curved line");
                 let line1 = render.draw_line("line1".to_string(), Position { x: 50.0, y: 50.0 }, Position { x: 150.0, y: 50.0 }, Color::Red).expect("Unable to draw line");
-                let line2 = render.draw_line("line2".to_string(), Position { x: 150.0, y: 50.0 }, Position { x: 150.0, y: 0.0 }, Color::Red).expect("Unable to draw line");
-                let image1 = render.load_image("image1".to_string(), "assets/test-ferris.png", Position { x: -500.0, y: 250.0 }, Size { width: 100, height: 100 }).expect("Unable to load image");
-                let image2 = render.load_image("image2".to_string(), "assets/test.jpg", Position { x: -500.0, y: 150.0 }, Size { width: 100, height: 100 }).expect("Unable to load image");
+                let line2 = render.draw_line("line2".to_string(), Position { x: 150.0, y: 50.0 }, Position { x: 150.0, y: 100.0 }, Color::Red).expect("Unable to draw line");
+                let image1 = render.load_image("image1".to_string(), "assets/test-ferris.png", Position { x: 200.0, y: 200.0 }, Size { width: 200.0, height: 200.0 }).expect("Unable to load image");
+                let image2 = render.load_image("image2".to_string(), "assets/test.jpg", Position { x: 500.0, y: 200.0 }, Size { width: 200.0, height: 200.0 }).expect("Unable to load image");
 
-                render.update(vec![triangle, rectangle1, curved_line, line1, line2, image1, image2]);
+                render.update(vec![curved_line, line1, line2, image1, image2]);
 
-                render.draw();
+                render.render();
+
                 gl_context.swap_buffers().unwrap();
             }
             _ => ()
