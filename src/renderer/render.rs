@@ -30,8 +30,6 @@ impl Default for DrawType {
 pub struct Object<'a> {
     key: String,
     vertex_array: VertexArray,
-    vertex_buffer: Buffer,
-    index_buffer: Option<Buffer>,
     texture: Option<Texture<'a>>,
     count: i32,
     draw_type: DrawType,
@@ -39,12 +37,10 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
-    fn new(key: String, vertex_array: VertexArray, vertex_buffer: Buffer, index_buffer: Option<Buffer>, texture: Option<Texture<'a>>, count: i32, draw_type: DrawType, mode: GLenum) -> Self {
+    fn new(key: String, vertex_array: VertexArray, texture: Option<Texture<'a>>, count: i32, draw_type: DrawType, mode: GLenum) -> Self {
         Self {
             key,
             vertex_array,
-            vertex_buffer,
-            index_buffer,
             count,
             draw_type,
             mode,
@@ -57,13 +53,15 @@ impl<'a> Object<'a> {
 struct Image<'a> {
     vertex_array: VertexArray,
     texture: Texture<'a>,
+    count: i32
 }
 
 impl<'a> Image<'a> {
-    fn new(vertex_array: VertexArray, texture: Texture<'a>) -> Self {
+    fn new(vertex_array: VertexArray, texture: Texture<'a>, count: i32) -> Self {
         Self {
             vertex_array,
-            texture
+            texture,
+            count
         }
     }
 }
@@ -122,48 +120,53 @@ impl<'a> Render<'a> {
         }
     }
 
-    pub fn fill_with_color(&self, color: Color) -> Background {
-        let colot_data = color.get_color_in_f32();
+    pub fn fill_with_color(&mut self, color: Color) {
+        let color_data = color.get_color_in_f32();
         
-        Background { color: colot_data, image: None }
+        self.background.color = color_data;
     }
 
-    pub fn fill_with_image(&self, image_path: &'a str) -> Result<Background> {
-        let vertices: [_TextureVerticeData; 4] = [
+    pub fn fill_with_image(&mut self, image_path: &'a str) -> Result<()> {
+        let background_image_vertices: [_TextureVerticeData; 4] = [
             _TextureVerticeData([-1.0, 1.0], [0.0, 0.0]),
             _TextureVerticeData([1.0, 1.0], [1.0, 0.0]),
             _TextureVerticeData([1.0, -1.0], [1.0, 1.0]),
             _TextureVerticeData([-1.0, -1.0], [0.0, 1.0]),
         ];
+        let background_indices: [i32; 6] = [0, 1, 2, 2, 3, 0];
 
-        unsafe {
-            let vertex_array = VertexArray::new();
-            vertex_array.bind();
-
-            let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
-            vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
-
-            let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
-            index_buffer.set_data(&[0, 1, 2, 2, 3, 0], gl::STATIC_DRAW);
-
-            let pos_attrib = self.texture_program.get_attrib_location("position")?;
-            set_attribute!(vertex_array, pos_attrib, _TextureVerticeData::0);
-            
-            let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
-            set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
-
-            let texture = Texture::new();
-            texture.set_wrapping(gl::REPEAT);
-            texture.set_filtering(gl::LINEAR);
-            texture.load(&Path::new(image_path))?;
-
-            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-            gl::Enable(gl::BLEND);
-
-            VertexArray::unbind();
-
-            Ok(Background { color: Color::Black.get_color_in_f32(), image: Some(Image::new(vertex_array, texture)) })
+        if self.background.image.is_none() {
+            unsafe {
+                let vertex_array = VertexArray::new();
+                vertex_array.bind();
+    
+                let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                vertex_buffer.set_data(&background_image_vertices, gl::STATIC_DRAW);
+    
+                let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+                index_buffer.set_data(&background_indices, gl::STATIC_DRAW);
+    
+                let pos_attrib = self.texture_program.get_attrib_location("position")?;
+                set_attribute!(vertex_array, pos_attrib, _TextureVerticeData::0);
+                
+                let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
+                set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
+    
+                let texture = Texture::new();
+                texture.set_wrapping(gl::REPEAT);
+                texture.set_filtering(gl::LINEAR);
+                texture.load(&Path::new(image_path))?;
+    
+                gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+                gl::Enable(gl::BLEND);
+    
+                VertexArray::unbind();
+                
+                self.background.image = Some(Image::new(vertex_array, texture, background_indices.len() as i32));
+            }
         }
+
+        Ok(())
     }
 
     pub fn draw_triangle(&self, key: String, vertices: [Vertice; 3]) -> Result<()> {
@@ -174,14 +177,21 @@ impl<'a> Render<'a> {
         match found_object {
             Ok(index) => {
                 unsafe {
-                    let object = &self.objects[index];
-                    object.vertex_array.bind();
-        
-                    object.vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertice_data(&self.size)), gl::STATIC_DRAW);
+                    let vertex_array = &self.objects[index].vertex_array;
 
-                    if let Some(index_buffer) = &object.index_buffer {
-                        index_buffer.set_data(&indices, gl::STATIC_DRAW);
-                    }
+                    vertex_array.bind();
+        
+                    let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                    vertex_buffer.set_data(&vertices.map(| vertice | vertice.get_vertice_data(&self.size)), gl::STATIC_DRAW);
+        
+                    let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+                    index_buffer.set_data(&indices, gl::STATIC_DRAW);
+        
+                    let pos_attrib = self.vertices_program.get_attrib_location("position")?;
+                    set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+                    
+                    let color_attrib = self.vertices_program.get_attrib_location("color")?;
+                    set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
 
@@ -207,7 +217,7 @@ impl<'a> Render<'a> {
         
                     VertexArray::unbind();
 
-                    OBJECTS.push(Object::new(key, vertex_array, vertex_buffer, Some(index_buffer), None, indices.len() as i32, DrawType::default(), gl::TRIANGLES));
+                    OBJECTS.push(Object::new(key, vertex_array, None, indices.len() as i32, DrawType::default(), gl::TRIANGLES));
                     
                     Ok(())
                 }
@@ -233,14 +243,21 @@ impl<'a> Render<'a> {
         match found_object {
             Ok(index) => {
                 unsafe {
-                    let object = &self.objects[index];
-                    object.vertex_array.bind();
-        
-                    object.vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+                    let vertex_array = &self.objects[index].vertex_array;
 
-                    if let Some(index_buffer) = &object.index_buffer {
-                        index_buffer.set_data(&indices, gl::STATIC_DRAW);
-                    }
+                    vertex_array.bind();
+        
+                    let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                    vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+        
+                    let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+                    index_buffer.set_data(&indices, gl::STATIC_DRAW);
+        
+                    let pos_attrib = self.vertices_program.get_attrib_location("position")?;
+                    set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+                    
+                    let color_attrib = self.vertices_program.get_attrib_location("color")?;
+                    set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
         
@@ -266,7 +283,7 @@ impl<'a> Render<'a> {
         
                     VertexArray::unbind();
                     
-                    OBJECTS.push(Object::new(key, vertex_array, vertex_buffer, Some(index_buffer), None, indices.len() as i32, DrawType::default(), gl::TRIANGLES));
+                    OBJECTS.push(Object::new(key, vertex_array, None, indices.len() as i32, DrawType::default(), gl::TRIANGLES));
 
                     Ok(())
                 }
@@ -298,10 +315,18 @@ impl<'a> Render<'a> {
         match found_object {
             Ok(index) => {
                 unsafe {
-                    let object = &self.objects[index];
-                    object.vertex_array.bind();
+                    let vertex_array = &self.objects[index].vertex_array;
 
-                    object.vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+                    vertex_array.bind();
+
+                    let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                    vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+        
+                    let pos_attrib = self.vertices_program.get_attrib_location("position")?;
+                    set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+                    
+                    let color_attrib = self.vertices_program.get_attrib_location("color")?;
+                    set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
         
@@ -323,8 +348,11 @@ impl<'a> Render<'a> {
                     set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
+
+                    // print!("key: {}\n", key);
+                    // print!("{:?}\n", OBJECTS);
                     
-                    OBJECTS.push(Object::new(key, vertex_array, vertex_buffer, None, None, vertices.len() as i32, DrawType::ARRAY, gl::TRIANGLE_FAN));
+                    OBJECTS.push(Object::new(key, vertex_array, None, vertices.len() as i32, DrawType::ARRAY, gl::TRIANGLE_FAN));
 
                     Ok(())
                 }
@@ -356,11 +384,18 @@ impl<'a> Render<'a> {
         match found_object {
             Ok(index) => {
                 unsafe {
-                    let object = &self.objects[index];
+                    let vertex_array = &self.objects[index].vertex_array;
 
-                    object.vertex_array.bind();
+                    vertex_array.bind();
 
-                    object.vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+                    let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                    vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+        
+                    let pos_attrib = self.vertices_program.get_attrib_location("position")?;
+                    set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+                    
+                    let color_attrib = self.vertices_program.get_attrib_location("color")?;
+                    set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
         
@@ -383,7 +418,7 @@ impl<'a> Render<'a> {
         
                     VertexArray::unbind();
                     
-                    OBJECTS.push(Object::new(key, vertex_array, vertex_buffer, None, None, vertices.len() as i32, DrawType::ARRAY, gl::LINE_STRIP));
+                    OBJECTS.push(Object::new(key, vertex_array, None, vertices.len() as i32, DrawType::ARRAY, gl::LINE_STRIP));
 
                     Ok(())
                 }
@@ -405,11 +440,18 @@ impl<'a> Render<'a> {
         match found_object {
             Ok(index) => {
                 unsafe {
-                    let object = &self.objects[index];
+                    let vertex_array = &self.objects[index].vertex_array;
 
-                    object.vertex_array.bind();
+                    vertex_array.bind();
                     
-                    object.vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+                    let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                    vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+        
+                    let pos_attrib = self.vertices_program.get_attrib_location("position")?;
+                    set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+                    
+                    let color_attrib = self.vertices_program.get_attrib_location("color")?;
+                    set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
         
@@ -432,7 +474,7 @@ impl<'a> Render<'a> {
         
                     VertexArray::unbind();
                     
-                    OBJECTS.push(Object::new(key, vertex_array, vertex_buffer, None, None, vertices.len() as i32, DrawType::ARRAY, gl::LINE_STRIP));
+                    OBJECTS.push(Object::new(key, vertex_array, None, vertices.len() as i32, DrawType::ARRAY, gl::LINE_STRIP));
 
                     Ok(())
                 }
@@ -457,15 +499,21 @@ impl<'a> Render<'a> {
         match found_object {
             Ok(index) => {
                 unsafe {
-                    let object = self.objects[index];
+                    let vertex_array = &self.objects[index].vertex_array;
 
-                    object.vertex_array.bind();
+                    vertex_array.bind();
+
+                    let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+                    vertex_buffer.set_data(&texture_vertices, gl::STATIC_DRAW);
         
-                    object.vertex_buffer.set_data(&texture_vertices, gl::STATIC_DRAW);
+                    let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+                    index_buffer.set_data(&indices, gl::STATIC_DRAW);
+
+                    let pos_attrib = self.texture_program.get_attrib_location("position")?;
+                    set_attribute!(vertex_array, pos_attrib, _TextureVerticeData::0);
                     
-                    if let Some(index_buffer) = &object.index_buffer {
-                        index_buffer.set_data(&indices, gl::STATIC_DRAW);
-                    }
+                    let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
+                    set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
                     
                     // if image_path != object.texture.as_ref().unwrap().loaded_image_path.unwrap() {
                     //     let texture = Texture::new();
@@ -509,7 +557,7 @@ impl<'a> Render<'a> {
         
                     VertexArray::unbind();
 
-                    OBJECTS.push(Object::new(key, vertex_array, vertex_buffer, Some(index_buffer), Some(texture), indices.len() as i32, DrawType::ARRAY, gl::TRIANGLE_FAN));
+                    OBJECTS.push(Object::new(key, vertex_array, Some(texture), indices.len() as i32, DrawType::default(), gl::TRIANGLES));
         
                     Ok(())
                 }
@@ -517,29 +565,11 @@ impl<'a> Render<'a> {
         }
     }
 
-    pub fn update(&mut self, background: Option<Background<'a>>) {
-        if let Some(background) = background {
-            self.background = background;
-        }
-
+    pub fn update(&mut self) {
         self.objects = Vec::new();
 
         unsafe {
             for object in OBJECTS.iter() {
-                // let mut flag = false;
-    
-                // for i in 0..self.objects.len() {
-                //     if self.objects[i].key == object.key {
-                //         flag = true;
-                        
-                //         break;
-                //     }
-                // }
-    
-                // if !flag {
-                //     self.objects.push(object);
-                // }
-
                 self.objects.push(object);
             }
         }
@@ -557,13 +587,14 @@ impl<'a> Render<'a> {
                 background_image.texture.bind();
                 background_image.vertex_array.bind();
 
-                gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null()); 
+                gl::DrawElements(gl::TRIANGLES, background_image.count, gl::UNSIGNED_INT, ptr::null()); 
             } else {
                 let (red, green, blue, alpha) = self.background.color;
     
                 gl::ClearColor(red, green, blue, alpha);
             }
 
+            dbg!(&self.background);
             dbg!(&self.objects);
             
             for object in self.objects.iter() {
