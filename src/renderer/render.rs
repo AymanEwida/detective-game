@@ -582,8 +582,6 @@ impl Render {
     
                 gl::ClearColor(red, green, blue, alpha);
             }
-
-            dbg!(&self.objects);
             
             for object in self.objects.iter() {     
                 match object.draw_type {
