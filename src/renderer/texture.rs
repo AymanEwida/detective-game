@@ -6,12 +6,11 @@ use image::EncodableLayout;
 use super::error::{Error, Result};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Texture<'a> {
+pub struct Texture {
     pub id: GLuint,
-    pub loaded_image_path: Option<&'a str>,
 }
 
-impl Drop for Texture<'_> {
+impl Drop for Texture {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteTextures(1, [self.id].as_ptr());
@@ -19,16 +18,16 @@ impl Drop for Texture<'_> {
     }
 }
 
-impl Texture<'_> {
+impl Texture {
     pub unsafe fn new() -> Self {
         let mut id: GLuint = 0;
         gl::GenTextures(1, &mut id);
 
-        Self { id, loaded_image_path: None }
+        Self { id }
     }
 }
 
-impl<'a> Texture<'a> {
+impl Texture {
     pub unsafe fn bind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, self.id);
     }

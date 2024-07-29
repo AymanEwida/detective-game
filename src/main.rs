@@ -99,7 +99,9 @@ fn main() {
                             let x = position.x as f32;
                             let y = position.y as f32;
 
-                            render.draw_curved_line("curved_line1".to_string(), Position { x: 100.0, y: 100.0 }, Position { x, y }, Color::White, None).expect("Unable to draw curved_line");
+                            if x <= 300.0 && y <= 300.0 {
+                                render.draw_curved_line("curved_line1".to_string(), Position { x: 100.0, y: 100.0 }, Position { x, y }, Color::White, None).expect("Unable to draw curved_line");
+                            }
                         }
                     }
                     _ => ()
@@ -116,7 +118,7 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-                //render.fill_with_image("assets/test/background-test.jpg").expect("Unable to fill window with image");
+                render.fill_with_image("assets/test/background-test.jpg").expect("Unable to fill window with image");
 
                 render.draw_triangle(
                     "triangle".to_string(),

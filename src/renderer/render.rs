@@ -27,17 +27,17 @@ impl Default for DrawType {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Object<'a> {
+pub struct Object {
     key: String,
     vertex_array: VertexArray,
-    texture: Option<Texture<'a>>,
+    texture: Option<Texture>,
     count: i32,
     draw_type: DrawType,
     mode: GLenum
 }
 
-impl<'a> Object<'a> {
-    fn new(key: String, vertex_array: VertexArray, texture: Option<Texture<'a>>, count: i32, draw_type: DrawType, mode: GLenum) -> Self {
+impl Object {
+    fn new(key: String, vertex_array: VertexArray, texture: Option<Texture>, count: i32, draw_type: DrawType, mode: GLenum) -> Self {
         Self {
             key,
             vertex_array,
@@ -50,14 +50,14 @@ impl<'a> Object<'a> {
 }
 
 #[derive(Debug)]
-struct Image<'a> {
+struct Image {
     vertex_array: VertexArray,
-    texture: Texture<'a>,
+    texture: Texture,
     count: i32
 }
 
-impl<'a> Image<'a> {
-    fn new(vertex_array: VertexArray, texture: Texture<'a>, count: i32) -> Self {
+impl Image {
+    fn new(vertex_array: VertexArray, texture: Texture, count: i32) -> Self {
         Self {
             vertex_array,
             texture,
@@ -67,12 +67,12 @@ impl<'a> Image<'a> {
 }
 
 #[derive(Debug)]
-pub struct Background<'a> {
+pub struct Background {
     color: ColorType,
-    image: Option<Image<'a>>
+    image: Option<Image>
 }
 
-impl Default for Background<'_> {
+impl Default for Background {
     fn default() -> Self {
         Self {
             color: Color::Black.get_color_in_f32(),
@@ -81,15 +81,15 @@ impl Default for Background<'_> {
     }
 }
 
-pub struct Render<'a> {
+pub struct Render {
     size: Size,
     vertices_program: Program,
     texture_program: Program,
-    background: Background<'a>,
-    objects: Vec<&'a Object<'a>>
+    background: Background,
+    objects: Vec<Object>
 }
 
-impl Render<'_> {
+impl Render {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
             let vertices_vertex_shader = Shader::new(VERTICES_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
@@ -111,7 +111,7 @@ impl Render<'_> {
     }
 }
 
-impl<'a> Render<'a> {
+impl Render {
     pub fn resize(&mut self, new_size: Size) {
         self.size = new_size;
 
@@ -126,7 +126,7 @@ impl<'a> Render<'a> {
         self.background.color = color_data;
     }
 
-    pub fn fill_with_image(&mut self, image_path: &'a str) -> Result<()> {
+    pub fn fill_with_image(&mut self, image_path: &str) -> Result<()> {
         let background_image_vertices: [_TextureVerticeData; 4] = [
             _TextureVerticeData([-1.0, 1.0], [0.0, 0.0]),
             _TextureVerticeData([1.0, 1.0], [1.0, 0.0]),
@@ -349,9 +349,6 @@ impl<'a> Render<'a> {
         
                     VertexArray::unbind();
 
-                    // print!("key: {}\n", key);
-                    // print!("{:?}\n", OBJECTS);
-                    
                     OBJECTS.push(Object::new(key, vertex_array, None, vertices.len() as i32, DrawType::ARRAY, gl::TRIANGLE_FAN));
 
                     Ok(())
@@ -473,7 +470,7 @@ impl<'a> Render<'a> {
                     set_attribute!(vertex_array, color_attrib, _VerticeData::1);
         
                     VertexArray::unbind();
-                    
+
                     OBJECTS.push(Object::new(key, vertex_array, None, vertices.len() as i32, DrawType::ARRAY, gl::LINE_STRIP));
 
                     Ok(())
@@ -514,16 +511,6 @@ impl<'a> Render<'a> {
                     
                     let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
                     set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
-                    
-                    // if image_path != object.texture.as_ref().unwrap().loaded_image_path.unwrap() {
-                    //     let texture = Texture::new();
-                    //     texture.set_wrapping(gl::REPEAT);
-                    //     texture.set_filtering(gl::LINEAR);
-                    //     texture.load(&Path::new(image_path))?;
-                        
-                    //     gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                    //     gl::Enable(gl::BLEND);
-                    // }
         
                     VertexArray::unbind();
         
@@ -566,11 +553,13 @@ impl<'a> Render<'a> {
     }
 
     pub fn update(&mut self) {
-        self.objects = Vec::new();
-
         unsafe {
-            for object in OBJECTS.iter() {
-                self.objects.push(object);
+            for _ in 0..OBJECTS.len() {
+                let object = OBJECTS.pop();
+
+                if let Some(object) = object {
+                    self.objects.push(object);
+                }
             }
         }
         
@@ -594,12 +583,9 @@ impl<'a> Render<'a> {
                 gl::ClearColor(red, green, blue, alpha);
             }
 
-            dbg!(&self.background);
             dbg!(&self.objects);
             
-            for object in self.objects.iter() {
-                let object = *object;
-                
+            for object in self.objects.iter() {     
                 match object.draw_type {
                     DrawType::INDEX => {
                         if let Some(texture) = &object.texture {
