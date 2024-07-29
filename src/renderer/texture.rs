@@ -5,9 +5,9 @@ use image::EncodableLayout;
 
 use super::error::{Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Texture {
-    pub id: GLuint
+    pub id: GLuint,
 }
 
 impl Drop for Texture {
@@ -54,5 +54,17 @@ impl Texture {
         gl::GenerateMipmap(gl::TEXTURE_2D);
 
         Ok(())
+    }
+
+    pub unsafe fn set_wrapping(&self, mode: GLuint) {
+        self.bind();
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode as GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode as GLint);
+    }
+
+    pub unsafe fn set_filtering(&self, mode: GLuint) {
+        self.bind();
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, mode as GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, mode as GLint);
     }
 }
