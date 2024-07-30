@@ -2,11 +2,10 @@ use std::time::{Duration, Instant};
 
 use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
 
-use detective_game::library::constants::{
-    WIDTH,
-    HEIGHT
-};
-use detective_game::game::{character::{Character, Direction}, player::Player};
+use detective_game::{game::enemy::{Enemy, EnemyType}, library::constants::{
+    HEIGHT, WIDTH
+}, renderer::vertice::Position};
+use detective_game::game::{character::Direction, player::Player};
 use detective_game::renderer::render::{Render, Size};
 
 fn main() {
@@ -30,12 +29,12 @@ fn main() {
     let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
 
     let mut player = Player::default();
-
-    let mut last_update = Instant::now();
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 });
     
-    // let mut is_left_button_pressed = false;
+    let mut last_update = Instant::now();
+
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Poll;
         
         match event {
             Event::LoopDestroyed => (),
@@ -51,16 +50,16 @@ fn main() {
                             if let Some(virtual_keycode) = input.virtual_keycode {
                                 match virtual_keycode {
                                     VirtualKeyCode::W => {
-                                        player.move_character(Direction::Up, None);
+                                        player.move_player(Direction::Up, None);
                                     },
                                     VirtualKeyCode::S => {
-                                        player.move_character(Direction::Down, None);
+                                        player.move_player(Direction::Down, None);
                                     },
                                     VirtualKeyCode::A => {
-                                        player.move_character(Direction::Left, None);
+                                        player.move_player(Direction::Left, None);
                                     },
                                     VirtualKeyCode::D => {
-                                        player.move_character(Direction::Right, None);
+                                        player.move_player(Direction::Right, None);
                                     },
                                     _ => ()
                                 }
@@ -73,20 +72,7 @@ fn main() {
                                 }
                             }
                         }
-                    },
-                    // WindowEvent::MouseInput { state, button, .. } => {
-                    //     if state == ElementState::Pressed {
-                    //         is_left_button_pressed = button == MouseButton::Left;
-                    //     } else if state == ElementState::Released {
-                    //         is_left_button_pressed = false;
-                    //     }
-                    // },
-                    // WindowEvent::CursorMoved { position, .. } => {
-                    //     if is_left_button_pressed {
-                    //         let x = position.x as f32;
-                    //         let y = position.y as f32;
-                    //     }
-                    // }
+                    }
                     _ => ()
                 }
             },
@@ -105,10 +91,12 @@ fn main() {
 
                 player.draw(&render).expect("Unable to draw player");
 
+                enemy.draw(&render).expect("Unable to draw enemy");
+                
                 render.update();
-
+                
                 render.render();
-
+                
                 gl_context.swap_buffers().unwrap();
             }
             _ => ()

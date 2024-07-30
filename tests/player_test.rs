@@ -1,13 +1,13 @@
-use detective_game::{game::{character::{Character, Direction}, player::*}, renderer::vertice::Position};
+use detective_game::{game::{character::Direction, player::*}, renderer::vertice::Position};
 
 #[test]
-fn test_move_character_up() {
+fn test_move_player_up() {
     let mut player = Player::default();
 
     let input_direction = Direction::Up;
     let input_speed = None;
     
-    player.move_character(input_direction, input_speed);
+    player.move_player(input_direction, input_speed);
 
     let expected_position = Position { x: 10.0, y: 0.0 };
 
@@ -15,13 +15,13 @@ fn test_move_character_up() {
 }
 
 #[test]
-fn test_move_character_down() {
+fn test_move_player_down() {
     let mut player = Player::default();
 
     let input_direction = Direction::Down;
     let input_speed = None;
     
-    player.move_character(input_direction, input_speed);
+    player.move_player(input_direction, input_speed);
 
     let expected_position = Position { x: 10.0, y: 20.0 };
 
@@ -29,13 +29,13 @@ fn test_move_character_down() {
 }
 
 #[test]
-fn test_move_character_left() {
+fn test_move_player_left() {
     let mut player = Player::default();
 
     let input_direction = Direction::Left;
     let input_speed = None;
     
-    player.move_character(input_direction, input_speed);
+    player.move_player(input_direction, input_speed);
 
     let expected_position = Position { x: 0.0, y: 10.0 };
 
@@ -43,13 +43,13 @@ fn test_move_character_left() {
 }
 
 #[test]
-fn test_move_character_right() {
+fn test_move_player_right() {
     let mut player = Player::default();
 
     let input_direction = Direction::Right;
     let input_speed = None;
     
-    player.move_character(input_direction, input_speed);
+    player.move_player(input_direction, input_speed);
 
     let expected_position = Position { x: 20.0, y: 10.0 };
 
