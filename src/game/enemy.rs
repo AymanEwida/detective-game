@@ -1,23 +1,31 @@
-use std::{thread::sleep, time::Duration};
+use std::time::{Duration, Instant};
 
 use crate::{library::utils::convert_path, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::character::Character;
+use super::character::{Character, Direction};
 
 pub enum EnemyType {
     Regular
 }
 
 pub struct Enemy<'a> {
-    pub character: Character<'a>
+    character: Character<'a>,
+    last_move_time: Instant,
+    move_interval: Duration,
+    moves_path: Vec<(u32, Direction)>,
+    moves_count: u32,
 }
 
 impl Enemy<'_> {
-    pub fn new(enemy_type: EnemyType, position: Position) -> Self {
+    pub fn new(enemy_type: EnemyType, position: Position, path: &str) -> Self {
         match enemy_type {
             EnemyType::Regular => {
                 Self {
-                    character: Character::new(position, Size { width: 50.0, height: 60.0 }, "assets/game/regular-enemy.png")
+                    character: Character::new(position, Size { width: 50.0, height: 60.0 }, "assets/game/regular-enemy.png"),
+                    last_move_time: Instant::now(),
+                    move_interval: Duration::from_millis(300),
+                    moves_path: convert_path(path),
+                    moves_count: 0
                 }
             }
         }
@@ -31,20 +39,24 @@ impl Enemy<'_> {
         Ok(())
     }
 
-    pub fn move_enemy(&mut self, gl_context: &glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>, render: &Render, path: &str, speed: Option<f32>) {
-        let moves = convert_path(path);
+    pub fn move_enemy(&mut self, speed: Option<f32>) {
+        if self.last_move_time.elapsed() >= self.move_interval {
+            if let Some((moves_number, direction)) = self.moves_path.first() {
+                if *moves_number > 0 {
+                    self.character.move_character(*direction, speed);
 
-        for (moves_number, direction) in moves {
-            for _ in 0..moves_number {
-                self.character.move_character(direction, speed);
+                    self.moves_path[0].0 -= 1;
+                    self.moves_count += 1;
+                } else {
+                    self.moves_path[0].0 = self.moves_count;
+                    self.moves_path.rotate_left(1);
 
-                self.draw(render).expect("Unable to draw enemy");
+                    self.moves_count = 0;
 
-                render.render();
+                    self.move_enemy(speed);
+                }
 
-                gl_context.swap_buffers().unwrap();
-
-                sleep(Duration::from_millis(300));
+                self.last_move_time = Instant::now();
             }
         }
     }

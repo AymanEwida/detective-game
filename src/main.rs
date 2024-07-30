@@ -2,11 +2,11 @@ use std::time::{Duration, Instant};
 
 use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
 
-use detective_game::{game::enemy::{Enemy, EnemyType}, library::constants::{
+use detective_game::library::constants::{
     HEIGHT, WIDTH
-}, renderer::vertice::Position};
-use detective_game::game::{character::Direction, player::Player};
-use detective_game::renderer::render::{Render, Size};
+};
+use detective_game::game::{character::Direction, player::Player, enemy::{Enemy, EnemyType}};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -29,12 +29,12 @@ fn main() {
     let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
 
     let mut player = Player::default();
-    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 });
+    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d 4r 4l 5u");
     
     let mut last_update = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Poll;
         
         match event {
             Event::LoopDestroyed => (),
@@ -90,7 +90,6 @@ fn main() {
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
 
                 player.draw(&render).expect("Unable to draw player");
-
                 enemy.draw(&render).expect("Unable to draw enemy");
                 
                 render.update();
@@ -99,7 +98,7 @@ fn main() {
                 
                 gl_context.swap_buffers().unwrap();
 
-                enemy.move_enemy(&gl_context, &render, "4d 5r 5l 4u", None);
+                enemy.move_enemy(None);
             }
             _ => ()
         }
