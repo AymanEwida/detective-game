@@ -53,15 +53,13 @@ pub fn convert_path(path: &str) -> Vec<(u32, Direction)> {
     let path = path.to_lowercase();
 
     path.split(' ').map(| move_path | {
-        let mut chars = move_path.chars();
+        let move_number = move_path[0..move_path.len()-1].parse::<u32>().unwrap();
 
-        let move_number = chars.next().unwrap().to_string().parse::<u32>().unwrap();
-
-        let move_direction = match chars.next().unwrap() {
-            'u' => Direction::Up,
-            'd' => Direction::Down,
-            'l' => Direction::Left,
-            'r' => Direction::Right,
+        let move_direction = match move_path[move_path.len()-1..].as_ref() {
+            "u" => Direction::Up,
+            "d" => Direction::Down,
+            "l" => Direction::Left,
+            "r" => Direction::Right,
             _ => Direction::Down
         };
 
