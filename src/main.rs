@@ -1,15 +1,13 @@
 use std::time::{Duration, Instant};
 
-use glutin::{dpi::PhysicalSize, event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
+use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
 
-use library::constants::{
+use detective_game::library::constants::{
     WIDTH,
     HEIGHT
 };
-use renderer::{color::Color, render::{Render, Size}, vertice::{Position, Vertice}};
-
-mod renderer;
-mod library;
+use detective_game::game::{character::{Character, Direction}, player::Player};
+use detective_game::renderer::render::{Render, Size};
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -27,14 +25,15 @@ fn main() {
     };
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
-
+    
     let window_size = gl_context.window().inner_size();
-
     let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
 
-    let mut last_update = Instant::now();
+    let mut player = Player::default();
 
-    let mut is_left_button_pressed = false;
+    let mut last_update = Instant::now();
+    
+    // let mut is_left_button_pressed = false;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
         
@@ -52,28 +51,16 @@ fn main() {
                             if let Some(virtual_keycode) = input.virtual_keycode {
                                 match virtual_keycode {
                                     VirtualKeyCode::W => {
-                                        render.fill_with_color(Color::Black);
+                                        player.move_character(Direction::Up, None);
                                     },
                                     VirtualKeyCode::S => {
-                                        render.fill_with_color(Color::White);
+                                        player.move_character(Direction::Down, None);
                                     },
                                     VirtualKeyCode::A => {
-                                        render.fill_with_color(Color::Green);
+                                        player.move_character(Direction::Left, None);
                                     },
                                     VirtualKeyCode::D => {
-                                        render.fill_with_color(Color::Blue);
-                                    },
-                                    VirtualKeyCode::Up => {
-                                        render.fill_with_color(Color::RGB(50, 50, 50));
-                                    },
-                                    VirtualKeyCode::Down => {
-                                        render.fill_with_color(Color::RGBA(255, 255, 0, 50));
-                                    },
-                                    VirtualKeyCode::Left => {
-                                        render.fill_with_color(Color::Red);
-                                    },
-                                    VirtualKeyCode::Right => {
-                                        render.draw_circle("circle1".to_string(), Position { x: 100.0, y: 400.0 }, 100.0, Color::RGBA(0, 255, 255, 50), None).expect("Unable to draw circle");
+                                        player.move_character(Direction::Right, None);
                                     },
                                     _ => ()
                                 }
@@ -87,23 +74,19 @@ fn main() {
                             }
                         }
                     },
-                    WindowEvent::MouseInput { state, button, .. } => {
-                        if state == ElementState::Pressed {
-                            is_left_button_pressed = button == MouseButton::Left;
-                        } else if state == ElementState::Released {
-                            is_left_button_pressed = false;
-                        }
-                    },
-                    WindowEvent::CursorMoved { position, .. } => {
-                        if is_left_button_pressed {
-                            let x = position.x as f32;
-                            let y = position.y as f32;
-
-                            if x <= 300.0 && y <= 300.0 {
-                                render.draw_curved_line("curved_line1".to_string(), Position { x: 100.0, y: 100.0 }, Position { x, y }, Color::White, None).expect("Unable to draw curved_line");
-                            }
-                        }
-                    }
+                    // WindowEvent::MouseInput { state, button, .. } => {
+                    //     if state == ElementState::Pressed {
+                    //         is_left_button_pressed = button == MouseButton::Left;
+                    //     } else if state == ElementState::Released {
+                    //         is_left_button_pressed = false;
+                    //     }
+                    // },
+                    // WindowEvent::CursorMoved { position, .. } => {
+                    //     if is_left_button_pressed {
+                    //         let x = position.x as f32;
+                    //         let y = position.y as f32;
+                    //     }
+                    // }
                     _ => ()
                 }
             },
@@ -118,23 +101,9 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-                render.fill_with_image("assets/test/background-test.jpg").expect("Unable to fill window with image");
+                render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
 
-                render.draw_triangle(
-                    "triangle".to_string(),
-                    [
-                        Vertice(Position { x: 500.0, y: 500.0 }, Color::Red),
-                        Vertice(Position { x: 700.0, y: 500.0 }, Color::Green),
-                        Vertice(Position { x: 600.0, y: 300.0 }, Color::Blue),
-                    ]
-                ).expect("Unable to draw triangle");
-                render.draw_rectangle("rectangle1".to_string(), Position { x: 50.0, y: 500.0 }, Size { width: 400.0, height: 90.0 }, Color::RGB(255, 0, 255)).expect("Unable to draw rectangle");
-                render.draw_curved_line("curved_line".to_string(), Position { x: 200.0, y: 200.0 }, Position { x: 500.0, y: 300.0 }, Color::Blue, None).expect("Unable to draw curved line");
-                render.draw_line("line1".to_string(), Position { x: 50.0, y: 50.0 }, Position { x: 150.0, y: 50.0 }, Color::Red).expect("Unable to draw line");
-                render.draw_line("line2".to_string(), Position { x: 150.0, y: 50.0 }, Position { x: 150.0, y: 100.0 }, Color::Red).expect("Unable to draw line");
-                render.load_image("image1".to_string(), "assets/test/test-ferris.png", Position { x: 200.0, y: 200.0 }, Size { width: 200.0, height: 200.0 }).expect("Unable to load image");
-                render.load_image("image2".to_string(), "assets/test/test.jpg", Position { x: 550.0, y: 200.0 }, Size { width: 200.0, height: 200.0 }).expect("Unable to load image");
-                render.draw_circle("circle".to_string(), Position { x: 400.0, y: 300.0 }, 200.0, Color::RGBA(0, 255, 255, 50), None).expect("Unable to draw circle");
+                player.draw(&render).expect("Unable to draw player");
 
                 render.update();
 

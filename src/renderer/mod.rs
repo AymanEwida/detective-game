@@ -7,4 +7,4 @@ mod texture;
 pub mod vertice;
 pub mod render;
 pub mod color;
-mod error;
+pub mod error;
