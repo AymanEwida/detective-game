@@ -27,7 +27,7 @@ impl Default for DrawType {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Object {
+struct Object {
     key: String,
     vertex_array: VertexArray,
     texture: Option<Texture>,
@@ -67,7 +67,7 @@ impl Image {
 }
 
 #[derive(Debug)]
-pub struct Background {
+struct Background {
     color: ColorType,
     image: Option<Image>
 }
