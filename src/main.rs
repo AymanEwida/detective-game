@@ -29,12 +29,12 @@ fn main() {
     let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
 
     let mut player = Player::default();
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 });
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 });
     
     let mut last_update = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
+        *control_flow = ControlFlow::Wait;
         
         match event {
             Event::LoopDestroyed => (),
@@ -98,6 +98,8 @@ fn main() {
                 render.render();
                 
                 gl_context.swap_buffers().unwrap();
+
+                enemy.move_enemy(&gl_context, &render, "4d 5r 5l 4u", None);
             }
             _ => ()
         }

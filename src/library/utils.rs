@@ -53,7 +53,7 @@ pub fn convert_path(path: &str) -> Vec<(u32, Direction)> {
     let path = path.to_lowercase();
 
     path.split(' ').map(| move_path | {
-        let move_number = move_path[0..move_path.len()-1].parse::<u32>().unwrap();
+        let move_number = move_path[0..move_path.len()-1].parse::<u32>().unwrap_or(0);
 
         let move_direction = match move_path[move_path.len()-1..].as_ref() {
             "u" => Direction::Up,
