@@ -1,4 +1,4 @@
-use crate::renderer::{render::Size, vertice::Position};
+use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
 
 pub fn length_of_line(start: &Position, end: &Position) -> f32 {
     ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt()
@@ -47,4 +47,24 @@ pub fn convert_coordinates(coordinate: Position, size: &Size) -> Position {
 
 pub fn convert_size(object_size: Size, window: &Size) -> Size {
     Size { width: (object_size.width * 2.0) / window.width, height: (object_size.height * 2.0) / window.height }
+}
+
+pub fn convert_path(path: &str) -> Vec<(u32, Direction)> {
+    let path = path.to_lowercase();
+
+    path.split(' ').map(| move_path | {
+        let mut chars = move_path.chars();
+
+        let move_number = chars.next().unwrap().to_string().parse::<u32>().unwrap();
+
+        let move_direction = match chars.next().unwrap() {
+            'u' => Direction::Up,
+            'd' => Direction::Down,
+            'l' => Direction::Left,
+            'r' => Direction::Right,
+            _ => Direction::Down
+        };
+
+        (move_number, move_direction)
+    }).collect()
 }
