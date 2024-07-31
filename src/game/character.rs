@@ -27,8 +27,8 @@ impl<'a> Character<'a> {
 }
 
 impl GameObject for Character<'_> {
-    fn draw(&self, render: &Render, key: String) -> Result<()> {
-        render.load_image(key, self.image, self.position, self.size)?;
+    fn draw(&self, render: &mut Render) -> Result<()> {
+        render.load_image(self.image, self.position, self.size)?;
 
         Ok(())
     }

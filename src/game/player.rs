@@ -17,8 +17,8 @@ impl Default for Player<'_> {
 }
 
 impl Player<'_> {
-    pub fn draw(&self, render: &Render) -> Result<()> {
-        self.character.draw(render, "player".to_string())?;
+    pub fn draw(&self, render: &mut Render) -> Result<()> {
+        self.character.draw(render)?;
 
         Ok(())
     }

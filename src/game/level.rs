@@ -1,7 +1,7 @@
 use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
 pub trait GameObject {
-    fn draw(&self, render: &Render, key: String) -> Result<()>;
+    fn draw(&self, render: &mut Render) -> Result<()>;
     fn get_position(&self) -> Position;
     fn get_size(&self) -> Size;
 }
@@ -31,8 +31,8 @@ impl ObjectLevel<'_> {
 }
 
 impl GameObject for ObjectLevel<'_> {
-    fn draw(&self, render: &Render, key: String) -> Result<()> {
-        render.load_image(key, self.image, self.position, self.size)?;
+    fn draw(&self, render: &mut Render) -> Result<()> {
+        render.load_image(self.image, self.position, self.size)?;
 
         Ok(())
     }

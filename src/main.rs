@@ -35,7 +35,7 @@ fn main() {
     let mut last_update = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
+        *control_flow = ControlFlow::Wait;
         
         match event {
             Event::LoopDestroyed => (),
@@ -94,16 +94,16 @@ fn main() {
                 
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
 
-                player.draw(&render).expect("Unable to draw player");
+                player.draw(&mut render).expect("Unable to draw player");
 
-                enemy.draw(&render).expect("Unable to draw enemy");
+                enemy.draw(&mut render).expect("Unable to draw enemy");
                 enemy.move_enemy(None);
                 
-                wall.draw(&render, "wall".to_string()).expect("Unable to draw level");
+                wall.draw(&mut render).expect("Unable to draw level");
 
                 render.update();
                 
-                render.render();
+                // render.render();
                 
                 gl_context.swap_buffers().unwrap();
             }

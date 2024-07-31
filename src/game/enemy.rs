@@ -33,8 +33,8 @@ impl Enemy<'_> {
 }
 
 impl Enemy<'_> {
-    pub fn draw(&self, render: &Render) -> Result<()> {
-        self.character.draw(render, "enemy".to_string())?;
+    pub fn draw(&self, render: &mut Render) -> Result<()> {
+        self.character.draw(render)?;
 
         Ok(())
     }
