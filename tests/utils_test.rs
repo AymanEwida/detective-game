@@ -1,4 +1,4 @@
-use detective_game::{library::utils::*, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::character::Direction, library::utils::*, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -126,6 +126,24 @@ fn test_convert_size() {
     let input_window_size = Size { width: 80.0, height: 60.0 };
     let actual = convert_size(input_object_size, &input_window_size);
     let expected = Size { width: 1.0, height: 0.5 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_path_short() {
+    let input = "2d 2u";
+    let actual = convert_path(input);
+    let expected = vec![(2, Direction::Down), (2, Direction::Up)];
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_path_long() {
+    let input = "2r 1d 3r 3l 1u 2l";
+    let actual = convert_path(input);
+    let expected = vec![(2, Direction::Right), (1, Direction::Down), (3, Direction::Right), (3, Direction::Left), (1, Direction::Up), (2, Direction::Left)];
 
     assert_eq!(actual, expected);
 }

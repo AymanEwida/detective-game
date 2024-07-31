@@ -8,7 +8,7 @@ use super::{buffer::Buffer, color::{Color, ColorType}, error::Result, program::P
 
 static mut OBJECTS: Vec<Object> = Vec::new();
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Size {
     pub width: f32,
     pub height: f32
@@ -27,7 +27,7 @@ impl Default for DrawType {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Object {
+struct Object {
     key: String,
     vertex_array: VertexArray,
     texture: Option<Texture>,
@@ -67,7 +67,7 @@ impl Image {
 }
 
 #[derive(Debug)]
-pub struct Background {
+struct Background {
     color: ColorType,
     image: Option<Image>
 }
@@ -533,7 +533,7 @@ impl Render {
                     
                     let color_attrib = self.texture_program.get_attrib_location("vertexTexCoord")?;
                     set_attribute!(vertex_array, color_attrib, _TextureVerticeData::1);
-        
+
                     let texture = Texture::new();
                     texture.set_wrapping(gl::REPEAT);
                     texture.set_filtering(gl::LINEAR);
