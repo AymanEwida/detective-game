@@ -21,7 +21,7 @@ impl Enemy<'_> {
         match enemy_type {
             EnemyType::Regular => {
                 Self {
-                    character: Character::new(position, Size { width: 50.0, height: 60.0 }, "assets/game/regular-enemy.png"),
+                    character: Character::new(position, Size { width: 55.0, height: 60.0 }, "assets/game/regular-enemy.png"),
                     last_move_time: Instant::now(),
                     move_interval: Duration::from_millis(300),
                     moves_path: convert_path(path),
