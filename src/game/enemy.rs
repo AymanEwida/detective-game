@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::{library::utils::convert_path, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::character::{Character, Direction};
+use super::{character::{Character, Direction}, level::GameObject};
 
 pub enum EnemyType {
     Regular
@@ -61,7 +61,7 @@ impl Enemy<'_> {
         }
     }
 
-    pub fn get_position(&self) -> Position {
-        self.character.position
+    pub fn collide(&self, other: &impl GameObject) -> bool {
+        self.character.collide(other)
     }
 }

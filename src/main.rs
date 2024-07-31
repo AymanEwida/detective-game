@@ -5,7 +5,7 @@ use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, Win
 use detective_game::library::constants::{
     HEIGHT, WIDTH
 };
-use detective_game::game::{character::Direction, player::Player, enemy::{Enemy, EnemyType}};
+use detective_game::game::{character::Direction, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 
 fn main() {
@@ -30,6 +30,7 @@ fn main() {
 
     let mut player = Player::default();
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d 4r 4l 5u");
+    let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 150.0, y: 30.0 }, Size { width: 50.0, height: 150.0 });
     
     let mut last_update = Instant::now();
 
@@ -87,18 +88,24 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
+                if player.collide(&wall) {
+                    player.move_player_to_prev_position();
+                }
+                
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
 
                 player.draw(&render).expect("Unable to draw player");
+
                 enemy.draw(&render).expect("Unable to draw enemy");
+                enemy.move_enemy(None);
                 
+                wall.draw(&render, "wall".to_string()).expect("Unable to draw level");
+
                 render.update();
                 
                 render.render();
                 
                 gl_context.swap_buffers().unwrap();
-
-                enemy.move_enemy(None);
             }
             _ => ()
         }
