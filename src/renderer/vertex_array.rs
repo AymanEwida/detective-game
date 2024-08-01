@@ -8,7 +8,8 @@ pub struct VertexArray {
 impl Drop for VertexArray {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteVertexArrays(1, [self.id].as_ptr());
+            VertexArray::unbind();
+            gl::DeleteVertexArrays(1, &self.id);
         }
     }
 }

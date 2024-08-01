@@ -13,7 +13,8 @@ pub struct Texture {
 impl Drop for Texture {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteTextures(1, [self.id].as_ptr());
+            self.unbind();
+            gl::DeleteTextures(1, &self.id);
         }
     }
 }
@@ -25,15 +26,15 @@ impl Texture {
 
         Self { id }
     }
-
-    pub unsafe fn unbind() {
-        gl::BindTexture(gl::TEXTURE_2D, 0);
-    }
 }
 
 impl Texture {
     pub unsafe fn bind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, self.id);
+    }
+
+    pub unsafe fn unbind(&self) {
+        gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 
     pub unsafe fn load(&self, path: &Path) -> Result<()> {

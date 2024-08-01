@@ -12,37 +12,42 @@ pub struct Size {
     pub height: f32
 }
 
-#[derive(Debug, PartialEq)]
-enum DrawType {
-    INDEX,
-    ARRAY
-}
+// #[derive(Debug, PartialEq)]
+// struct Object {
+//     vertex_offset: usize,
+//     vertex_count: usize,
+//     index_offset: usize,
+//     index_count: i32,
+//     texture: Option<Texture>,
+//     mode: GLenum
+// }
 
-impl Default for DrawType {
-    fn default() -> Self {
-        Self::INDEX
-    }
-}
+// impl Object {
+//     fn new(vertex_offset: usize, vertex_count: usize, index_offset: usize, index_count: i32, texture: Option<Texture>, mode: GLenum) -> Self {
+//         Self {
+//             vertex_offset,
+//             vertex_count,
+//             index_offset,
+//             index_count,
+//             mode,
+//             texture
+//         }
+//     }
+// }
 
 #[derive(Debug, PartialEq)]
 struct Object {
-    vertex_offset: usize,
-    vertex_count: usize,
-    index_offset: usize,
-    index_count: i32,
+    vertices: Vec<_VerticeData>,
+    indices: Vec<u32>,
     texture: Option<Texture>,
-    draw_type: DrawType,
     mode: GLenum
 }
 
 impl Object {
-    fn new(vertex_offset: usize, vertex_count: usize, index_offset: usize, index_count: i32, texture: Option<Texture>, draw_type: DrawType, mode: GLenum) -> Self {
+    fn new(vertices: Vec<_VerticeData>, indices: Vec<u32>, texture: Option<Texture>, mode: GLenum) -> Self {
         Self {
-            vertex_offset,
-            vertex_count,
-            index_offset,
-            index_count,
-            draw_type,
+            vertices,
+            indices,
             mode,
             texture
         }
@@ -104,12 +109,9 @@ impl Render {
             let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
 
             let vertex_array = VertexArray::new();
-            
+    
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
-            vertex_buffer.set_empty(gl::STATIC_DRAW);
-
             let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
-            index_buffer.set_empty(gl::STATIC_DRAW);
 
             Ok(Self {
                 size,
@@ -184,53 +186,32 @@ impl Render {
     }
 
     pub fn draw_triangle(&mut self, bottom_left: Vertice, bottom_right: Vertice, other_point: Vertice) {
-        let vertices_data = [bottom_left.get_vertice_data(&self.size), bottom_right.get_vertice_data(&self.size), other_point.get_vertice_data(&self.size)];
-        let indices = [0, 1, 2];
+        let vertices_data = vec![bottom_left.get_vertice_data(&self.size), bottom_right.get_vertice_data(&self.size), other_point.get_vertice_data(&self.size)];
+        let indices = vec![0, 1, 2];
 
-        let vertex_offset = self.objects.iter().map(| object | object.vertex_count).sum::<usize>();
-        let index_offset = self.objects.iter().map(| object | object.index_count).sum::<i32>() as usize;
-
-        self.objects.push(Object::new(vertex_offset, vertices_data.len(), index_offset, indices.len() as i32, None, DrawType::default(), gl::TRIANGLES));
-
-        unsafe {
-            self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
-    
-            self.index_buffer.bind();
-            self.index_buffer.set_sub_data(index_offset, &indices);
-        }
+        self.objects.push(Object::new(vertices_data, indices, None, gl::TRIANGLES));
     }
 
     pub fn draw_rectangle(&mut self, position: Position, size: Size, color: Color) {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
-        let vertices_data = [
+        let vertices_data = vec![
             _VerticeData(position.get_vertice_position(None), color.get_vertices_color_in_f32()),
             _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), color.get_vertices_color_in_f32()),
             _VerticeData(position.get_vertice_position(Some(&size)), color.get_vertices_color_in_f32()),
             _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), color.get_vertices_color_in_f32()),
         ];
-        let indices = [0, 1, 2, 2, 3, 0];
+        let indices = vec![0, 1, 2, 2, 3, 0];
 
-        let vertex_offset = self.objects.iter().map(| object | object.vertex_count).sum::<usize>();
-        let index_offset = self.objects.iter().map(| object | object.index_count).sum::<i32>() as usize;
-        
-        self.objects.push(Object::new(vertex_offset, vertices_data.len(), index_offset, indices.len() as i32, None, DrawType::default(), gl::TRIANGLES));
-
-        unsafe {
-            self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
-    
-            self.index_buffer.bind();
-            self.index_buffer.set_sub_data(index_offset, &indices);
-        }
+        self.objects.push(Object::new(vertices_data, indices, None, gl::TRIANGLES));
     }
 
     pub fn draw_circle(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>) {
         let num_segments = num_segments.unwrap_or(360);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
+        let mut indices = Vec::with_capacity(num_segments as usize + 3);
 
         let center = convert_coordinates(center, &self.size);
         
@@ -244,22 +225,19 @@ impl Render {
             let y = theta.sin() * radius_y + center.y;
 
             vertices_data.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
+
+            indices.extend_from_slice(&[0, num, num+1]);
         }
+        indices.extend_from_slice(&[0, num_segments, num_segments+1]);
 
-        let vertex_offset = self.objects.iter().map(| object | object.vertex_count).sum::<usize>();
-
-        self.objects.push(Object::new(vertex_offset, vertices_data.len(), 0, 0 as i32, None, DrawType::ARRAY, gl::TRIANGLE_FAN));
-
-        unsafe {
-            self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
-        }
+        self.objects.push(Object::new(vertices_data, indices, None, gl::TRIANGLE_FAN));
     }
 
     pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>) {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
+        let mut indices = Vec::with_capacity(num_segments as usize + 2);
 
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
@@ -269,52 +247,42 @@ impl Render {
         for num in 0..=num_segments {
             let t = (num / num_segments) as f32;
 
-            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * control_point.x + t.powi(2) * end.x;
-            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * end.y;
+            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * control_point.x * 2.0 + t.powi(2) * end.x;
+            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * control_point.y * 2.0 + t.powi(2) * end.y;
 
             vertices_data.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
+
+            indices.extend_from_slice(&[0, num]);
         }
+        indices.extend_from_slice(&[0, num_segments]);
 
-        let vertex_offset = self.objects.iter().map(| object | object.vertex_count).sum::<usize>();
-
-        self.objects.push(Object::new(vertex_offset, vertices_data.len(), 0, 0, None, DrawType::ARRAY, gl::LINE_STRIP));
-
-        unsafe {
-            self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
-        }
+        self.objects.push(Object::new(vertices_data, indices, None, gl::LINE_STRIP));
     }
 
     pub fn draw_line(&mut self, start: Position, end: Position, color: Color) {    
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
         
-        let vertices_data = [
+        let vertices_data = vec![
             _VerticeData(start.get_vertice_position(None), color.get_vertices_color_in_f32()),
             _VerticeData(end.get_vertice_position(None), color.get_vertices_color_in_f32()),
         ];
+        let indices = vec![0, 1];
 
-        let vertex_offset = self.objects.iter().map(| object | object.vertex_count).sum::<usize>();
-
-        self.objects.push(Object::new(vertex_offset, vertices_data.len(), 0, 0, None, DrawType::ARRAY, gl::LINE_STRIP));
-
-        unsafe {
-            self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
-        }
+        self.objects.push(Object::new(vertices_data, indices, None, gl::LINE_STRIP));
     }
 
     pub fn load_image(&mut self, image_path: &str, position: Position, size: Size) -> Result<()> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
-        let vertices_data = [
+        let vertices_data = vec![
             _VerticeData(position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
             _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
             _VerticeData(position.get_vertice_position(Some(&size)), [1.0, 1.0, 0.0, 0.0]),
             _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), [0.0, 1.0, 0.0, 0.0]),
         ];
-        let indices = [0, 1, 2, 2, 3, 0];
+        let indices = vec![0, 1, 2, 2, 3, 0];
 
         unsafe {
             let texture = Texture::new();
@@ -325,16 +293,7 @@ impl Render {
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);
 
-            let vertex_offset = self.objects.iter().map(| object | object.vertex_count).sum::<usize>();
-            let index_offset = self.objects.iter().map(| object | object.index_count).sum::<i32>() as usize;
-            
-            self.objects.push(Object::new(vertex_offset, vertices_data.len(), index_offset, indices.len() as i32, Some(texture), DrawType::default(), gl::TRIANGLES));
-
-            self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
-    
-            self.index_buffer.bind();
-            self.index_buffer.set_sub_data(index_offset, &indices);
+            self.objects.push(Object::new(vertices_data, indices, Some(texture), gl::TRIANGLES));
         }
         
         Ok(())
@@ -374,51 +333,27 @@ impl Render {
 
             for object in self.objects.iter() {
                 print!("object: {:?}\n\n", object);
-
+                
                 self.vertex_array.bind();
 
-                match object.draw_type {
-                    DrawType::INDEX => {
-                        if let Some(texture) = &object.texture {
-                            self.texture_program.apply();
-                            texture.bind();
-                        } else {
-                            self.vertices_program.apply();
-                        }
+                self.vertex_buffer.set_data(&object.vertices, gl::DYNAMIC_DRAW);
+                self.index_buffer.set_data(&object.indices, gl::DYNAMIC_DRAW);
 
-                        gl::DrawElementsBaseVertex(
-                            object.mode,
-                            object.index_count,
-                            gl::UNSIGNED_INT,
-                            (object.index_offset * std::mem::size_of::<u32>()) as *const _,
-                            object.vertex_offset as i32
-                        );
-                    },
-                    DrawType::ARRAY => {
-                        if let Some(texture) = &object.texture {
-                            self.texture_program.apply();
-                            texture.bind();
-                        } else {
-                            self.vertices_program.apply();
-                        }
-
-                        gl::DrawArrays(object.mode, object.vertex_offset as i32, object.vertex_count as i32);
-                    }
+                if let Some(texture) = &object.texture {
+                    self.texture_program.apply();
+                    texture.bind();
+                } else {
+                    self.vertices_program.apply();
                 }
+                
+                gl::DrawElements(object.mode, object.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
 
-                Texture::unbind();
                 VertexArray::unbind();
             }
 
             self.objects = Vec::new();
 
             print!("after render: {:?}\n\n", self.objects);
-
-            self.vertex_buffer.set_empty(gl::STATIC_DRAW);
-            self.vertex_buffer.unbind();
-            
-            self.index_buffer.set_empty(gl::STATIC_DRAW);
-            self.index_buffer.unbind();
         }
 
         Ok(())

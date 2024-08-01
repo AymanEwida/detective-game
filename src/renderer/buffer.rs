@@ -1,5 +1,3 @@
-use std::ptr;
-
 use gl::types::*;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -11,7 +9,8 @@ pub struct Buffer {
 impl Drop for Buffer {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteBuffers(1, [self.id].as_ptr());
+            self.unbind();
+            gl::DeleteBuffers(1, &self.id);
         }
     }
 }
@@ -34,15 +33,6 @@ impl Buffer {
         gl::BindBuffer(self.target, 0);
     }
 
-    pub unsafe fn set_empty(&self, usage: GLuint) {
-        gl::BufferData(
-            self.target,
-            1024,
-            ptr::null(),
-            usage
-        );
-    }
-
     pub unsafe fn set_data<V>(&self, vertices_data: &[V], usage: GLuint) {
         self.bind();
         
@@ -56,18 +46,18 @@ impl Buffer {
         );
     }
 
-    pub unsafe fn set_sub_data<V>(&self, offset: usize, sub_data: &[V]) {
-        self.bind();
+    // pub unsafe fn set_sub_data<V>(&self, offset: usize, sub_data: &[V]) {
+    //     self.bind();
 
-        let offset = offset * std::mem::size_of::<V>();
+    //     let offset = offset * std::mem::size_of::<V>();
 
-        let (_, data_bytes, _) = sub_data.align_to::<u8>();
+    //     let (_, data_bytes, _) = sub_data.align_to::<u8>();
 
-        gl::BufferSubData(
-            self.target,
-            offset as GLsizeiptr,
-            data_bytes.len() as GLsizeiptr,
-            data_bytes.as_ptr() as *const _
-        );
-    }
+    //     gl::BufferSubData(
+    //         self.target,
+    //         offset as GLsizeiptr,
+    //         data_bytes.len() as GLsizeiptr,
+    //         data_bytes.as_ptr() as *const _
+    //     );
+    // }
 }
