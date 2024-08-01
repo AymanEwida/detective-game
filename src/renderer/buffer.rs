@@ -1,6 +1,6 @@
 use gl::types::*;
 
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct Buffer {
     pub id: GLuint,
     target: GLuint

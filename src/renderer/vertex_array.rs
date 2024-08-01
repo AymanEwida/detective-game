@@ -1,6 +1,6 @@
 use gl::types::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct VertexArray {
     pub id: GLuint
 }

@@ -5,7 +5,7 @@ use image::EncodableLayout;
 
 use super::error::{Error, Result};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq)]
 pub struct Texture {
     pub id: GLuint,
 }
