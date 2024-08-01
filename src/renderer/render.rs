@@ -1,4 +1,4 @@
-use std::{path::Path, ptr};
+use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
 
@@ -39,17 +39,17 @@ pub struct Size {
 struct Object {
     vertices: Vec<_VerticeData>,
     indices: Vec<u32>,
-    texture: Option<Texture>,
+    texture_image_path: Option<String>,
     mode: GLenum
 }
 
 impl Object {
-    fn new(vertices: Vec<_VerticeData>, indices: Vec<u32>, texture: Option<Texture>, mode: GLenum) -> Self {
+    fn new(vertices: Vec<_VerticeData>, indices: Vec<u32>, texture_image_path: Option<String>, mode: GLenum) -> Self {
         Self {
             vertices,
             indices,
             mode,
-            texture
+            texture_image_path
         }
     }
 }
@@ -94,6 +94,7 @@ pub struct Render {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     background: Background,
+    textures: HashMap<String, Texture>,
     objects: Vec<Object>
 }
 
@@ -109,7 +110,6 @@ impl Render {
             let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
 
             let vertex_array = VertexArray::new();
-    
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
             let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
 
@@ -121,6 +121,7 @@ impl Render {
                 vertex_buffer,
                 index_buffer,
                 background: Background::default(),
+                textures: HashMap::new(),
                 objects: Vec::new(),
             })
         }
@@ -284,6 +285,14 @@ impl Render {
         ];
         let indices = vec![0, 1, 2, 2, 3, 0];
 
+        let found_texture = self.textures.get(image_path);
+
+        if found_texture.is_some() {
+            self.objects.push(Object::new(vertices_data, indices, Some(image_path.to_string()), gl::TRIANGLES));
+
+            return Ok(());
+        }
+        
         unsafe {
             let texture = Texture::new();
             texture.set_wrapping(gl::REPEAT);
@@ -293,7 +302,9 @@ impl Render {
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);
 
-            self.objects.push(Object::new(vertices_data, indices, Some(texture), gl::TRIANGLES));
+            self.textures.insert(image_path.to_string(), texture);
+            
+            self.objects.push(Object::new(vertices_data, indices, Some(image_path.to_string()), gl::TRIANGLES));
         }
         
         Ok(())
@@ -339,7 +350,9 @@ impl Render {
                 self.vertex_buffer.set_data(&object.vertices, gl::DYNAMIC_DRAW);
                 self.index_buffer.set_data(&object.indices, gl::DYNAMIC_DRAW);
 
-                if let Some(texture) = &object.texture {
+                if let Some(texture_image_path) = &object.texture_image_path {
+                    let texture = self.textures.get(texture_image_path).unwrap();
+
                     self.texture_program.apply();
                     texture.bind();
                 } else {
