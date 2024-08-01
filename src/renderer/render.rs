@@ -194,10 +194,10 @@ impl Render {
 
         unsafe {
             self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data((vertex_offset * std::mem::size_of::<_VerticeData>()) as isize, &vertices_data);
+            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
     
             self.index_buffer.bind();
-            self.index_buffer.set_sub_data((index_offset * std::mem::size_of::<u32>()) as isize, &indices);
+            self.index_buffer.set_sub_data(index_offset, &indices);
         }
     }
 
@@ -220,10 +220,10 @@ impl Render {
 
         unsafe {
             self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data((vertex_offset * std::mem::size_of::<_VerticeData>()) as isize, &vertices_data);
+            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
     
             self.index_buffer.bind();
-            self.index_buffer.set_sub_data((index_offset * std::mem::size_of::<u32>()) as isize, &indices);
+            self.index_buffer.set_sub_data(index_offset, &indices);
         }
     }
 
@@ -252,7 +252,7 @@ impl Render {
 
         unsafe {
             self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data((vertex_offset * std::mem::size_of::<_VerticeData>()) as isize, &vertices_data);
+            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
         }
     }
 
@@ -281,7 +281,7 @@ impl Render {
 
         unsafe {
             self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data((vertex_offset * std::mem::size_of::<_VerticeData>()) as isize, &vertices_data);
+            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
         }
     }
 
@@ -300,7 +300,7 @@ impl Render {
 
         unsafe {
             self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data((vertex_offset * std::mem::size_of::<_VerticeData>()) as isize, &vertices_data);
+            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
         }
     }
 
@@ -331,10 +331,10 @@ impl Render {
             self.objects.push(Object::new(vertex_offset, vertices_data.len(), index_offset, indices.len() as i32, Some(texture), DrawType::default(), gl::TRIANGLES));
 
             self.vertex_buffer.bind();
-            self.vertex_buffer.set_sub_data((vertex_offset * std::mem::size_of::<_VerticeData>()) as isize, &vertices_data);
+            self.vertex_buffer.set_sub_data(vertex_offset, &vertices_data);
     
             self.index_buffer.bind();
-            self.index_buffer.set_sub_data((index_offset * std::mem::size_of::<u32>()) as isize, &indices);
+            self.index_buffer.set_sub_data(index_offset, &indices);
         }
         
         Ok(())
@@ -368,10 +368,12 @@ impl Render {
             let color_attrib = self.vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
+            VertexArray::unbind();
+
             print!("before render: {:?}\n\n", self.objects);
 
             for object in self.objects.iter() {
-                print!("during render: {:?}, object: {:?}\n\n", self.objects, object);
+                print!("object: {:?}\n\n", object);
 
                 self.vertex_array.bind();
 
@@ -401,21 +403,11 @@ impl Render {
                         }
 
                         gl::DrawArrays(object.mode, object.vertex_offset as i32, object.vertex_count as i32);
-
-                        // gl::DrawArraysInstancedBaseInstance(
-                        //     object.mode,
-                        //     object.vertex_offset as i32,
-                        //     object.vertex_count as i32,
-                        //     object.index_count,
-                        //     object.vertex_offset as u32
-                        // );
                     }
                 }
 
                 Texture::unbind();
                 VertexArray::unbind();
-
-                print!("remain: {:?}\n\n", self.objects);
             }
 
             self.objects = Vec::new();

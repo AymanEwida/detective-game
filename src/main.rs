@@ -6,7 +6,7 @@ use detective_game::library::constants::{
     HEIGHT, WIDTH
 };
 use detective_game::game::{character::Direction, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -88,18 +88,20 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-                if player.collide(&wall) {
-                    player.move_player_to_prev_position();
-                }
+                // if player.collide(&wall) {
+                //     player.move_player_to_prev_position();
+                // }
 
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
+
+                render.draw_rectangle(Position { x: 400.0, y: 300.0 }, Size { width: 200.0, height: 200.0 }, Color::RGBA(0, 255, 255, 50));
 
                 player.draw(&mut render).expect("Unable to draw player");
                 
                 enemy.draw(&mut render).expect("Unable to draw enemy");
                 enemy.move_enemy(None);
                 
-                wall.draw(&mut render).expect("Unable to draw level");
+                // wall.draw(&mut render).expect("Unable to draw level");
                 
                 render.render().expect("Uable to render object on window");
                 

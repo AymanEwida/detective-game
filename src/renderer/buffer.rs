@@ -56,14 +56,16 @@ impl Buffer {
         );
     }
 
-    pub unsafe fn set_sub_data<V>(&self, offset: isize, sub_data: &[V]) {
+    pub unsafe fn set_sub_data<V>(&self, offset: usize, sub_data: &[V]) {
         self.bind();
+
+        let offset = offset * std::mem::size_of::<V>();
 
         let (_, data_bytes, _) = sub_data.align_to::<u8>();
 
         gl::BufferSubData(
             self.target,
-            offset,
+            offset as GLsizeiptr,
             data_bytes.len() as GLsizeiptr,
             data_bytes.as_ptr() as *const _
         );
