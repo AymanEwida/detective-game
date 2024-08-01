@@ -23,7 +23,7 @@ impl ObjectLevel<'_> {
                 Self {
                     position,
                     size,
-                    image: "assets/game/wall.jpg"
+                    image: "assets/game/wall2.png"
                 }
             }
         }

@@ -32,7 +32,7 @@ pub struct Vertice(pub Position, pub Color);
 pub struct _TextureVerticeData(pub PositionType, pub [f32; 2]);
 
 #[repr(C, packed)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct _VerticeData(pub PositionType, pub [f32; 4]);
 
 impl Vertice {

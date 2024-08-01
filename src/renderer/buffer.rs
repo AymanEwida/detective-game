@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::ptr;
 
 use gl::types::*;
 
@@ -30,9 +30,22 @@ impl Buffer {
         gl::BindBuffer(self.target, self.id);
     }
 
-    pub unsafe fn set_data<V: Debug + PartialEq>(&self, vertices_data: &[V], usage: GLuint) {
-        self.bind();
+    pub unsafe fn unbind(&self) {
+        gl::BindBuffer(self.target, 0);
+    }
 
+    pub unsafe fn set_empty(&self, usage: GLuint) {
+        gl::BufferData(
+            self.target,
+            1024,
+            ptr::null(),
+            usage
+        );
+    }
+
+    pub unsafe fn set_data<V>(&self, vertices_data: &[V], usage: GLuint) {
+        self.bind();
+        
         let (_, data_bytes, _) = vertices_data.align_to::<u8>();
 
         gl::BufferData(
@@ -40,6 +53,19 @@ impl Buffer {
             data_bytes.len() as GLsizeiptr,
             data_bytes.as_ptr() as *const _,
             usage
+        );
+    }
+
+    pub unsafe fn set_sub_data<V>(&self, offset: isize, sub_data: &[V]) {
+        self.bind();
+
+        let (_, data_bytes, _) = sub_data.align_to::<u8>();
+
+        gl::BufferSubData(
+            self.target,
+            offset,
+            data_bytes.len() as GLsizeiptr,
+            data_bytes.as_ptr() as *const _
         );
     }
 }

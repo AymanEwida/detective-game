@@ -64,4 +64,8 @@ impl Enemy<'_> {
     pub fn collide(&self, other: &impl GameObject) -> bool {
         self.character.collide(other)
     }
+
+    pub fn get_position(&self) -> Position {
+        self.character.get_position()
+    }
 }

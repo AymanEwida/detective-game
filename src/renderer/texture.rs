@@ -25,6 +25,10 @@ impl Texture {
 
         Self { id }
     }
+
+    pub unsafe fn unbind() {
+        gl::BindTexture(gl::TEXTURE_2D, 0);
+    }
 }
 
 impl Texture {
