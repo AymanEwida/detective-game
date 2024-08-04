@@ -2,9 +2,9 @@ use std::time::{Duration, Instant};
 
 use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
 
-use detective_game::library::constants::{
+use detective_game::{game::character::Character, library::constants::{
     HEIGHT, WIDTH
-};
+}};
 use detective_game::game::{character::Direction, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 
@@ -28,7 +28,7 @@ fn main() {
     let window_size = gl_context.window().inner_size();
     let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
 
-    let mut player = Player::default();
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d 4r 4l 5u");
     let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 150.0, y: 30.0 }, Size { width: 50.0, height: 150.0 });
     

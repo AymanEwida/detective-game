@@ -1,8 +1,8 @@
-use detective_game::{game::{character::Direction, level::{ObjectLevel, ObjectLevelType}, player::*}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::{Character, Direction}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::*}, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_move_player_up() {
-    let mut player = Player::default();
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
 
     let input_direction = Direction::Up;
     let input_speed = None;
@@ -18,7 +18,7 @@ fn test_move_player_up() {
 
 #[test]
 fn test_move_player_down() {
-    let mut player = Player::default();
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
 
     let input_direction = Direction::Down;
     let input_speed = None;
@@ -35,7 +35,7 @@ fn test_move_player_down() {
 
 #[test]
 fn test_move_player_left() {
-    let mut player = Player::default();
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
 
     let input_direction = Direction::Left;
     let input_speed = None;
@@ -51,7 +51,7 @@ fn test_move_player_left() {
 
 #[test]
 fn test_move_player_right() {
-    let mut player = Player::default();
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
 
     let input_direction = Direction::Right;
     let input_speed = None;
@@ -69,7 +69,7 @@ fn test_move_player_right() {
 #[test]
 fn test_collide_and_move_player_to_prev_position() {
     let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 60.0, y: 10.0 }, Size { width: 50.0, height: 60.0 });
-    let mut player = Player::default();
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
 
     let input_direction = Direction::Right;
     let input_speed = None;
