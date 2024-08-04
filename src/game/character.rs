@@ -26,8 +26,8 @@ impl<'a> Character<'a> {
     }
 }
 
-impl GameObject for Character<'_> {
-    fn draw(&self, render: &mut Render) -> Result<()> {
+impl<'a> GameObject<'a> for Character<'a> {
+    fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         render.load_image(self.image, self.position, self.size)?;
 
         Ok(())
@@ -43,7 +43,7 @@ impl GameObject for Character<'_> {
 }
 
 
-impl Character<'_> {
+impl<'a> Character<'a> {
     pub fn move_character(&mut self, direction: Direction, speed: Option<f32>) {
         let speed = speed.unwrap_or(10.0);
 
@@ -63,7 +63,7 @@ impl Character<'_> {
         }
     }
 
-    pub fn collide(&self, other: &impl GameObject) -> bool {
+    pub fn collide(&self, other: &impl GameObject<'a>) -> bool {
         let other_position = other.get_position();
         let other_size = other.get_size();
 

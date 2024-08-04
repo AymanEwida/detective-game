@@ -16,8 +16,8 @@ impl Default for Player<'_> {
     }
 }
 
-impl Player<'_> {
-    pub fn draw(&self, render: &mut Render) -> Result<()> {
+impl<'a> Player<'a> {
+    pub fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         self.character.draw(render)?;
 
         Ok(())
@@ -43,7 +43,7 @@ impl Player<'_> {
         self.character.get_position()
     }
 
-    pub fn collide(&self, other: &impl GameObject) -> bool {
+    pub fn collide(&self, other: &impl GameObject<'a>) -> bool {
         self.character.collide(other)
     }
 }
