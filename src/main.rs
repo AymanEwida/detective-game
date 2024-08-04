@@ -6,7 +6,7 @@ use detective_game::library::constants::{
     HEIGHT, WIDTH
 };
 use detective_game::game::{character::Direction, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -93,11 +93,6 @@ fn main() {
                 }
 
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
-
-                render.draw_rectangle(Position { x: 400.0, y: 300.0 }, Size { width: 200.0, height: 200.0 }, Color::RGB(255, 0, 255));
-                render.draw_circle(Position { x: 400.0, y: 300.0 }, 100.0, Color::RGBA(0, 255, 255, 50), Some(5));
-                render.draw_curved_line(Position { x: 150.0, y: 150.0 }, Position { x: 50.0, y: 50.0 }, Color::Blue, None);
-                render.draw_line(Position { x: 500.0, y: 500.0 }, Position { x: 500.0, y: 100.0 }, Color::Green);
 
                 player.draw(&mut render).expect("Unable to draw player");
                 

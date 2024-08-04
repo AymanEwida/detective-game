@@ -38,13 +38,13 @@ pub struct Size {
 #[derive(Debug, PartialEq)]
 struct Object {
     vertices: Vec<_VerticeData>,
-    indices: Vec<u32>,
+    indices: Option<Vec<u32>>,
     texture_image_path: Option<String>,
     mode: GLenum
 }
 
 impl Object {
-    fn new(vertices: Vec<_VerticeData>, indices: Vec<u32>, texture_image_path: Option<String>, mode: GLenum) -> Self {
+    fn new(vertices: Vec<_VerticeData>, indices: Option<Vec<u32>>, texture_image_path: Option<String>, mode: GLenum) -> Self {
         Self {
             vertices,
             indices,
@@ -110,8 +110,20 @@ impl Render {
             let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
 
             let vertex_array = VertexArray::new();
+            
             let vertex_buffer = Buffer::new(gl::ARRAY_BUFFER);
+            vertex_buffer.set_empty(0, gl::DYNAMIC_DRAW);
+
             let index_buffer = Buffer::new(gl::ELEMENT_ARRAY_BUFFER);
+            index_buffer.set_empty(0, gl::DYNAMIC_DRAW);
+
+            let pos_attrib = vertices_program.get_attrib_location("position")?;
+            set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
+            
+            let color_attrib = vertices_program.get_attrib_location("color")?;
+            set_attribute!(vertex_array, color_attrib, _VerticeData::1);
+
+            VertexArray::unbind();
 
             Ok(Self {
                 size,
@@ -190,7 +202,7 @@ impl Render {
         let vertices_data = vec![bottom_left.get_vertice_data(&self.size), bottom_right.get_vertice_data(&self.size), other_point.get_vertice_data(&self.size)];
         let indices = vec![0, 1, 2];
 
-        self.objects.push(Object::new(vertices_data, indices, None, gl::TRIANGLES));
+        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLES));
     }
 
     pub fn draw_rectangle(&mut self, position: Position, size: Size, color: Color) {
@@ -205,14 +217,14 @@ impl Render {
         ];
         let indices = vec![0, 1, 2, 2, 3, 0];
 
-        self.objects.push(Object::new(vertices_data, indices, None, gl::TRIANGLES));
+        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLES));
     }
 
     pub fn draw_circle(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>) {
         let num_segments = num_segments.unwrap_or(360);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
-        let mut indices = Vec::with_capacity(num_segments as usize + 3);
+        let mut indices = Vec::with_capacity(num_segments as usize * 3);
 
         let center = convert_coordinates(center, &self.size);
         
@@ -229,35 +241,30 @@ impl Render {
 
             indices.extend_from_slice(&[0, num, num+1]);
         }
-        indices.extend_from_slice(&[0, num_segments, num_segments+1]);
 
-        self.objects.push(Object::new(vertices_data, indices, None, gl::TRIANGLE_FAN));
+        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLE_FAN));
     }
 
     pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>) {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
-        let mut indices = Vec::with_capacity(num_segments as usize + 2);
-
+        
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
-
+        
         let control_point = calc_control_point(&start, &end);
 
         for num in 0..=num_segments {
-            let t = (num / num_segments) as f32;
+            let t = num as f32 / num_segments as f32;
 
-            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * control_point.x * 2.0 + t.powi(2) * end.x;
-            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * control_point.y * 2.0 + t.powi(2) * end.y;
+            let x = (1.0 - t).powi(2) * start.x + 2.0 * (1.0 - t) * t * control_point.x + t.powi(2) * end.x;
+            let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * end.y;
 
             vertices_data.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
-
-            indices.extend_from_slice(&[0, num]);
         }
-        indices.extend_from_slice(&[0, num_segments]);
 
-        self.objects.push(Object::new(vertices_data, indices, None, gl::LINE_STRIP));
+        self.objects.push(Object::new(vertices_data, None, None, gl::LINE_STRIP));
     }
 
     pub fn draw_line(&mut self, start: Position, end: Position, color: Color) {    
@@ -270,7 +277,7 @@ impl Render {
         ];
         let indices = vec![0, 1];
 
-        self.objects.push(Object::new(vertices_data, indices, None, gl::LINE_STRIP));
+        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP));
     }
 
     pub fn load_image(&mut self, image_path: &str, position: Position, size: Size) -> Result<()> {
@@ -288,7 +295,7 @@ impl Render {
         let found_texture = self.textures.get(image_path);
 
         if found_texture.is_some() {
-            self.objects.push(Object::new(vertices_data, indices, Some(image_path.to_string()), gl::TRIANGLES));
+            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path.to_string()), gl::TRIANGLES));
 
             return Ok(());
         }
@@ -304,7 +311,7 @@ impl Render {
 
             self.textures.insert(image_path.to_string(), texture);
             
-            self.objects.push(Object::new(vertices_data, indices, Some(image_path.to_string()), gl::TRIANGLES));
+            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path.to_string()), gl::TRIANGLES));
         }
         
         Ok(())
@@ -326,31 +333,14 @@ impl Render {
 
             gl::ClearColor(red, green, blue, alpha);
 
-            let vertex_array = &self.vertex_array;
-
-            vertex_array.bind();
-            self.vertex_buffer.bind();
-            self.index_buffer.bind();
-
-            let pos_attrib = self.vertices_program.get_attrib_location("position")?;
-            set_attribute!(vertex_array, pos_attrib, _VerticeData::0);
-            
-            let color_attrib = self.vertices_program.get_attrib_location("color")?;
-            set_attribute!(vertex_array, color_attrib, _VerticeData::1);
-
-            VertexArray::unbind();
-
-            print!("before render: {:?}\n\n", self.objects);
-
             for object in self.objects.iter() {
-                print!("object: {:?}\n\n", object);
-                
                 self.vertex_array.bind();
 
                 self.vertex_buffer.set_data(&object.vertices, gl::DYNAMIC_DRAW);
-                self.index_buffer.set_data(&object.indices, gl::DYNAMIC_DRAW);
 
                 if let Some(texture_image_path) = &object.texture_image_path {
+                    assert!(self.textures.get(texture_image_path) != None, "texture must exist");
+
                     let texture = self.textures.get(texture_image_path).unwrap();
 
                     self.texture_program.apply();
@@ -358,15 +348,19 @@ impl Render {
                 } else {
                     self.vertices_program.apply();
                 }
-                
-                gl::DrawElements(object.mode, object.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+
+                if let Some(indices) = &object.indices {
+                    self.index_buffer.set_data(indices, gl::DYNAMIC_DRAW);
+                    
+                    gl::DrawElements(object.mode, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+                } else {
+                    gl::DrawArrays(object.mode, 0, object.vertices.len() as i32);
+                }
 
                 VertexArray::unbind();
             }
 
             self.objects = Vec::new();
-
-            print!("after render: {:?}\n\n", self.objects);
         }
 
         Ok(())
