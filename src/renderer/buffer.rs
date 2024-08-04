@@ -1,8 +1,8 @@
-use std::fmt::Debug;
+use std::ptr;
 
 use gl::types::*;
 
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct Buffer {
     pub id: GLuint,
     target: GLuint
@@ -11,7 +11,8 @@ pub struct Buffer {
 impl Drop for Buffer {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteBuffers(1, [self.id].as_ptr());
+            self.unbind();
+            gl::DeleteBuffers(1, &self.id);
         }
     }
 }
@@ -30,9 +31,24 @@ impl Buffer {
         gl::BindBuffer(self.target, self.id);
     }
 
-    pub unsafe fn set_data<V: Debug + PartialEq>(&self, vertices_data: &[V], usage: GLuint) {
+    pub unsafe fn unbind(&self) {
+        gl::BindBuffer(self.target, 0);
+    }
+
+    pub unsafe fn set_empty(&self, size: isize, usage: GLuint) {
         self.bind();
 
+        gl::BufferData(
+            self.target,
+            size,
+            ptr::null(),
+            usage
+        );
+    }
+
+    pub unsafe fn set_data<V>(&self, vertices_data: &[V], usage: GLuint) {
+        self.bind();
+        
         let (_, data_bytes, _) = vertices_data.align_to::<u8>();
 
         gl::BufferData(

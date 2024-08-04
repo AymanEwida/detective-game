@@ -91,19 +91,17 @@ fn main() {
                 if player.collide(&wall) {
                     player.move_player_to_prev_position();
                 }
-                
+
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
 
-                player.draw(&render).expect("Unable to draw player");
-
-                enemy.draw(&render).expect("Unable to draw enemy");
+                player.draw(&mut render).expect("Unable to draw player");
+                
+                enemy.draw(&mut render).expect("Unable to draw enemy");
                 enemy.move_enemy(None);
                 
-                wall.draw(&render, "wall".to_string()).expect("Unable to draw level");
-
-                render.update();
+                wall.draw(&mut render).expect("Unable to draw level");
                 
-                render.render();
+                render.render().expect("Uable to render object on window");
                 
                 gl_context.swap_buffers().unwrap();
             }

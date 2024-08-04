@@ -33,8 +33,8 @@ impl Enemy<'_> {
 }
 
 impl Enemy<'_> {
-    pub fn draw(&self, render: &Render) -> Result<()> {
-        self.character.draw(render, "enemy".to_string())?;
+    pub fn draw(&self, render: &mut Render) -> Result<()> {
+        self.character.draw(render)?;
 
         Ok(())
     }
@@ -63,5 +63,9 @@ impl Enemy<'_> {
 
     pub fn collide(&self, other: &impl GameObject) -> bool {
         self.character.collide(other)
+    }
+
+    pub fn get_position(&self) -> Position {
+        self.character.get_position()
     }
 }
