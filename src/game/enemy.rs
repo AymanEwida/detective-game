@@ -32,8 +32,8 @@ impl Enemy<'_> {
     }
 }
 
-impl Enemy<'_> {
-    pub fn draw(&self, render: &mut Render) -> Result<()> {
+impl<'a> Enemy<'a> {
+    pub fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         self.character.draw(render)?;
 
         Ok(())
@@ -61,7 +61,7 @@ impl Enemy<'_> {
         }
     }
 
-    pub fn collide(&self, other: &impl GameObject) -> bool {
+    pub fn collide(&self, other: &impl GameObject<'a>) -> bool {
         self.character.collide(other)
     }
 

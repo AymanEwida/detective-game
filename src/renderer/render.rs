@@ -12,39 +12,16 @@ pub struct Size {
     pub height: f32
 }
 
-// #[derive(Debug, PartialEq)]
-// struct Object {
-//     vertex_offset: usize,
-//     vertex_count: usize,
-//     index_offset: usize,
-//     index_count: i32,
-//     texture: Option<Texture>,
-//     mode: GLenum
-// }
-
-// impl Object {
-//     fn new(vertex_offset: usize, vertex_count: usize, index_offset: usize, index_count: i32, texture: Option<Texture>, mode: GLenum) -> Self {
-//         Self {
-//             vertex_offset,
-//             vertex_count,
-//             index_offset,
-//             index_count,
-//             mode,
-//             texture
-//         }
-//     }
-// }
-
 #[derive(Debug, PartialEq)]
-struct Object {
+struct Object<'a> {
     vertices: Vec<_VerticeData>,
     indices: Option<Vec<u32>>,
-    texture_image_path: Option<String>,
+    texture_image_path: Option<&'a str>,
     mode: GLenum
 }
 
-impl Object {
-    fn new(vertices: Vec<_VerticeData>, indices: Option<Vec<u32>>, texture_image_path: Option<String>, mode: GLenum) -> Self {
+impl<'a> Object<'a> {
+    fn new(vertices: Vec<_VerticeData>, indices: Option<Vec<u32>>, texture_image_path: Option<&'a str>, mode: GLenum) -> Self {
         Self {
             vertices,
             indices,
@@ -86,7 +63,7 @@ impl Default for Background {
     }
 }
 
-pub struct Render {
+pub struct Render<'a> {
     size: Size,
     vertices_program: Program,
     texture_program: Program,
@@ -94,11 +71,11 @@ pub struct Render {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     background: Background,
-    textures: HashMap<String, Texture>,
-    objects: Vec<Object>
+    textures: HashMap<&'a str, Texture>,
+    objects: Vec<Object<'a>>
 }
 
-impl Render {
+impl Render<'_> {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
             let vertices_vertex_shader = Shader::new(VERTICES_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
@@ -140,7 +117,7 @@ impl Render {
     }
 }
 
-impl Render {
+impl<'a> Render<'a> {
     pub fn resize(&mut self, new_size: Size) {
         self.size = new_size;
 
@@ -220,7 +197,7 @@ impl Render {
         self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLES));
     }
 
-    pub fn draw_circle(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>) {
+    pub fn draw_geometric_object(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>) {
         let num_segments = num_segments.unwrap_or(360);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
@@ -283,7 +260,7 @@ impl Render {
         self.objects.push(Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP));
     }
 
-    pub fn load_image(&mut self, image_path: &str, position: Position, size: Size) -> Result<()> {
+    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size) -> Result<()> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
@@ -298,7 +275,7 @@ impl Render {
         let found_texture = self.textures.get(image_path);
 
         if found_texture.is_some() {
-            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path.to_string()), gl::TRIANGLES));
+            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES));
 
             return Ok(());
         }
@@ -312,9 +289,9 @@ impl Render {
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);
 
-            self.textures.insert(image_path.to_string(), texture);
+            self.textures.insert(image_path, texture);
             
-            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path.to_string()), gl::TRIANGLES));
+            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES));
         }
         
         Ok(())
