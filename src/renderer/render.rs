@@ -249,6 +249,7 @@ impl Render {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
+        let mut indices = Vec::with_capacity(num_segments as usize);
         
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
@@ -262,9 +263,11 @@ impl Render {
             let y = (1.0 - t).powi(2) * start.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * end.y;
 
             vertices_data.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
+
+            indices.push(num);
         }
 
-        self.objects.push(Object::new(vertices_data, None, None, gl::LINE_STRIP));
+        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP));
     }
 
     pub fn draw_line(&mut self, start: Position, end: Position, color: Color) {    
