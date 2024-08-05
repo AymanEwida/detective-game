@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
+use rusttype::{Font, Scale};
 
 use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
@@ -161,7 +162,7 @@ impl<'a> Render<'a> {
                 let texture = Texture::new();
                 texture.set_wrapping(gl::REPEAT);
                 texture.set_filtering(gl::LINEAR);
-                texture.load(&Path::new(image_path))?;
+                texture.load_image(&Path::new(image_path))?;
     
                 gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
                 gl::Enable(gl::BLEND);
@@ -284,7 +285,7 @@ impl<'a> Render<'a> {
             let texture = Texture::new();
             texture.set_wrapping(gl::REPEAT);
             texture.set_filtering(gl::LINEAR);
-            texture.load(&Path::new(image_path))?;
+            texture.load_image(&Path::new(image_path))?;
 
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);
@@ -295,6 +296,61 @@ impl<'a> Render<'a> {
         }
         
         Ok(())
+    }
+
+    pub fn display_text(&mut self, text: &'a str, position: Position, size: Size, color: Color) {
+        let position = convert_coordinates(position, &self.size);
+        let vertices_size = convert_size(size, &self.size);
+
+        let vertices_data = vec![
+            _VerticeData(position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
+            _VerticeData(position.get_vertice_position(Some(&Size { width: vertices_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
+            _VerticeData(position.get_vertice_position(Some(&vertices_size)), [1.0, 1.0, 0.0, 0.0]),
+            _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: vertices_size.height })), [0.0, 1.0, 0.0, 0.0]),
+        ];
+        let indices = vec![0, 1, 2, 2, 3, 0];
+
+        let font_data = include_bytes!("../../assets/font/Roboto-Regular.ttf");
+        let font = Font::try_from_bytes(font_data as &[u8]).unwrap();
+
+        let scale = Scale::uniform(32.0);
+        let v_metrics = font.v_metrics(scale);
+        let offset = rusttype::point(0.0, v_metrics.ascent);
+
+        let glyphs: Vec<_> = font
+            .layout(text, scale, offset)
+            .collect();
+
+        let mut pixels = vec![0; (size.width as usize) * (size.height as usize)];
+
+        for glyph in glyphs {
+            if let Some(bounding_box) = glyph.pixel_bounding_box() {
+                glyph.draw(| x, y, v | {
+                    let x = (x as i32) + bounding_box.min.x;
+                    let y = (y as i32) + bounding_box.min.y;
+
+                    if x >= 0 && x < size.width as i32 && y >= 0 && y < size.height as i32 {
+                        let index = (x as usize) + (y as usize) * (size.width as usize);
+
+                        pixels[index + 3] = (v * 255.0) as u8;
+                    }
+                })
+            }
+        }
+
+        unsafe {
+            let texture = Texture::new();
+            texture.set_wrapping(gl::CLAMP_TO_EDGE);
+            texture.set_filtering(gl::LINEAR);
+            texture.load_bytes(size, pixels);
+
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            gl::Enable(gl::BLEND);
+
+            self.textures.insert(text, texture);
+            
+            self.objects.push(Object::new(vertices_data, Some(indices), Some(text), gl::TRIANGLES));
+        }
     }
 
     pub fn render(&mut self) -> Result<()> {

@@ -4,7 +4,7 @@ use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, Win
 
 use detective_game::{game::character::Character, library::constants::{
     HEIGHT, WIDTH
-}};
+}, renderer::color::Color};
 use detective_game::game::{character::Direction, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 
@@ -93,6 +93,8 @@ fn main() {
                 }
 
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
+
+                render.display_text("Test", Position { x: 200.0, y: 200.0 }, Size { width: 100.0, height: 30.0 }, Color::Red);
 
                 player.draw(&mut render).expect("Unable to draw player");
                 
