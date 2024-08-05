@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
-use rusttype::{Font, Scale};
+use rusttype::{Font, PositionedGlyph, Scale};
 
 use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
@@ -298,17 +298,9 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn display_text(&mut self, text: &'a str, position: Position, size: Size, color: Color) {
-        let position = convert_coordinates(position, &self.size);
-        let vertices_size = convert_size(size, &self.size);
-
-        let vertices_data = vec![
-            _VerticeData(position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: vertices_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
-            _VerticeData(position.get_vertice_position(Some(&vertices_size)), [1.0, 1.0, 0.0, 0.0]),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: vertices_size.height })), [0.0, 1.0, 0.0, 0.0]),
-        ];
-        let indices = vec![0, 1, 2, 2, 3, 0];
+    pub fn display_text(&mut self, text: &'a str, position: Position, color: Color) {
+        let mut vertices_data = Vec::new();
+        let mut indices = Vec::new();
 
         let font_data = include_bytes!("../../assets/font/Roboto-Regular.ttf");
         let font = Font::try_from_bytes(font_data as &[u8]).unwrap();
@@ -317,22 +309,41 @@ impl<'a> Render<'a> {
         let v_metrics = font.v_metrics(scale);
         let offset = rusttype::point(0.0, v_metrics.ascent);
 
-        let glyphs: Vec<_> = font
+        let glyphs: Vec<PositionedGlyph> = font
             .layout(text, scale, offset)
             .collect();
 
-        let mut pixels = vec![0; (size.width as usize) * (size.height as usize)];
+        let width = glyphs.iter().map(|g| g.unpositioned().h_metrics().advance_width).sum::<f32>().ceil();
+        let height = (v_metrics.ascent - v_metrics.descent).ceil();
+        let vertices_size = convert_size(Size { width, height }, &self.size);
 
-        for glyph in glyphs {
-            if let Some(bounding_box) = glyph.pixel_bounding_box() {
+        let mut pixels = vec![0; (width as usize) * (height as usize)];
+
+        for (index, glyph) in glyphs.into_iter().enumerate() {
+            if let Some(bounding_box) = glyph.pixel_bounding_box() {        
                 glyph.draw(| x, y, v | {
+                    let top_left = convert_coordinates(Position { x: position.x - (bounding_box.width() as f32 / 2.0), y: position.x - (bounding_box.height() as f32 / 2.0) }, &self.size);
+
+                    let glyph_data = [
+                        _VerticeData(top_left.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
+                        _VerticeData(top_left.get_vertice_position(Some(&Size { width: vertices_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
+                        _VerticeData(top_left.get_vertice_position(Some(&vertices_size)), [1.0, 1.0, 0.0, 0.0]),
+                        _VerticeData(top_left.get_vertice_position(Some(&Size { width: 0.0, height: vertices_size.height })), [0.0, 1.0, 0.0, 0.0]),
+                    ];
+
+                    vertices_data.extend_from_slice(&glyph_data);
+
+                    let start_indice = index as u32 * 4;
+
+                    indices.extend_from_slice(&[start_indice, start_indice + 1, start_indice + 2, start_indice + 3]);
+                    
                     let x = (x as i32) + bounding_box.min.x;
                     let y = (y as i32) + bounding_box.min.y;
 
-                    if x >= 0 && x < size.width as i32 && y >= 0 && y < size.height as i32 {
-                        let index = (x as usize) + (y as usize) * (size.width as usize);
+                    if x >= 0 && x < width as i32 && y >= 0 && y < height as i32 {
+                        let index = (x as usize) + (y as usize) * (width as usize);
 
-                        pixels[index + 3] = (v * 255.0) as u8;
+                        pixels[index] = (v * 255.0) as u8;
                     }
                 })
             }
@@ -342,7 +353,7 @@ impl<'a> Render<'a> {
             let texture = Texture::new();
             texture.set_wrapping(gl::CLAMP_TO_EDGE);
             texture.set_filtering(gl::LINEAR);
-            texture.load_bytes(size, pixels);
+            texture.load_bytes(Size { width, height }, pixels);
 
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);

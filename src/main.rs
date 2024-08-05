@@ -94,7 +94,7 @@ fn main() {
 
                 render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
 
-                render.display_text("Test", Position { x: 200.0, y: 200.0 }, Size { width: 100.0, height: 30.0 }, Color::Red);
+                render.display_text("Ayman", Position { x: 200.0, y: 200.0 }, Color::Red);
 
                 player.draw(&mut render).expect("Unable to draw player");
                 
