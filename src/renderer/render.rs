@@ -315,28 +315,44 @@ impl<'a> Render<'a> {
 
         let width = glyphs.iter().map(|g| g.unpositioned().h_metrics().advance_width).sum::<f32>().ceil();
         let height = (v_metrics.ascent - v_metrics.descent).ceil();
-        let vertices_size = convert_size(Size { width, height }, &self.size);
-
+        
+        print!("w: {}, h: {}\n", width, height);
+        
         let mut pixels = vec![0; (width as usize) * (height as usize)];
+
+        let mut offset_width = 0.0;
 
         for (index, glyph) in glyphs.into_iter().enumerate() {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {        
-                glyph.draw(| x, y, v | {
-                    let top_left = convert_coordinates(Position { x: position.x - (bounding_box.width() as f32 / 2.0), y: position.x - (bounding_box.height() as f32 / 2.0) }, &self.size);
+                let glyph_width = bounding_box.width() as f32;
+                let glyph_height = bounding_box.height() as f32;
 
-                    let glyph_data = [
-                        _VerticeData(top_left.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
-                        _VerticeData(top_left.get_vertice_position(Some(&Size { width: vertices_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
-                        _VerticeData(top_left.get_vertice_position(Some(&vertices_size)), [1.0, 1.0, 0.0, 0.0]),
-                        _VerticeData(top_left.get_vertice_position(Some(&Size { width: 0.0, height: vertices_size.height })), [0.0, 1.0, 0.0, 0.0]),
-                    ];
+                let vertices_size = convert_size(Size { width: glyph_width, height: glyph_height }, &self.size);
+                
+                print!("o_w: {}, v_s: {:?}\n", offset_width, vertices_size);
+                
+                let top_left = convert_coordinates(Position { x: (position.x - (width as f32 / 2.0)) + offset_width, y: position.y - (height as f32 / 2.0) }, &self.size);
+                print!("t_l: {:?}\n", &top_left);
 
-                    vertices_data.extend_from_slice(&glyph_data);
+                let glyph_data = [
+                    _VerticeData(top_left.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
+                    _VerticeData(top_left.get_vertice_position(Some(&Size { width: vertices_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
+                    _VerticeData(top_left.get_vertice_position(Some(&vertices_size)), [1.0, 1.0, 0.0, 0.0]),
+                    _VerticeData(top_left.get_vertice_position(Some(&Size { width: 0.0, height: vertices_size.height })), [0.0, 1.0, 0.0, 0.0]),
+                ];
 
-                    let start_indice = index as u32 * 4;
-
-                    indices.extend_from_slice(&[start_indice, start_indice + 1, start_indice + 2, start_indice + 3]);
-                    
+                
+                vertices_data.extend_from_slice(&glyph_data);
+                
+                let start_indice = index as u32 * 4;
+                
+                indices.extend_from_slice(&[start_indice, start_indice + 1, start_indice + 2, start_indice + 2, start_indice + 3, start_indice]);
+                
+                print!("data: {:?}, indices: {:?}\n", glyph_data, indices);
+                
+                offset_width += glyph.unpositioned().h_metrics().advance_width;
+                
+                glyph.draw(| x, y, v | {    
                     let x = (x as i32) + bounding_box.min.x;
                     let y = (y as i32) + bounding_box.min.y;
 
@@ -345,7 +361,7 @@ impl<'a> Render<'a> {
 
                         pixels[index] = (v * 255.0) as u8;
                     }
-                })
+                });
             }
         }
 
