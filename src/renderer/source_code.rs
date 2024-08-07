@@ -33,8 +33,12 @@ pub const TEXTURE_FRAGMENT_SHADER_SOURCE: &str = r#"
 #version 330
 out vec4 FragColor;
 in vec2 texCoord;
+
 uniform sampler2D texture0;
+uniform vec3 textColor;
+
 void main() {
-    FragColor = texture(texture0, texCoord);
+    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(texture0, texCoord).r);
+    FragColor = vec4(textColor, 1.0) * sampled;
 }
 "#;

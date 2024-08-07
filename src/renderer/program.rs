@@ -65,4 +65,24 @@ impl Program {
         
         Ok(gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint)
     }
+
+    pub unsafe fn set_int_uniform(&self, name: &str, value: i32) -> Result<()> {
+        self.apply();
+
+        let uniform = CString::new(name)
+            .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
+
+        gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
+        
+        Ok(())
+    }
+
+    pub unsafe fn set_color_data_uniform(&self, name: &str, data: (f32, f32, f32)) -> Result<()> {
+        let uniform = CString::new(name)
+            .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
+
+        gl::Uniform3f(gl::GetUniformLocation(self.id, uniform.as_ptr()), data.0, data.1, data.2);
+
+        Ok(())
+    }
 }

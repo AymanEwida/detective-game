@@ -26,6 +26,10 @@ impl Texture {
 
         Self { id }
     }
+
+    pub unsafe fn unbind_all() {
+        gl::BindTexture(gl::TEXTURE_2D, 0);
+    }
 }
 
 impl Texture {
@@ -35,6 +39,12 @@ impl Texture {
 
     pub unsafe fn unbind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, 0);
+    }
+
+    pub unsafe fn activate(&self, unit: GLuint) {
+        gl::ActiveTexture(unit);
+
+        self.bind();
     }
 
     pub unsafe fn load_image(&self, path: &Path) -> Result<()> {
@@ -61,7 +71,7 @@ impl Texture {
         Ok(())
     }
 
-    pub unsafe fn load_bytes(&self, size: Size, bytes: Vec<u8>) {
+    pub unsafe fn load_bytes(&self, size: Size<i32>, bytes: &[u8]) {
         self.bind();
 
         gl::TexImage2D(

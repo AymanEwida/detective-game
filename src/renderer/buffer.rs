@@ -35,12 +35,12 @@ impl Buffer {
         gl::BindBuffer(self.target, 0);
     }
 
-    pub unsafe fn set_empty(&self, size: isize, usage: GLuint) {
+    pub unsafe fn set_empty(&self, size: usize, usage: GLuint) {
         self.bind();
 
         gl::BufferData(
             self.target,
-            size,
+            size as GLsizeiptr,
             ptr::null(),
             usage
         );
