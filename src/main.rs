@@ -3,7 +3,7 @@ extern crate glfw;
 
 use std::time::{Duration, Instant};
 
-use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, Window, WindowEvent, WindowHint, WindowMode};
+use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::library::constants::{
     HEIGHT, WIDTH
@@ -123,6 +123,9 @@ fn main() {
 
             render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
             
+            render.display_text("no", Position { x: 300.0, y: 210.0 }, 1.0, 200.0, Color::RGB(255, 255, 255)).expect("Unable to display text");
+            render.display_text("Ayman is my name\n(C) yes", Position { x: 300.0, y: 300.0 }, 1.0, 200.0, Color::RGB(255, 0, 255)).expect("Unable to display text");
+
             player.draw(&mut render).expect("Unable to draw player");
             
             enemy.draw(&mut render).expect("Unable to draw enemy");
@@ -131,8 +134,6 @@ fn main() {
             wall.draw(&mut render).expect("Unable to draw level");
             
             render.render().expect("Uable to render object on window");
-            
-            render.display_text("Ayman is my name\n(C) yes", Position { x: 300.0, y: 300.0 }, 1.0, 200.0, Color::RGB(255, 255, 255)).expect("Unable to display text");
             
             window.swap_buffers();
         }

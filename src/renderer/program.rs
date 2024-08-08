@@ -85,4 +85,15 @@ impl Program {
 
         Ok(())
     }
+
+    pub unsafe fn set_bool_uniform(&self, name: &str, value: i32) -> Result<()> {
+        assert!(value == 1 || value == 0, "value must be 1 (true) or 0 (false)");
+
+        let uniform = CString::new(name)
+            .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
+
+        gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
+
+        Ok(())
+    }
 }
