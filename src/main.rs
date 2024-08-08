@@ -3,7 +3,7 @@ extern crate glfw;
 
 use std::time::{Duration, Instant};
 
-use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
+use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, Window, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::library::constants::{
     HEIGHT, WIDTH
@@ -35,16 +35,19 @@ fn main() {
     
     let mut last_update = Instant::now();
 
-    window.set_framebuffer_size_callback(|_, new_width, new_height| {
-        unsafe {
-            gl::Viewport(0, 0, new_width, new_height);
-        }
+    window.set_framebuffer_size_callback(| window, new_width, new_height | {
+        window.set_size(new_width, new_height);
     });
-    
-    // render.resize(Size { width: new_window_width, height: new_window_height});
     
     while !window.should_close() {
         
+        let (window_width, window_height) = window.get_framebuffer_size();
+        let render_size = render.get_size();
+
+        if (window_width as f32 != render_size.width) || (window_height as f32 != render_size.height) {
+            render.resize(Size { width: window_width as f32, height: window_height as f32});
+        }
+
         glfw.poll_events();
         
         for (_, event) in flush_messages(&events) {

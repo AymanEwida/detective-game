@@ -129,6 +129,10 @@ impl Render<'_> {
 }
 
 impl<'a> Render<'a> {
+    pub fn get_size(&self) -> Size {
+        self.size
+    }
+
     pub fn resize(&mut self, new_size: Size) {
         self.size = new_size;
 
