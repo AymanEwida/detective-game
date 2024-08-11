@@ -1,4 +1,4 @@
 pub mod character;
 pub mod player;
-pub mod enemy;
+mod enemy;
 pub mod level;

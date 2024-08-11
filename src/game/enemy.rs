@@ -9,6 +9,7 @@ pub enum EnemyType {
 }
 
 pub struct Enemy<'a> {
+    start_position: Position,
     position: Position,
     size: Size,
     image: &'a str,
@@ -23,6 +24,7 @@ impl Enemy<'_> {
         match enemy_type {
             EnemyType::Regular => {
                 Self {
+                    start_position: start_position,
                     position: start_position,
                     size: Size { width: 55.0, height: 60.0 },
                     image: "assets/game/regular-enemy.png",

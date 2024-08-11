@@ -49,7 +49,7 @@ impl<'a> Player<'a> {
         self.move_character(direction, speed);
     }
 
-    pub fn move_player_to_prev_position(&mut self) {
+    pub fn move_to_prev_position(&mut self) {
         if let Some(prev_position) = self.prev_position {
             self.position = prev_position;
         }
@@ -57,5 +57,18 @@ impl<'a> Player<'a> {
 
     pub fn get_prev_position(&self) -> Option<Position> {
         self.prev_position
+    }
+
+    pub fn move_to(&mut self, new_position: Position) {
+        self.position = new_position;
+    }
+
+    pub fn is_off_window(&self, window_size: Size) -> bool {
+        self.position.x > window_size.width ||
+        (self.position.x + self.size.width) > window_size.width ||
+        self.position.x < 0.0 ||
+        self.position.y > window_size.height ||
+        (self.position.y + self.size.height) > window_size.height ||
+        self.position.y < 0.0
     }
 }
