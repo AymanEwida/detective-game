@@ -4,6 +4,7 @@ pub mod source_code;
 mod buffer;
 mod vertex_array;
 mod texture;
+mod text;
 pub mod vertice;
 pub mod render;
 pub mod color;

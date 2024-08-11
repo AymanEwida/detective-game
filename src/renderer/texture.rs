@@ -3,7 +3,7 @@ use std::path::Path;
 use gl::types::*;
 use image::EncodableLayout;
 
-use super::error::{Error, Result};
+use super::{error::{Error, Result}, render::Size};
 
 #[derive(Debug, PartialEq)]
 pub struct Texture {
@@ -26,6 +26,10 @@ impl Texture {
 
         Self { id }
     }
+
+    pub unsafe fn unbind_all() {
+        gl::BindTexture(gl::TEXTURE_2D, 0);
+    }
 }
 
 impl Texture {
@@ -37,7 +41,13 @@ impl Texture {
         gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 
-    pub unsafe fn load(&self, path: &Path) -> Result<()> {
+    pub unsafe fn activate(&self, unit: GLuint) {
+        gl::ActiveTexture(unit);
+
+        self.bind();
+    }
+
+    pub unsafe fn load_image(&self, path: &Path) -> Result<()> {
         self.bind();
 
         let image = image::open(path)
@@ -59,6 +69,24 @@ impl Texture {
         gl::GenerateMipmap(gl::TEXTURE_2D);
 
         Ok(())
+    }
+
+    pub unsafe fn load_bytes(&self, size: Size<i32>, bytes: &[u8]) {
+        self.bind();
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RED as GLint,
+            size.width as GLsizei,
+            size.height as GLsizei,
+            0,
+            gl::RED,
+            gl::UNSIGNED_BYTE,
+            bytes.as_ptr() as *const _,
+        );
+
+        gl::GenerateMipmap(gl::TEXTURE_2D);
     }
 
     pub unsafe fn set_wrapping(&self, mode: GLuint) {

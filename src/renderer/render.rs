@@ -4,12 +4,12 @@ use gl::types::GLenum;
 
 use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
+use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Size {
-    pub width: f32,
-    pub height: f32
+pub struct Size<T=f32> {
+    pub width: T,
+    pub height: T
 }
 
 #[derive(Debug, PartialEq)]
@@ -31,17 +31,39 @@ impl<'a> Object<'a> {
     }
 }
 
+struct RenderableCharacter {
+    character: char,
+    vertices: [_VerticeData; 4],
+    indices: [u32; 6],
+    color: (f32, f32, f32)
+}
+
+impl RenderableCharacter {
+    pub fn new(character: char, vertices: [_VerticeData; 4], color: (f32, f32, f32)) -> Self {
+        Self {
+            character,
+            vertices,
+            indices: [0, 1, 2, 2, 3, 0],
+            color
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Image {
     vertex_array: VertexArray,
+    vertex_buffer: Buffer,
+    index_buffer: Buffer,
     texture: Texture,
     count: i32
 }
 
 impl Image {
-    fn new(vertex_array: VertexArray, texture: Texture, count: i32) -> Self {
+    fn new(vertex_array: VertexArray, vertex_buffer: Buffer, index_buffer: Buffer, texture: Texture, count: i32) -> Self {
         Self {
             vertex_array,
+            vertex_buffer,
+            index_buffer,
             texture,
             count
         }
@@ -71,8 +93,10 @@ pub struct Render<'a> {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     background: Background,
-    textures: HashMap<&'a str, Texture>,
-    objects: Vec<Object<'a>>
+    characters: HashMap<char, Character>,
+    images: HashMap<&'a str, Texture>,
+    objects: Vec<Object<'a>>,
+    renderable_characters: Vec<RenderableCharacter>
 }
 
 impl Render<'_> {
@@ -100,6 +124,11 @@ impl Render<'_> {
             let color_attrib = vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
+            let characters = generated_characters_bitmap(None)?;
+
+            vertex_buffer.unbind();
+            index_buffer.unbind();
+            Texture::unbind_all();
             VertexArray::unbind();
 
             Ok(Self {
@@ -110,14 +139,20 @@ impl Render<'_> {
                 vertex_buffer,
                 index_buffer,
                 background: Background::default(),
-                textures: HashMap::new(),
+                characters,
+                images: HashMap::new(),
                 objects: Vec::new(),
+                renderable_characters: Vec::new(),
             })
         }
     }
 }
 
 impl<'a> Render<'a> {
+    pub fn get_size(&self) -> Size {
+        self.size
+    }
+
     pub fn resize(&mut self, new_size: Size) {
         self.size = new_size;
 
@@ -161,14 +196,17 @@ impl<'a> Render<'a> {
                 let texture = Texture::new();
                 texture.set_wrapping(gl::REPEAT);
                 texture.set_filtering(gl::LINEAR);
-                texture.load(&Path::new(image_path))?;
+                texture.load_image(&Path::new(image_path))?;
     
                 gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
                 gl::Enable(gl::BLEND);
-    
+                
+                vertex_buffer.unbind();
+                index_buffer.unbind();
+                texture.unbind();
                 VertexArray::unbind();
                 
-                self.background.image = Some(Image::new(vertex_array, texture, background_indices.len() as i32));
+                self.background.image = Some(Image::new(vertex_array, vertex_buffer, index_buffer, texture, background_indices.len() as i32));
             }
         }
 
@@ -272,7 +310,7 @@ impl<'a> Render<'a> {
         ];
         let indices = vec![0, 1, 2, 2, 3, 0];
 
-        let found_texture = self.textures.get(image_path);
+        let found_texture = self.images.get(image_path);
 
         if found_texture.is_some() {
             self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES));
@@ -284,16 +322,128 @@ impl<'a> Render<'a> {
             let texture = Texture::new();
             texture.set_wrapping(gl::REPEAT);
             texture.set_filtering(gl::LINEAR);
-            texture.load(&Path::new(image_path))?;
+            texture.load_image(&Path::new(image_path))?;
 
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);
 
-            self.textures.insert(image_path, texture);
+            self.images.insert(image_path, texture);
             
             self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES));
         }
         
+        Ok(())
+    }
+
+    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, max_width: f32, color: Color) -> Result<()> {
+        let start_position = convert_coordinates(start_position, &self.size);
+        let max_width = (max_width * 2.0) / self.size.width;
+
+        let (r, g, b, ..) = color.get_color_in_f32();
+
+        let lines: Vec<&str> = text.split('\n').collect();
+
+        let mut line_height = 0.0;
+
+        for line in lines {
+            let mut width_offset = 0.0;
+            let mut max_height = 0.0;
+            let mut prev_height = 0.0;
+            let mut height_offset = 0.0;
+            let mut is_new_word = false;
+
+            for (idx, ch) in line.chars().enumerate() {
+                if ch == ' ' {
+                    width_offset += 0.03;
+                    prev_height = 0.0;
+                    height_offset = 0.0;
+                    is_new_word = true;
+    
+                    continue;
+                }
+
+                if is_new_word {
+                    if let Some(found_index) = line[idx..].find(' ') {
+                        let found_index = found_index + idx;
+
+                        let word_width = calculate_word_width(&self.characters, &line[idx..found_index], scale, self.size.width);
+                        
+                        if start_position.x + width_offset + word_width >= start_position.x + max_width {
+                            line_height += max_height + 0.09;
+                            width_offset = 0.0;
+                            max_height = 0.0;
+                            prev_height = 0.0;
+                            height_offset = 0.0;
+                            is_new_word = false;
+                        }
+                    } else {
+                        let word_width = calculate_word_width(&self.characters, &line[idx..], scale, self.size.width);
+
+                        if start_position.x + width_offset + word_width >= start_position.x + max_width {
+                            line_height += max_height + 0.09;
+                            width_offset = 0.0;
+                            max_height = 0.0;
+                            prev_height = 0.0;
+                            height_offset = 0.0;
+                            is_new_word = false;
+                        }
+                    }
+                }
+
+                assert!(self.characters.get(&ch) != None, "character must exist");
+
+                let character = self.characters.get(&ch).unwrap();
+
+                let character_size = convert_size(Size { width: character.size.width * scale, height: character.size.height * scale }, &self.size);
+
+                let offset_y = ((character.size.height - character.offset.y) * scale * 2.0) / self.size.height;
+
+                if max_height == 0.0 {
+                    max_height = character_size.height;
+                } else {
+                    if (character.size.height - character.offset.y) > 0.0 {
+                        if max_height < (character_size.height - offset_y) {
+                            max_height = character_size.height - offset_y;
+                        }
+                    } else {
+                        if max_height < character_size.height {
+                            max_height = character_size.height;
+                        }
+                    }
+                }
+
+                if prev_height == 0.0 {
+                    prev_height = character_size.height;
+                }
+                
+                if is_new_word {
+                    height_offset += (max_height - character_size.height) - (prev_height - character_size.height);
+                } else {
+                    height_offset += prev_height - character_size.height;
+                }
+
+                let character_start_position = Position { x: start_position.x + width_offset, y: start_position.y - line_height - height_offset - offset_y };
+
+                let vertices_data = [
+                    _VerticeData(character_start_position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.get_vertice_position(Some(&Size { width: character_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.get_vertice_position(Some(&character_size)), [1.0, 1.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.get_vertice_position(Some(&Size { width: 0.0, height: character_size.height })), [0.0, 1.0, 0.0, 0.0]),
+                ];
+
+                self.renderable_characters.push(RenderableCharacter::new(ch, vertices_data, (r, g, b)));
+
+                width_offset += ((character.size.width as f32 + character.offset.x) * scale * 2.0) / self.size.width;
+                prev_height = character_size.height;
+                
+                if is_new_word {
+                    is_new_word = false;
+                }
+            }
+
+            line_height += max_height + 0.08;
+        }
+
         Ok(())
     }
 
@@ -302,9 +452,13 @@ impl<'a> Render<'a> {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             
             if let Some(background_image) = &self.background.image {
-                self.texture_program.apply();
-                background_image.texture.bind();
+                self.vertices_program.apply();
                 background_image.vertex_array.bind();
+                background_image.vertex_buffer.bind();
+                background_image.index_buffer.bind();
+
+                self.texture_program.set_int_uniform("texture0", 0)?;
+                background_image.texture.activate(gl::TEXTURE0);
 
                 gl::DrawElements(gl::TRIANGLES, background_image.count, gl::UNSIGNED_INT, ptr::null()); 
             }
@@ -313,18 +467,45 @@ impl<'a> Render<'a> {
 
             gl::ClearColor(red, green, blue, alpha);
 
+            for randerable_character in self.renderable_characters.iter() {
+                assert!(self.characters.get(&randerable_character.character) != None, "character must exist");
+
+                self.texture_program.apply();
+                self.texture_program.set_bool_uniform("isText", 1)?;
+                self.texture_program.set_color_data_uniform("textColor", randerable_character.color)?;
+
+                self.vertex_array.bind();
+
+                self.vertex_buffer.set_data(&randerable_character.vertices, gl::DYNAMIC_DRAW);
+                self.index_buffer.set_data(&randerable_character.indices, gl::DYNAMIC_DRAW);
+
+                let character = self.characters.get(&randerable_character.character).unwrap();
+
+                self.texture_program.set_int_uniform("texture0", 0)?;
+                character.texture.activate(gl::TEXTURE0);
+
+                gl::DrawElements(gl::TRIANGLES, randerable_character.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+                
+                self.vertex_buffer.unbind();
+                self.index_buffer.unbind();
+                Texture::unbind_all();
+                VertexArray::unbind();
+            }
+
             for object in self.objects.iter() {
                 self.vertex_array.bind();
 
                 self.vertex_buffer.set_data(&object.vertices, gl::DYNAMIC_DRAW);
 
-                if let Some(texture_image_path) = &object.texture_image_path {
-                    assert!(self.textures.get(texture_image_path) != None, "texture must exist");
+                if let Some(texture_image_path) = object.texture_image_path {
+                    assert!(self.images.get(texture_image_path) != None, "texture must exist");
 
-                    let texture = self.textures.get(texture_image_path).unwrap();
+                    let texture = self.images.get(texture_image_path).unwrap();
 
                     self.texture_program.apply();
-                    texture.bind();
+                    self.texture_program.set_bool_uniform("isText", 0)?;
+                    self.texture_program.set_int_uniform("texture0", 0)?;
+                    texture.activate(gl::TEXTURE0);
                 } else {
                     self.vertices_program.apply();
                 }
@@ -337,12 +518,16 @@ impl<'a> Render<'a> {
                     gl::DrawArrays(object.mode, 0, object.vertices.len() as i32);
                 }
 
+                self.vertex_buffer.unbind();
+                self.index_buffer.unbind();
+                Texture::unbind_all();
                 VertexArray::unbind();
             }
-
-            self.objects = Vec::new();
         }
 
+        self.objects = Vec::new();
+        self.renderable_characters = Vec::new();
+        
         Ok(())
     }    
 }

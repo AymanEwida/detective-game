@@ -1,32 +1,33 @@
+extern crate freetype;
+extern crate glfw;
+
 use std::time::{Duration, Instant};
 
-use glutin::{dpi::PhysicalSize, event::{ElementState, Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder, Api, ContextBuilder, GlRequest};
+use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::{game::character::Character, library::constants::{
+use detective_game::library::constants::{
     HEIGHT, WIDTH
-}};
-use detective_game::game::{character::Direction, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+};
+use detective_game::game::{character::{Direction, Character}, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
 
 fn main() {
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().with_title("Derective Game").with_inner_size(PhysicalSize { width: WIDTH, height: HEIGHT });
+    let mut glfw = glfw::init(fail_on_errors).expect("Failed on init.");
 
-    let gl_context = ContextBuilder::new()
-        .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
-        .build_windowed(window, &event_loop)
-        .expect("Cannot create windowed context");
+    glfw.window_hint(WindowHint::ContextVersion(3, 3));
+    glfw.window_hint(WindowHint::OpenGlProfile(OpenGlProfileHint::Core));
+    glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
+    glfw.window_hint(WindowHint::Resizable(true));
 
-    let gl_context = unsafe {
-        gl_context
-            .make_current()
-            .expect("Failed to make context current")
-    };
+    let (mut window, events) = glfw.create_window(WIDTH, HEIGHT, "Derective Game", WindowMode::Windowed).expect("Failed on window creation.");
 
-    gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
-    
-    let window_size = gl_context.window().inner_size();
-    let mut render = Render::new(Size{ width: window_size.width as f32, height: window_size.height as f32 }).expect("Failed to created a render");
+    window.make_current();
+    window.set_key_polling(true);
+    gl::load_with(|s| window.get_proc_address(s) as *const _);
+
+    let (window_width, window_height) = window.get_framebuffer_size();
+
+    let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d 4r 4l 5u");
@@ -34,78 +35,107 @@ fn main() {
     
     let mut last_update = Instant::now();
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
-        
-        match event {
-            Event::LoopDestroyed => (),
-            Event::WindowEvent { event, .. } => {
-                match event {
-                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(new_physical_size) => {
-                        gl_context.resize(new_physical_size);
-                        render.resize(Size { width: new_physical_size.width as f32, height: new_physical_size.height as f32 });
-                    },
-                    WindowEvent::KeyboardInput { input, .. } => {
-                        if input.state == ElementState::Pressed {
-                            if let Some(virtual_keycode) = input.virtual_keycode {
-                                match virtual_keycode {
-                                    VirtualKeyCode::W => {
-                                        player.move_player(Direction::Up, None);
-                                    },
-                                    VirtualKeyCode::S => {
-                                        player.move_player(Direction::Down, None);
-                                    },
-                                    VirtualKeyCode::A => {
-                                        player.move_player(Direction::Left, None);
-                                    },
-                                    VirtualKeyCode::D => {
-                                        player.move_player(Direction::Right, None);
-                                    },
-                                    _ => ()
-                                }
-                            }
-                        } else if input.state == ElementState::Released {
-                            if let Some(virtual_keycode) = input.virtual_keycode {
-                                match virtual_keycode {
-                                    VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
-                                    _ => ()
-                                }
-                            }
-                        }
-                    }
-                    _ => ()
-                }
-            },
-            Event::MainEventsCleared => {
-                let now = Instant::now();
-                let delta = now.duration_since(last_update);
-                
-                if delta >= Duration::from_secs_f32(1.0/60.0) {
-                    last_update = now;
-
-                    gl_context.window().request_redraw();
-                }
-            },
-            Event::RedrawRequested(_) => {
-                if player.collide(&wall) {
-                    player.move_player_to_prev_position();
-                }
-
-                render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
-
-                player.draw(&mut render).expect("Unable to draw player");
-                
-                enemy.draw(&mut render).expect("Unable to draw enemy");
-                enemy.move_enemy(None);
-                
-                wall.draw(&mut render).expect("Unable to draw level");
-                
-                render.render().expect("Uable to render object on window");
-                
-                gl_context.swap_buffers().unwrap();
-            }
-            _ => ()
-        }
+    window.set_framebuffer_size_callback(| window, new_width, new_height | {
+        window.set_size(new_width, new_height);
     });
+    
+    while !window.should_close() {
+        
+        let (window_width, window_height) = window.get_framebuffer_size();
+        let render_size = render.get_size();
+
+        if (window_width as f32 != render_size.width) || (window_height as f32 != render_size.height) {
+            render.resize(Size { width: window_width as f32, height: window_height as f32});
+        }
+
+        glfw.poll_events();
+        
+        for (_, event) in flush_messages(&events) {
+            match event {
+                WindowEvent::Key(key, _, action, _) => {
+                    match key {
+                        Key::Escape => {
+                            match action {
+                                Action::Release => {
+                                    window.set_should_close(true);
+                                },
+                                _ => ()
+                            }
+                        },
+
+                        Key::W => {
+                            match action {
+                                Action::Press | Action::Repeat => {
+                                    player.move_player(Direction::Up, None);
+                                },
+                                _ => ()
+                            }
+                        },
+
+                        Key::S => {
+                            match action {
+                                Action::Press | Action::Repeat => {
+                                    player.move_player(Direction::Down, None);
+                                },
+                                _ => ()
+                            }
+                        },
+
+                        Key::A => {
+                            match action {
+                                Action::Press | Action::Repeat => {
+                                    player.move_player(Direction::Left, None);
+                                },
+                                _ => ()
+                            }
+                        },
+
+                        Key::D => {
+                            match action {
+                                Action::Press | Action::Repeat => {
+                                    player.move_player(Direction::Right, None);
+                                },
+                                _ => ()
+                            }
+                        },
+                        
+                        _ => ()
+                    }
+                },
+        
+                WindowEvent::Close => {
+                    window.set_should_close(true);
+                },
+                
+                _ => ()
+            }
+        }
+
+        let now = Instant::now();
+        let delta = now.duration_since(last_update);
+
+        if delta >= Duration::from_secs_f32(1.0/60.0) {
+            last_update = now;
+
+            if player.collide(&wall) {
+                player.move_player_to_prev_position();
+            }
+
+            render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
+            
+            render.display_text("no", Position { x: 300.0, y: 210.0 }, 1.0, 200.0, Color::RGB(255, 255, 255)).expect("Unable to display text");
+            render.display_text("Ayman is my name\n(C) yes", Position { x: 300.0, y: 300.0 }, 1.0, 200.0, Color::RGB(255, 0, 255)).expect("Unable to display text");
+
+            player.draw(&mut render).expect("Unable to draw player");
+            
+            enemy.draw(&mut render).expect("Unable to draw enemy");
+            enemy.move_enemy(None);
+            
+            wall.draw(&mut render).expect("Unable to draw level");
+            
+            render.render().expect("Uable to render object on window");
+            
+            window.swap_buffers();
+        }
+    }
 }
