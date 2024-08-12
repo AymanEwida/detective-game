@@ -16,6 +16,8 @@ pub enum ObjectLevelType {
     Coin,
     CodePaper,
     ExitDoor,
+    Camera,
+    Key
 }
 
 pub struct ObjectLevel<'a> {
@@ -33,7 +35,9 @@ impl ObjectLevel<'_> {
             ObjectLevelType::HidePlace => "assets/game/hide-place1.webp",
             ObjectLevelType::Coin => "assets/game/coin.png",
             ObjectLevelType::CodePaper => "assets/game/code-paper.webp",
-            ObjectLevelType::ExitDoor => "assets/game/exit-door.png"
+            ObjectLevelType::ExitDoor => "assets/game/exit-door.png",
+            ObjectLevelType::Camera => "assets/game/camera.png",
+            ObjectLevelType::Key => "assets/game/key.png",
         };
         
         Self {
@@ -61,7 +65,7 @@ impl ObjectLevel<'_> {
 
 impl<'a> GameObject<'a> for ObjectLevel<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size)?;
+        render.load_image(self.image, self.position, self.size, None)?;
 
         Ok(())
     }
@@ -145,9 +149,9 @@ impl<'a> GameLevel<'a> {
                     }
                 },
 
-                ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor => (),
+                ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::Camera => (),
 
-                ObjectLevelType::Coin => (),
+                ObjectLevelType::Coin | ObjectLevelType::Key => (),
 
                 _ => {
                     if player.collide(level_object) {
@@ -179,19 +183,57 @@ impl<'a> GameLevel<'a> {
         
         match self.current_level {
             2 => {
-                player.move_to(Position { x: 10.0, y: 10.0 });
+                player.move_to(Position { x: 750.0, y: 540.0 });
 
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 300.0, y: 10.0 }, "4d 4u 2r 3d 3u 2l"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 15.0, y: 300.0 }, "3r 2u 2d 4l 1r"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 400.0 }, "3l 3u 3d 5r 2l"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 10.0 }, "2d 2r 2u 2l"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 500.0 }, "2r 2d 2u 3l 1r"));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 540.0 }, "39r 39l"));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 680.0, y: 420.0 }, "2r 28l 13u 13d 26r"));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "24d 5r 24u 5l"));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 10.0 }, "28d 29u 12r 18d 9r 9l 18u 12l 1d"));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 570.0, y: 15.0 }, "10d 2l 16d 12r 2u 6r 24u 16l"));
 
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 40.0, y: 0.0 }, Size { width: 50.0, height: 100.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 40.0, y: 100.0 }, Size { width: 50.0, height: 100.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 40.0, y: 200.0 }, Size { width: 50.0, height: 50.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 35.0, y: 250.0 }, Size { width: 45.0, height: 50.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 250.0 }, Size { width: 35.0, height: 50.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 650.0, y: 480.0 }, Size { width: 150.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 645.0, y: 520.0 }, Size { width: 50.0, height: 85.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 420.0, y: 480.0 }, Size { width: 230.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 530.0, y: 520.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 450.0, y: 500.0 }, Size { width: 30.0, height: 30.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 380.0, y: 380.0 }, Size { width: 40.0, height: 140.0 }));           
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 300.0, y: 380.0 }, Size { width: 80.0, height: 40.0 }));         
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 260.0, y: 380.0 }, Size { width: 40.0, height: 140.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 320.0, y: 430.0 }, Size { width: 40.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 130.0, y: 480.0 }, Size { width: 130.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 125.0, y: 520.0 }, Size { width: 50.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 170.0, y: 405.0 }, Size { width: 45.0, height: 80.0 }));
+
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 260.0 , y: 70.0 }, Size { width: 40.0, height: 240.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 255.0 , y: 310.0 }, Size { width: 50.0, height: 70.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 240.0, y: 180.0 }, Size { width: 30.0, height: 30.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 300.0 , y: 240.0 }, Size { width: 220.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 470.0 , y: 280.0 }, Size { width: 50.0, height: 135.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 420.0, y: 380.0 }, Size { width: 50.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 425.0, y: 285.0 }, Size { width: 40.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 330.0, y: 305.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 520.0 , y: 335.0 }, Size { width: 220.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 735.0, y: 335.0 }, Size { width: 70.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 580.0, y: 405.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 660.0, y: 355.0 }, Size { width: 30.0, height: 30.0 })); // rotate here 180
+
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 190.0, y: 0.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 150.0 , y: 0.0 }, Size { width: 40.0, height: 320.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 50.0 , y: 320.0 }, Size { width: 140.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 0.0, y: 320.0 }, Size { width: 50.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 80.0, y: 240.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 0.0, y: 0.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Key, Position { x: 85.0, y: 10.0 }, Size { width: 60.0, height: 60.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 125.0, y: 130.0 }, Size { width: 30.0, height: 30.0 }));
+
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 480.0 , y: 0.0 }, Size { width: 40.0, height: 180.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 478.0, y: 182.0 }, Size { width: 45.0, height: 57.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 370.0, y: 165.0 }, Size { width: 45.0, height: 80.0 }));
+
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 610.0, y: 260.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 520.0, y: 0.0 }, Size { width: 45.0, height: 80.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 620.0, y: 150.0 }, Size { width: 40.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::ExitDoor, Position { x: 730.0, y: 5.0 }, Size { width: 80.0, height: 100.0 }));
             },
 
             3 => {

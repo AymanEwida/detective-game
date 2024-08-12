@@ -31,6 +31,7 @@ fn main() {
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
     let mut level = GameLevel::default();
+    level.next_level(&mut player);
     
     let mut last_update = Instant::now();
 
@@ -123,8 +124,6 @@ fn main() {
             render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
             
             level.draw(&mut player, &mut render).expect("Unable to draw level");
-
-            // player.draw(&mut render).expect("Unable to draw player");
             
             render.render().expect("Uable to render object on window");
             

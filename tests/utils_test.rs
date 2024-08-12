@@ -1,4 +1,4 @@
-use detective_game::{game::character::Direction, library::utils::*, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::character::Direction, library::{constants::HALF_PI, utils::*}, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -144,6 +144,24 @@ fn test_convert_path_long() {
     let input = "2r 1d 3r 3l 1u 2l";
     let actual = convert_path(input);
     let expected = vec![(2, Direction::Right), (1, Direction::Down), (3, Direction::Right), (3, Direction::Left), (1, Direction::Up), (2, Direction::Left)];
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_angle_to_radians_test1() {
+    let input = 90.0;
+    let actual = convert_angle_to_radians(input);
+    let expected = HALF_PI;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_convert_angle_to_radians_test2() {
+    let input = 45.0;
+    let actual = convert_angle_to_radians(input);
+    let expected = HALF_PI / 2.0;
 
     assert_eq!(actual, expected);
 }

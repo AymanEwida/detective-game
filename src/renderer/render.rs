@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
 
-use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_coordinates, convert_size, length_of_line}}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_angle_to_radians, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
 use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
@@ -298,17 +298,32 @@ impl<'a> Render<'a> {
         self.objects.push(Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP));
     }
 
-    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size) -> Result<()> {
+    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, rotate: Option<f32>) -> Result<()> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
-        let vertices_data = vec![
-            _VerticeData(position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
-            _VerticeData(position.get_vertice_position(Some(&size)), [1.0, 1.0, 0.0, 0.0]),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), [0.0, 1.0, 0.0, 0.0]),
-        ];
+        let mut vertices_data = Vec::new();
         let indices = vec![0, 1, 2, 2, 3, 0];
+
+        if let Some(rotate) = rotate {
+            assert!(rotate >= 0.0 && rotate <= 360.0, "rotate must be between 0.0 - 360.0 (includes)");
+
+            let rotate = convert_angle_to_radians(rotate);
+
+            vertices_data.extend_from_slice(&[
+                _VerticeData(position.get_vertice_position_with_rotate(None, rotate), [0.0, 0.0, 0.0, 0.0]),
+                _VerticeData(position.get_vertice_position_with_rotate(Some(&Size { width: size.width, height: 0.0 }), rotate), [1.0, 0.0, 0.0, 0.0]),
+                _VerticeData(position.get_vertice_position_with_rotate(Some(&size), rotate), [1.0, 1.0, 0.0, 0.0]),
+                _VerticeData(position.get_vertice_position_with_rotate(Some(&Size { width: 0.0, height: size.height }), rotate), [0.0, 1.0, 0.0, 0.0]),
+            ]);
+        } else {
+            vertices_data.extend_from_slice(&[
+                _VerticeData(position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
+                _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
+                _VerticeData(position.get_vertice_position(Some(&size)), [1.0, 1.0, 0.0, 0.0]),
+                _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), [0.0, 1.0, 0.0, 0.0]),
+            ]);
+        }
 
         let found_texture = self.images.get(image_path);
 

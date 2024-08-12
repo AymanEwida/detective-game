@@ -11,15 +11,34 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn get_vertice_position(&self, size: Option<&Size<f32>>) -> PositionType {
+    pub fn get_vertice_position(&self, size: Option<&Size>) -> PositionType {
         match size {
             Some(Size { width, height }) => {
-                let x = self.x + (*width as f32);
-                let y = self.y - (*height as f32);
+                let x = self.x + width;
+                let y = self.y - height;
                 
                 [x, y]
             },
             None => [self.x, self.y]
+        }
+    }
+
+    pub fn get_vertice_position_with_rotate(&self, size: Option<&Size>, angle: f32) -> PositionType {
+        assert!(angle >= 0.0 && angle <= 360.0, "rotate must be between 0.0 - 360.0 (includes)");
+
+        match size {
+            Some(Size { width, height }) => {
+                let x = self.x + width;
+                let y = self.y - height;
+                
+                [x * angle.cos() - y * angle.sin(), x * angle.sin() + y * angle.cos()]
+            },
+            None => {
+                let x = self.x * angle.cos() - self.y * angle.sin();
+                let y = self.x * angle.sin() + self.y * angle.cos();
+                
+                [x, y]
+            },
         }
     }
 }

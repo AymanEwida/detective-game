@@ -22,7 +22,7 @@ impl Player<'_> {
 
 impl<'a> GameObject<'a> for Player<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size)?;
+        render.load_image(self.image, self.position, self.size, None)?;
 
         Ok(())
     }

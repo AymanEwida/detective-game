@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
 
 pub fn length_of_line(start: &Position, end: &Position) -> f32 {
@@ -65,4 +67,8 @@ pub fn convert_path(path: &str) -> Vec<(u32, Direction)> {
 
         (move_number, move_direction)
     }).collect()
+}
+
+pub fn convert_angle_to_radians(angle: f32) -> f32 {
+    angle * (PI / 180.0)
 }
