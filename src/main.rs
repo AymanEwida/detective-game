@@ -32,6 +32,7 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
     let mut level = GameLevel::default();
     level.next_level(&mut player);
+    level.next_level(&mut player);
     
     let mut last_update = Instant::now();
 

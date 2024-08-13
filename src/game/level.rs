@@ -237,19 +237,12 @@ impl<'a> GameLevel<'a> {
             },
 
             3 => {
-                player.move_to(Position { x: 10.0, y: 10.0 });
+                player.move_to(Position { x: 750.0, y: 5.0 });
 
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 300.0, y: 10.0 }, "4d 4u 2r 3d 3u 2l"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 15.0, y: 300.0 }, "3r 2u 2d 4l 1r"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 400.0 }, "3l 3u 3d 5r 2l"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 10.0 }, "2d 2r 2u 2l"));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 500.0 }, "2r 2d 2u 3l 1r"));
 
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 40.0, y: 0.0 }, Size { width: 50.0, height: 100.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 40.0, y: 100.0 }, Size { width: 50.0, height: 100.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 40.0, y: 200.0 }, Size { width: 50.0, height: 50.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 35.0, y: 250.0 }, Size { width: 45.0, height: 50.0 }));
-                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 250.0 }, Size { width: 35.0, height: 50.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 680.0, y: 65.0 }, Size { width: 120.0, height: 40.0 }));
+                self.level_objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 676.5, y: 0.0 }, Size { width: 40.0, height: 65.0 }));
             },
 
             4 => {
