@@ -9,8 +9,8 @@ pub enum EnemyType {
 }
 
 pub struct Enemy<'a> {
-    start_position: Position,
-    position: Position,
+    pub start_position: Position,
+    pub position: Position,
     size: Size,
     image: &'a str,
     last_move_time: Instant,

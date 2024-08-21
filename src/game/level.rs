@@ -2,6 +2,10 @@ use crate::{game::enemy::EnemyType, renderer::{error::Result, render::{Render, S
 
 use super::{character::Character, enemy::Enemy, player::Player};
 
+pub const DEFAULT_SIZE: f32 = 30.0;
+pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
+pub const DEFAULT_SIZE_FOR_COLLECTABLE: Size = Size { width: 40.0, height: 40.0 };
+
 pub trait GameObject<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()>;
     fn get_position(&self) -> Position;
@@ -96,52 +100,17 @@ pub struct GameLevel<'a> {
 
 impl Default for GameLevel<'_> {
     fn default() -> Self {
-        let enemies = vec![
-            Enemy::new(EnemyType::Regular, Position { x: 190.0, y: 10.0 }, "4d 5u 17r 18d 18u 17l 1d"),
-            Enemy::new(EnemyType::Regular, Position { x: 15.0, y: 330.0 }, "15r 15u 15d 16l 1r"),
-            Enemy::new(EnemyType::Regular, Position { x: 590.0, y: 340.0 }, "21l 12u 30d 18u 26r 5l"),
-            Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 10.0 }, "15d 13r 15u 13l"),
-        ];
+        // TODO: do tutorial here
 
-        let level_objects = vec![
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 80.0, y: 0.0 }, Size { width: 50.0, height: 200.0 }),
-            ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 75.0, y: 200.0 }, Size { width: 60.0, height: 70.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 270.0 }, Size { width: 130.0, height: 50.0 }),
+        let enemies = vec![];
 
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 265.0, y: 70.0 }, Size { width: 60.0, height: 455.0 }),
-            ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 225.0, y: 180.0 }, Size { width: 45.0, height: 100.0 }),
-            ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 260.0, y: 525.0 }, Size { width: 70.0, height: 80.0 }),
-            ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 325.0, y: 300.0 }, Size { width: 45.0, height: 100.0 }),
-
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 430.0 }, Size { width: 50.0, height: 70.0 }),
-            ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 50.0, y: 430.0 }, Size { width: 55.0, height: 70.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 104.0, y: 430.0 }, Size { width: 50.0, height: 170.0 }),
-            ObjectLevel::new(ObjectLevelType::Coin, Position { x: 2.0, y: 505.0 }, Size { width: 40.0, height: 40.0 }),
-            ObjectLevel::new(ObjectLevelType::CodePaper, Position { x: 50.0, y: 555.0 }, Size { width: 40.0, height: 40.0 }),
-
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 480.0, y: 420.0 }, Size { width: 111.25, height: 50.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 591.25, y: 420.0 }, Size { width: 141.25, height: 50.0 }),
-            ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 729.5, y: 420.0 }, Size { width: 70.0, height: 50.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 480.0, y: 470.0 }, Size { width: 50.25, height: 130.0 }),
-            ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 435.0, y: 500.0 }, Size { width: 45.0, height: 100.0 }),
-            ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 755.0, y: 290.0 }, Size { width: 45.0, height: 100.0 }),
-            ObjectLevel::new(ObjectLevelType::Coin, Position { x: 540.0, y: 555.0 }, Size { width: 40.0, height: 40.0 }),
-            ObjectLevel::new(ObjectLevelType::ExitDoor, Position { x: 740.0, y: 500.0 }, Size { width: 80.0, height: 100.0 }),
-
-            ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 445.0, y: 0.0 }, Size { width: 45.0, height: 100.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 490.0, y: 0.0 }, Size { width: 50.0, height: 230.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 490.0, y: 230.0 }, Size { width: 160.0, height: 50.0 }),
-            ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 650.0, y: 230.0 }, Size { width: 70.0, height: 50.0 }),
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 720.0, y: 230.0 }, Size { width: 80.0, height: 50.0 }),
-            ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 540.0, y: 130.0 }, Size { width: 45.0, height: 100.0 }),
-            ObjectLevel::new(ObjectLevelType::Coin, Position { x: 730.0, y: 30.0 }, Size { width: 40.0, height: 40.0 }),
-        ];
+        let level_objects = vec![];
 
         Self {
             border_top_left: Position { x: 50.0, y: 140.0 },
             border_size: Size { width: 1820.0, height: 737.0 },
             background_image: "assets/game/background.jpg",
-            current_level: 1,
+            current_level: 0,
             enemies,
             level_objects,
         }
@@ -150,73 +119,89 @@ impl Default for GameLevel<'_> {
 
 impl<'a> GameLevel<'a> {
     pub fn get_boder_size(&self) -> Size {
-        Size { width: self.border_size.width - 60.0, height: self.border_size.height - 60.0 }
+        Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) }
     }
 
     pub fn get_boder_start_position(&self) -> Position {
-        Position { x: self.border_top_left.x + 30.0, y: self.border_top_left.y + 30.0 }
+        Position { x: self.border_top_left.x + DEFAULT_SIZE, y: self.border_top_left.y + DEFAULT_SIZE }
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.background_image, self.border_top_left, self.border_size, None).expect("Unable to draw background image for game");
+        render.load_image(self.background_image, self.border_top_left, self.border_size, None)?;
 
         for num in 0..8 {
             // border top
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: 30.0 }, None).expect("Unable to draw border for game");
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, None)?;
             
             // border bottom
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - 30.0 }, Size { width: self.border_size.width / 8.0, height: 30.0 }, None).expect("Unable to draw border for game");
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - DEFAULT_SIZE }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, None)?;
         }
 
         for num in 0..2 {
             // border right
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - 30.0, y: self.border_top_left.y + ((num as f32 - 1.0) * 30.0).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: 30.0, height: (self.border_size.height - 60.0) / 2.0 }, None).expect("Unable to draw border for game");
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - DEFAULT_SIZE, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, None)?;
 
             // border left
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * 30.0).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: 30.0, height: (self.border_size.height - 60.0) / 2.0 }, None).expect("Unable to draw border for game");
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, None)?;
         }
 
-        // for level_object in self.level_objects.iter_mut() {
-            
-        //     match level_object.object_type {
-        //         ObjectLevelType::RegularDoor => {
-        //             if player.collide(level_object) {
-        //                 level_object.open_door();
-        //             } else {
-        //                 level_object.close_door();
-        //             }
-        //         },
+        for level_object in self.level_objects.iter_mut() {
+            match level_object.object_type {
+                ObjectLevelType::RegularDoor => {
+                    if player.collide(level_object) {
+                        level_object.open_door();
+                    } else {
+                        level_object.close_door();
+                    }
+                },
 
-        //         ObjectLevelType::CodedDoor => (),
+                ObjectLevelType::CodedDoor => (),
 
-        //         ObjectLevelType::LockedDoor => (),
+                ObjectLevelType::LockedDoor => (),
 
-        //         ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::Camera | ObjectLevelType::TeleportDoor => (),
+                ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::Camera | ObjectLevelType::TeleportDoor => (),
 
-        //         ObjectLevelType::Coin | ObjectLevelType::Key => (),
+                ObjectLevelType::Coin | ObjectLevelType::Key => (),
 
-        //         _ => {
-        //             if player.collide(level_object) {
-        //                 player.move_to_prev_position();
-        //             }
-        //         }
-        //     }
+                _ => {
+                    if player.collide(level_object) {
+                        player.move_to_prev_position();
+                    }
+                }
+            }
 
-        //     level_object.draw(render)?;
-        // }
+            level_object.draw(render)?;
+        }
 
-        // for enemy in self.enemies.iter_mut() {
-        //     enemy.draw(render)?;
-        //     enemy.move_enemy(None);
-        // }
+        for enemy in self.enemies.iter_mut() {
+            enemy.draw(render)?;
+            enemy.move_enemy(None);
+        }
 
         player.draw(render)?;
 
         Ok(())
     }
     
+    fn insert_object(&mut self, mut object: ObjectLevel<'a>) {
+        let start_position = self.get_boder_start_position();
+
+        object.position = Position { x: object.position.x + start_position.x, y: object.position.y + start_position.y };
+
+        self.level_objects.push(object);
+    }
+
+    fn insert_enemy(&mut self, mut enemy: Enemy<'a>) {
+        let start_position = self.get_boder_start_position();
+
+        enemy.start_position = Position { x: enemy.start_position.x + start_position.x, y: enemy.start_position.y + start_position.y };
+        enemy.position = Position { x: enemy.position.x + start_position.x, y: enemy.position.y + start_position.y };
+
+        self.enemies.push(enemy);
+    }
+
     pub fn next_level(&mut self, player: &mut Player) {
-        assert!(self.current_level >= 1 && self.current_level < 5, "level must be between 1 to 5 (include)");
+        assert!(self.current_level < 5, "level must be between 1 to 5 (include)");
         
         self.current_level += 1;
         
@@ -224,6 +209,51 @@ impl<'a> GameLevel<'a> {
         self.level_objects.clear();
         
         match self.current_level {
+            1 => {
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 140.0, y: 10.0 }, "18d 13l 13r 18u 6r 6l"));
+                // Enemy::new(EnemyType::Regular, Position { x: 15.0, y: 330.0 }, "15r 15u 15d 16l 1r");
+                // Enemy::new(EnemyType::Regular, Position { x: 590.0, y: 340.0 }, "21l 12u 30d 18u 26r 5l");
+                // Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 10.0 }, "15d 13r 15u 13l");
+                
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 80.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 100.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 78.0, y: 100.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 160.0 }, Size { width: 110.0, height: DEFAULT_SIZE }));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 262.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 15.0, height: 70.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 265.0, y: 70.0 }, Size { width: DEFAULT_SIZE + 10.0, height: 537.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::CodedDoor, Position { x: 255.0, y: 607.0 }, Size { width: 60.0, height: 70.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 225.0, y: 110.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 305.0, y: 402.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 250.0 }, Size { width: 210.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 210.0, y: 250.0 }, Size { width: 55.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 130.0, y: 185.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 10.0, y: 200.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
+
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 430.0 }, Size { width: 50.0, height: 70.0 });
+                // ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 50.0, y: 430.0 }, Size { width: 55.0, height: 70.0 });
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 104.0, y: 430.0 }, Size { width: 50.0, height: 170.0 });
+                // ObjectLevel::new(ObjectLevelType::Coin, Position { x: 2.0, y: 505.0 }, Size { width: 40.0, height: 40.0 });
+                // ObjectLevel::new(ObjectLevelType::CodePaper, Position { x: 50.0, y: 555.0 }, Size { width: 40.0, height: 40.0 });
+
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 480.0, y: 420.0 }, Size { width: 111.25, height: 50.0 });
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 591.25, y: 420.0 }, Size { width: 141.25, height: 50.0 });
+                // ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 729.5, y: 420.0 }, Size { width: 70.0, height: 50.0 });
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 480.0, y: 470.0 }, Size { width: 50.25, height: 130.0 });
+                // ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 435.0, y: 500.0 }, Size { width: 45.0, height: 100.0 });
+                // ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 755.0, y: 290.0 }, Size { width: 45.0, height: 100.0 });
+                // ObjectLevel::new(ObjectLevelType::Coin, Position { x: 540.0, y: 555.0 }, Size { width: 40.0, height: 40.0 });
+                // ObjectLevel::new(ObjectLevelType::ExitDoor, Position { x: 740.0, y: 500.0 }, Size { width: 80.0, height: 100.0 });
+
+                // ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 445.0, y: 0.0 }, Size { width: 45.0, height: 100.0 });
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 490.0, y: 0.0 }, Size { width: 50.0, height: 230.0 });
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 490.0, y: 230.0 }, Size { width: 160.0, height: 50.0 });
+                // ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 650.0, y: 230.0 }, Size { width: 70.0, height: 50.0 });
+                // ObjectLevel::new(ObjectLevelType::Wall, Position { x: 720.0, y: 230.0 }, Size { width: 80.0, height: 50.0 });
+                // ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 540.0, y: 130.0 }, Size { width: 45.0, height: 100.0 });
+                // ObjectLevel::new(ObjectLevelType::Coin, Position { x: 730.0, y: 30.0 }, Size { width: 40.0, height: 40.0 });
+            },
+
             2 => {
                 player.move_to(Position { x: 750.0, y: 540.0 });
 
