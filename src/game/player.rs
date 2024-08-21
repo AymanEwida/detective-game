@@ -71,4 +71,15 @@ impl<'a> Player<'a> {
         (self.position.y + self.size.height) > window_size.height ||
         self.position.y < 0.0
     }
+
+    pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
+        let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
+
+        self.position.x > (start_position.x + size.width) ||
+        (self.position.x + self.size.width) > (start_position.x + size.width) ||
+        self.position.x < start_position.x ||
+        self.position.y > (start_position.y + size.height) ||
+        (self.position.y + self.size.height) > (start_position.y + size.height) ||
+        self.position.y < start_position.y
+    }
 }

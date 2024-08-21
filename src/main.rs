@@ -9,7 +9,7 @@ use detective_game::library::constants::{
     HEIGHT, WIDTH
 };
 use detective_game::game::{character::Direction, level::GameLevel, player::Player};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
 
 fn main() {
     let mut glfw = glfw::init(fail_on_errors).expect("Failed on init.");
@@ -29,12 +29,12 @@ fn main() {
 
     let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
-    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
+    let mut player = Player::new(Position { x: 90.0, y: 180.0 });
     let mut level = GameLevel::default();
-    level.next_level(&mut player);
-    level.next_level(&mut player);
-    level.next_level(&mut player);
-    level.next_level(&mut player);
+    // level.next_level(&mut player);
+    // level.next_level(&mut player);
+    // level.next_level(&mut player);
+    // level.next_level(&mut player);
     
     let mut last_update = Instant::now();
 
@@ -120,14 +120,23 @@ fn main() {
         if delta >= Duration::from_secs_f32(1.0/60.0) {
             last_update = now;
 
-            if player.is_off_window(render.get_size()) {
+            if player.is_off_window(render.get_size()) || player.is_off_border(Some(level.get_boder_start_position()), level.get_boder_size()) {
                 player.move_to_prev_position();
             }
 
-            render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
-            
+            render.display_text("here challenges up to 3", Position { x: 50.0, y: 20.0 }, 0.5, None, Color::White).expect("Unable to display text");
+            render.display_text("here challenges up to 3", Position { x: 50.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+            render.display_text("here challenges up to 3", Position { x: 50.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
+            render.display_text("here notoriety level up to 3 starts", Position { x: 720.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
+            render.display_text("here which level (e.g. 1/5)", Position { x: 1580.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+            render.display_text("here player status", Position { x: 1580.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
             level.draw(&mut player, &mut render).expect("Unable to draw level");
             
+            render.display_text("here what holding", Position { x: 50.0, y: 900.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();

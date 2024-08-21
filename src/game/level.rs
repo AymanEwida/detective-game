@@ -86,9 +86,12 @@ impl<'a> GameObject<'a> for ObjectLevel<'a> {
 }
 
 pub struct GameLevel<'a> {
+    border_top_left: Position,
+    border_size: Size,
+    background_image: &'a str,
     current_level: u8,
     enemies: Vec<Enemy<'a>>,
-    level_objects: Vec<ObjectLevel<'a>>
+    level_objects: Vec<ObjectLevel<'a>>,
 }
 
 impl Default for GameLevel<'_> {
@@ -135,6 +138,9 @@ impl Default for GameLevel<'_> {
         ];
 
         Self {
+            border_top_left: Position { x: 50.0, y: 140.0 },
+            border_size: Size { width: 1820.0, height: 737.0 },
+            background_image: "assets/game/background.jpg",
             current_level: 1,
             enemies,
             level_objects,
@@ -143,40 +149,66 @@ impl Default for GameLevel<'_> {
 }
 
 impl<'a> GameLevel<'a> {
+    pub fn get_boder_size(&self) -> Size {
+        Size { width: self.border_size.width - 60.0, height: self.border_size.height - 60.0 }
+    }
+
+    pub fn get_boder_start_position(&self) -> Position {
+        Position { x: self.border_top_left.x + 30.0, y: self.border_top_left.y + 30.0 }
+    }
+
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
-        for level_object in self.level_objects.iter_mut() {
+        render.load_image(self.background_image, self.border_top_left, self.border_size, None).expect("Unable to draw background image for game");
+
+        for num in 0..8 {
+            // border top
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: 30.0 }, None).expect("Unable to draw border for game");
             
-            match level_object.object_type {
-                ObjectLevelType::RegularDoor => {
-                    if player.collide(level_object) {
-                        level_object.open_door();
-                    } else {
-                        level_object.close_door();
-                    }
-                },
-
-                ObjectLevelType::CodedDoor => (),
-
-                ObjectLevelType::LockedDoor => (),
-
-                ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::Camera | ObjectLevelType::TeleportDoor => (),
-
-                ObjectLevelType::Coin | ObjectLevelType::Key => (),
-
-                _ => {
-                    if player.collide(level_object) {
-                        player.move_to_prev_position();
-                    }
-                }
-            }
-
-            level_object.draw(render)?;
+            // border bottom
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - 30.0 }, Size { width: self.border_size.width / 8.0, height: 30.0 }, None).expect("Unable to draw border for game");
         }
 
-        for enemy in self.enemies.iter_mut() {
-            enemy.draw(render)?;
-            enemy.move_enemy(None);
+        for num in 0..2 {
+            // border right
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - 30.0, y: self.border_top_left.y + ((num as f32 - 1.0) * 30.0).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: 30.0, height: (self.border_size.height - 60.0) / 2.0 }, None).expect("Unable to draw border for game");
+
+            // border left
+            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * 30.0).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: 30.0, height: (self.border_size.height - 60.0) / 2.0 }, None).expect("Unable to draw border for game");
         }
+
+        // for level_object in self.level_objects.iter_mut() {
+            
+        //     match level_object.object_type {
+        //         ObjectLevelType::RegularDoor => {
+        //             if player.collide(level_object) {
+        //                 level_object.open_door();
+        //             } else {
+        //                 level_object.close_door();
+        //             }
+        //         },
+
+        //         ObjectLevelType::CodedDoor => (),
+
+        //         ObjectLevelType::LockedDoor => (),
+
+        //         ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::Camera | ObjectLevelType::TeleportDoor => (),
+
+        //         ObjectLevelType::Coin | ObjectLevelType::Key => (),
+
+        //         _ => {
+        //             if player.collide(level_object) {
+        //                 player.move_to_prev_position();
+        //             }
+        //         }
+        //     }
+
+        //     level_object.draw(render)?;
+        // }
+
+        // for enemy in self.enemies.iter_mut() {
+        //     enemy.draw(render)?;
+        //     enemy.move_enemy(None);
+        // }
 
         player.draw(render)?;
 

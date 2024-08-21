@@ -158,3 +158,64 @@ fn test_player_is_off_window_false() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_player_is_off_border_true_on_start_x_axis() {
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
+
+    player.move_player(Direction::Left, None);
+
+    let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_player_is_off_border_true_on_end_x_axis() {
+    let mut player = Player::new(Position { x: 20.0, y: 10.0 });
+
+    player.move_player(Direction::Right, None);
+
+    let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_player_is_off_border_true_on_start_y_axis() {
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
+
+    player.move_player(Direction::Up, None);
+
+    let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_player_is_off_border_true_on_end_y_axis() {
+    let mut player = Player::new(Position { x: 10.0, y: 20.0 });
+
+    player.move_player(Direction::Down, None);
+
+    let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_player_is_off_border_false() {
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 });
+
+    player.move_player(Direction::Right, None);
+    player.move_player(Direction::Down, None);
+
+    let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = false;
+
+    assert_eq!(actual, expected);
+}

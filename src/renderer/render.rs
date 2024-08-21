@@ -350,9 +350,9 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, max_width: f32, color: Color) -> Result<()> {
+    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, max_width: Option<f32>, color: Color) -> Result<()> {
         let start_position = convert_coordinates(start_position, &self.size);
-        let max_width = (max_width * 2.0) / self.size.width;
+        let max_width = (max_width.unwrap_or(0.0) * 2.0) / self.size.width;
 
         let (r, g, b, ..) = color.get_color_in_f32();
 
@@ -369,7 +369,7 @@ impl<'a> Render<'a> {
 
             for (idx, ch) in line.chars().enumerate() {
                 if ch == ' ' {
-                    width_offset += 0.03;
+                    width_offset += 0.03 * scale;
                     prev_height = 0.0;
                     height_offset = 0.0;
                     is_new_word = true;
@@ -377,7 +377,7 @@ impl<'a> Render<'a> {
                     continue;
                 }
 
-                if is_new_word {
+                if max_width > 0.0 && is_new_word {
                     if let Some(found_index) = line[idx..].find(' ') {
                         let found_index = found_index + idx;
 
