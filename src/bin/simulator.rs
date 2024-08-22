@@ -8,6 +8,9 @@ use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHi
 use detective_game::game::{character::{Direction, Character}, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
 
+pub const SIMULATOR_WINDOW_WIDTH: u32 = 800;
+pub const SIMULATOR_WINDOW_HEIGHT: u32 = 600;
+
 fn main() {
     let mut glfw = glfw::init(fail_on_errors).expect("Failed on init.");
 
@@ -16,7 +19,7 @@ fn main() {
     glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
     glfw.window_hint(WindowHint::Resizable(true));
 
-    let (mut window, events) = glfw.create_window(800, 600, "Derective Game", WindowMode::Windowed).expect("Failed on window creation.");
+    let (mut window, events) = glfw.create_window(SIMULATOR_WINDOW_WIDTH, SIMULATOR_WINDOW_HEIGHT, "Derective Game", WindowMode::Windowed).expect("Failed on window creation.");
 
     window.make_current();
     window.set_key_polling(true);
@@ -27,7 +30,7 @@ fn main() {
     let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
-    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d 4r 4l 5u");
+    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000");
     let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 150.0, y: 30.0 }, Size { width: 50.0, height: 150.0 });
     
     let mut last_update = Instant::now();

@@ -132,18 +132,18 @@ fn test_convert_size() {
 
 #[test]
 fn test_convert_path_short() {
-    let input = "2d 2u";
+    let input = "2d/0 2u/0";
     let actual = convert_path(input);
-    let expected = vec![(2, Direction::Down), (2, Direction::Up)];
+    let expected = vec![(2, Direction::Down, 0), (2, Direction::Up, 0)];
 
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn test_convert_path_long() {
-    let input = "2r 1d 3r 3l 1u 2l";
+    let input = "2r/0 1d/0 3r/1000 3l/0 1u/0 2l/2000";
     let actual = convert_path(input);
-    let expected = vec![(2, Direction::Right), (1, Direction::Down), (3, Direction::Right), (3, Direction::Left), (1, Direction::Up), (2, Direction::Left)];
+    let expected = vec![(2, Direction::Right, 0), (1, Direction::Down, 0), (3, Direction::Right, 1000), (3, Direction::Left, 0), (1, Direction::Up, 0), (2, Direction::Left, 2000)];
 
     assert_eq!(actual, expected);
 }

@@ -51,13 +51,16 @@ pub fn convert_size(object_size: Size, window: &Size) -> Size {
     Size { width: (object_size.width * 2.0) / window.width, height: (object_size.height * 2.0) / window.height }
 }
 
-pub fn convert_path(path: &str) -> Vec<(u32, Direction)> {
-    let path = path.to_lowercase();
+pub fn convert_path(path: &str) -> Vec<(u32, Direction, u64)> {
+    let full_path = path.to_lowercase();
 
-    path.split(' ').map(| move_path | {
+    full_path.split(' ').map(| full_move_path | {
+        let move_path_and_wait_time: Vec<&str> = full_move_path.split('/').collect();
+
+        let move_path = move_path_and_wait_time[0];
         let move_number = move_path[0..move_path.len()-1].parse::<u32>().unwrap_or(0);
 
-        let move_direction = match move_path[move_path.len()-1..].as_ref() {
+        let move_direction = match move_path[move_path.len()-1..].to_lowercase().as_ref() {
             "u" => Direction::Up,
             "d" => Direction::Down,
             "l" => Direction::Left,
@@ -65,7 +68,9 @@ pub fn convert_path(path: &str) -> Vec<(u32, Direction)> {
             _ => Direction::Down
         };
 
-        (move_number, move_direction)
+        let wait_time = move_path_and_wait_time[move_path_and_wait_time.len()-1].parse::<u64>().unwrap_or(0);
+
+        (move_number, move_direction, wait_time)
     }).collect()
 }
 
