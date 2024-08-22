@@ -5,9 +5,6 @@ use std::time::{Duration, Instant};
 
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::library::constants::{
-    HEIGHT, WIDTH
-};
 use detective_game::game::{character::{Direction, Character}, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
 
@@ -19,7 +16,7 @@ fn main() {
     glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
     glfw.window_hint(WindowHint::Resizable(true));
 
-    let (mut window, events) = glfw.create_window(WIDTH, HEIGHT, "Derective Game", WindowMode::Windowed).expect("Failed on window creation.");
+    let (mut window, events) = glfw.create_window(800, 600, "Derective Game", WindowMode::Windowed).expect("Failed on window creation.");
 
     window.make_current();
     window.set_key_polling(true);
@@ -118,13 +115,13 @@ fn main() {
             last_update = now;
 
             if player.collide(&wall) {
-                player.move_player_to_prev_position();
+                player.move_to_prev_position();
             }
 
             render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
             
-            render.display_text("no", Position { x: 300.0, y: 210.0 }, 1.0, 200.0, Color::RGB(255, 255, 255)).expect("Unable to display text");
-            render.display_text("Ayman is my name\n(C) yes", Position { x: 300.0, y: 300.0 }, 1.0, 200.0, Color::RGB(255, 0, 255)).expect("Unable to display text");
+            render.display_text("no", Position { x: 300.0, y: 210.0 }, 1.0, Some(200.0), Color::RGB(255, 255, 255)).expect("Unable to display text");
+            render.display_text("Ayman is my name\n(C) yes", Position { x: 300.0, y: 300.0 }, 1.0, Some(200.0), Color::RGB(255, 0, 255)).expect("Unable to display text");
 
             player.draw(&mut render).expect("Unable to draw player");
             

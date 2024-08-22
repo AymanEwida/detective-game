@@ -194,8 +194,11 @@ impl<'a> GameLevel<'a> {
     fn insert_enemy(&mut self, mut enemy: Enemy<'a>) {
         let start_position = self.get_boder_start_position();
 
-        enemy.start_position = Position { x: enemy.start_position.x + start_position.x, y: enemy.start_position.y + start_position.y };
-        enemy.position = Position { x: enemy.position.x + start_position.x, y: enemy.position.y + start_position.y };
+        let enemy_start_position = enemy.get_start_position();
+        enemy._set_start_position(Position { x: enemy_start_position.x + start_position.x, y: enemy_start_position.y + start_position.y });
+        
+        let enemy_position = enemy.get_position();
+        enemy.set_position(Position { x: enemy_position.x + start_position.x, y: enemy_position.y + start_position.y });
 
         self.enemies.push(enemy);
     }

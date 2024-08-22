@@ -9,8 +9,8 @@ pub enum EnemyType {
 }
 
 pub struct Enemy<'a> {
-    pub start_position: Position,
-    pub position: Position,
+    start_position: Position,
+    position: Position,
     size: Size,
     image: &'a str,
     last_move_time: Instant,
@@ -61,6 +61,22 @@ impl<'a> Character<'a> for Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
+    pub fn get_position(&self) -> Position {
+        self.position
+    }
+
+    pub fn set_position(&mut self, new_position: Position) {
+        self.position = new_position;
+    }
+
+    pub fn get_start_position(&self) -> Position {
+        self.start_position
+    }
+
+    pub fn _set_start_position(&mut self, _new_start_position: Position) {
+        self.start_position = _new_start_position;
+    }
+    
     pub fn move_enemy(&mut self, speed: Option<f32>) {
         if self.last_move_time.elapsed() >= self.move_interval {
             if let Some((moves_number, direction)) = self.moves_path.first() {
