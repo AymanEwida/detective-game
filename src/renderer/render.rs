@@ -540,8 +540,8 @@ impl<'a> Render<'a> {
             }
         }
 
-        self.objects = Vec::new();
-        self.renderable_characters = Vec::new();
+        self.objects.clear();
+        self.renderable_characters.clear();
         
         Ok(())
     }    

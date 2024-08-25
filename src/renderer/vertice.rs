@@ -1,3 +1,5 @@
+use std::ops::{Add, Sub};
+
 use crate::library::utils::convert_coordinates;
 
 use super::{color::Color, render::Size};
@@ -8,6 +10,50 @@ pub type PositionType = [f32; 2];
 pub struct Position {
     pub x: f32,
     pub y: f32,
+}
+
+impl Add<f32> for Position {
+    type Output = Self;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x + rhs,
+            y: self.y + rhs
+        }
+    }
+}
+
+impl Add for Position {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y
+        }
+    }
+}
+
+impl Sub<f32> for Position {
+    type Output = Self;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x - rhs,
+            y: self.y - rhs
+        }
+    }
+}
+
+impl Sub for Position {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y
+        }
+    }
 }
 
 impl Position {

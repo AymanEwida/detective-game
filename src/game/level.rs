@@ -123,7 +123,7 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn get_boder_start_position(&self) -> Position {
-        Position { x: self.border_top_left.x + DEFAULT_SIZE, y: self.border_top_left.y + DEFAULT_SIZE }
+        self.border_top_left + DEFAULT_SIZE
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
@@ -186,7 +186,7 @@ impl<'a> GameLevel<'a> {
     fn insert_object(&mut self, mut object: ObjectLevel<'a>) {
         let start_position = self.get_boder_start_position();
 
-        object.position = Position { x: object.position.x + start_position.x, y: object.position.y + start_position.y };
+        object.position = object.position + start_position;
 
         self.level_objects.push(object);
     }
@@ -195,10 +195,10 @@ impl<'a> GameLevel<'a> {
         let start_position = self.get_boder_start_position();
 
         let enemy_start_position = enemy.get_start_position();
-        enemy._set_start_position(Position { x: enemy_start_position.x + start_position.x, y: enemy_start_position.y + start_position.y });
+        enemy._set_start_position(enemy_start_position + start_position);
         
         let enemy_position = enemy.get_position();
-        enemy.set_position(Position { x: enemy_position.x + start_position.x, y: enemy_position.y + start_position.y });
+        enemy.set_position(enemy_position + start_position);
 
         self.enemies.push(enemy);
     }
@@ -407,7 +407,7 @@ impl<'a> GameLevel<'a> {
             },
 
             2 => {
-                player.move_to(Position { x: 750.0, y: 540.0 });
+                player.move_to(Position { x: 1777.0, y: 780.0 });
 
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 540.0 }, "39r 39l"));
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 680.0, y: 420.0 }, "2r 28l 13u 13d 26r"));
