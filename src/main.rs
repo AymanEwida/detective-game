@@ -32,7 +32,7 @@ fn main() {
     let mut player = Player::new(Position { x: 90.0, y: 180.0 });
     let mut level = GameLevel::default();
     level.next_level(&mut player);
-    // level.next_level(&mut player);
+    level.next_level(&mut player);
     // level.next_level(&mut player);
     // level.next_level(&mut player);
     
