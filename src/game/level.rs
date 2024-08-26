@@ -411,53 +411,99 @@ impl<'a> GameLevel<'a> {
                 player.move_to(Position { x: 1777.0, y: 780.0 });
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 615.0 }, "52r/3500 52l/4000"));
-                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 680.0, y: 420.0 }, "2r/0 28l/0 13u/0 13d/0 26r/0"));
-                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "24d/0 5r/0 24u/0 5l/0"));
-                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 10.0 }, "28d/0 29u/0 12r/0 18d/0 9r/0 9l/0 18u/0 12l/0 1d/0"));
-                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 570.0, y: 15.0 }, "10d/0 2l/0 16d/0 12r/0 2u/0 6r/0 24u/0 16l/0"));
-
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 615.0 }, "10u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0"));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1270.0, y: 240.0 }, "11l/5500 2r/0 17d/4500 9r/0 17u/0"));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 240.0 }, "10r/4500 8d/6500 10l/0 8u/0"));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 615.0 }, "35r/5000 35l/3500"));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 513.0 }, "21r/4500 21l/5500"));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 0.0 }, "4r/4000 4l/0 23d/6000 23u/0"));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 205.0, y: 0.0 }, "5l/3500 13d/0 2r/5500 13u/0 3r/0"));
+                
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1360.0, y: 577.0 }, Size { width: 400.0, height: DEFAULT_SIZE }));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1650.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1330.0, y: 540.0 }, Size { width: DEFAULT_SIZE, height: 67.0 }));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1230.0, y: 510.0 }, Size { width: 130.0, height: DEFAULT_SIZE }));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1230.0, y: 540.0 }, Size { width: DEFAULT_SIZE, height: 67.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1330.0, y: 510.0 }, Size { width: DEFAULT_SIZE, height: 97.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1230.0, y: 480.0 }, Size { width: 130.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1230.0, y: 510.0 }, Size { width: DEFAULT_SIZE, height: 97.0 }));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1030.0, y: 577.0 }, Size { width: 200.0, height: DEFAULT_SIZE }));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1027.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }));
 
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 1275.0, y: 550.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 1275.0, y: 520.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1450.0, y: 582.0 }, DEFAULT_SIZE_FOR_CAMERA));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1110.0, y: 582.0 }, DEFAULT_SIZE_FOR_CAMERA));
 
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 260.0 , y: 70.0 }, Size { width: 40.0, height: 240.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 255.0 , y: 310.0 }, Size { width: 50.0, height: 70.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 240.0, y: 180.0 }, Size { width: 30.0, height: 30.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 300.0 , y: 240.0 }, Size { width: 220.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 470.0 , y: 280.0 }, Size { width: 50.0, height: 135.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 420.0, y: 380.0 }, Size { width: 50.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 425.0, y: 285.0 }, Size { width: 40.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 330.0, y: 305.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 520.0 , y: 335.0 }, Size { width: 220.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 735.0, y: 335.0 }, Size { width: 70.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 580.0, y: 405.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 660.0, y: 355.0 }, Size { width: 30.0, height: 30.0 })); // rotate here 180
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 920.0, y: 480.0 }, Size { width: DEFAULT_SIZE, height: 197.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 950.0, y: 480.0 }, Size { width: 225.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1175.0, y: 480.0 }, Size { width: 55.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1330.0, y: 210.0 }, Size { width: DEFAULT_SIZE, height: 270.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 920.0, y: 210.0 }, Size { width: 410.0, height: DEFAULT_SIZE }));
 
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 190.0, y: 0.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 150.0 , y: 0.0 }, Size { width: 40.0, height: 320.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 50.0 , y: 320.0 }, Size { width: 140.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 0.0, y: 320.0 }, Size { width: 50.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 80.0, y: 240.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 0.0, y: 0.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Key, Position { x: 85.0, y: 10.0 }, Size { width: 60.0, height: 60.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 125.0, y: 130.0 }, Size { width: 30.0, height: 30.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1117.0, y: 240.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1120.0, y: 300.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }));
 
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 480.0 , y: 0.0 }, Size { width: 40.0, height: 180.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 478.0, y: 182.0 }, Size { width: 45.0, height: 57.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 370.0, y: 165.0 }, Size { width: 45.0, height: 80.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 920.0, y: 240.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 917.0, y: 420.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }));
 
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 610.0, y: 260.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 520.0, y: 0.0 }, Size { width: 45.0, height: 80.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 620.0, y: 150.0 }, Size { width: 40.0, height: 40.0 }));
-                // self.insert_object(ObjectLevel::new(ObjectLevelType::ExitDoor, Position { x: 730.0, y: 5.0 }, Size { width: 80.0, height: 100.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 950.0, y: 615.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1050.0, y: 515.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1120.0, y: 485.0 }, DEFAULT_SIZE_FOR_CAMERA)); // rotate here 270
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1240.0, y: 415.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1290.0, y: 300.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1180.0, y: 240.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 1200.0, y: 340.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 950.0, y: 390.0 }, Size { width: 115.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1065.0, y: 390.0 }, Size { width: 55.0, height: DEFAULT_SIZE }));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1050.0, y: 240.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 980.0, y: 327.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 960.0, y: 250.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1105.0, y: 320.0 }, DEFAULT_SIZE_FOR_CAMERA));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1030.0, y: 422.0 }, Size { width: 45.0, height: 60.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 985.0, y: 395.0 }, DEFAULT_SIZE_FOR_CAMERA)); // rotate here 270 (repeat)
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 475.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 0.0, y: 577.0 }, Size { width: 65.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 65.0, y: 577.0 }, Size { width: 360.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 423.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 425.0, y: 477.0 }, Size { width: DEFAULT_SIZE, height: 130.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 0.0, y: 477.0 }, Size { width: 425.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 280.0, y: 507.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 375.0, y: 510.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 330.0, y: 615.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 85.0, y: 615.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 220.0, y: 582.0 }, DEFAULT_SIZE_FOR_CAMERA));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 120.0, y: 515.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 230.0, y: 482.0 }, DEFAULT_SIZE_FOR_CAMERA)); // rotate here 270
+                self.insert_object(ObjectLevel::new(ObjectLevelType::CodePaper, Position { x: 323.0, y: 532.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 5.0, y: 335.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 0.0, y: 300.0 }, Size { width: 65.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 65.0, y: 300.0 }, Size { width: 230.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 112.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 115.0, y: 60.0 }, Size { width: DEFAULT_SIZE, height: 240.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 265.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 300.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 145.0, y: 200.0 }, Size { width: 55.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 200.0, y: 200.0 }, Size { width: 65.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 150.0, y: 232.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 70.0, y: 235.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 0.0, y: 130.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 35.0, y: 0.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 95.0, y: 130.0 }, DEFAULT_SIZE_FOR_CAMERA)); // rotate here 135
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 210.0, y: 0.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 145.0, y: 135.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 245.0, y: 125.0 }, DEFAULT_SIZE_FOR_CAMERA));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Key, Position { x: 220.0, y: 250.0 }, DEFAULT_SIZE_FOR_COLLECTABLE));
+
+                self.insert_object(ObjectLevel::new(ObjectLevelType::LockedDoor, Position { x: 417.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 15.0, height: 60.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 425.0, y: 60.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::CodedDoor, Position { x: 438.0, y: 210.0 }, Size { width: 85.0, height: DEFAULT_SIZE }));
+                self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 510.0, y: 210.0 }, Size { width: 410.0, height: DEFAULT_SIZE }));
             },
 
             3 => {
