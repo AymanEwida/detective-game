@@ -5,8 +5,11 @@ use std::time::{Duration, Instant};
 
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::game::{character::{Direction, Character}, level::{ObjectLevel, ObjectLevelType, GameObject}, player::Player, enemy::{Enemy, EnemyType}};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
+use detective_game::game::{character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use simulator::Simulator;
+
+pub mod simulator;
 
 pub const SIMULATOR_WINDOW_WIDTH: u32 = 800;
 pub const SIMULATOR_WINDOW_HEIGHT: u32 = 600;
@@ -30,9 +33,14 @@ fn main() {
     let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
+    let simulator = Simulator::from(
+        vec![
+            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }),
+            ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 })
+        ]
+    );
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000");
-    let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 150.0, y: 30.0 }, Size { width: 50.0, height: 150.0 });
-    
+
     let mut last_update = Instant::now();
 
     window.set_framebuffer_size_callback(| window, new_width, new_height | {
@@ -116,22 +124,11 @@ fn main() {
 
         if delta >= Duration::from_secs_f32(1.0/60.0) {
             last_update = now;
-
-            if player.collide(&wall) {
-                player.move_to_prev_position();
-            }
-
-            render.fill_with_image("assets/game/background.jpg").expect("Unable to fill window with image");
             
-            render.display_text("no", Position { x: 300.0, y: 210.0 }, 1.0, Some(200.0), Color::RGB(255, 255, 255)).expect("Unable to display text");
-            render.display_text("Ayman is my name\n(C) yes", Position { x: 300.0, y: 300.0 }, 1.0, Some(200.0), Color::RGB(255, 0, 255)).expect("Unable to display text");
-
-            player.draw(&mut render).expect("Unable to draw player");
+            simulator.draw(&mut player, &mut render).expect("Unable to draw player");
             
             enemy.draw(&mut render).expect("Unable to draw enemy");
             enemy.move_enemy(None);
-            
-            wall.draw(&mut render).expect("Unable to draw level");
             
             render.render().expect("Uable to render object on window");
             

@@ -2,6 +2,7 @@ use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
 use super::{character::{Character, Direction}, level::GameObject};
 
+#[derive(Debug)]
 pub struct Player<'a> {
     position: Position,
     prev_position: Option<Position>,

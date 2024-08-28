@@ -13,7 +13,7 @@ pub trait GameObject<'a> {
     fn get_size(&self) -> Size;
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ObjectLevelType {
     Wall,
     RegularDoor,
@@ -28,6 +28,7 @@ pub enum ObjectLevelType {
     Key
 }
 
+#[derive(Debug, Clone)]
 pub struct ObjectLevel<'a> {
     object_type: ObjectLevelType,
     position: Position,
@@ -61,6 +62,10 @@ impl ObjectLevel<'_> {
 }
 
 impl ObjectLevel<'_> {
+    pub fn get_type(&self) -> ObjectLevelType {
+        self.object_type
+    }
+
     fn open_door(&mut self) {
         assert!(self.object_type == ObjectLevelType::RegularDoor, "object must be a door");
 
@@ -90,6 +95,7 @@ impl<'a> GameObject<'a> for ObjectLevel<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct GameLevel<'a> {
     border_top_left: Position,
     border_size: Size,

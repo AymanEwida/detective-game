@@ -6,10 +6,12 @@ use super::{character::{Character, Direction}, level::GameObject};
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
+#[derive(Debug)]
 pub enum EnemyType {
     Regular
 }
 
+#[derive(Debug)]
 pub struct Enemy<'a> {
     start_position: Position,
     position: Position,
