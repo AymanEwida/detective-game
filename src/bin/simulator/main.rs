@@ -35,8 +35,8 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
     let simulator = Simulator::from(
         vec![
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }),
-            ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 })
+            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }, None),
+            ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, Some(45.0))
         ]
     );
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000");
