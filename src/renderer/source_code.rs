@@ -5,8 +5,10 @@ in vec4 color;
 
 out vec4 vertexColor;
 
+uniform mat4 transform;
+
 void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position = transform * vec4(position, 0.0, 1.0);
     vertexColor = color;
 }
 "#;
@@ -29,8 +31,10 @@ in vec2 vertexTexCoord;
 
 out vec2 texCoord;
 
+uniform mat4 transform;
+
 void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position = transform * vec4(position, 0.0, 1.0);
     texCoord = vertexTexCoord;
 }
 "#;
@@ -48,6 +52,6 @@ uniform int isText;
 void main() {
     vec4 sampled = vec4(1.0, 1.0, 1.0, texture(texture0, texCoord).r);
     
-    FragColor = vec4(textColor, 1.0) * sampled * isText + texture(texture0, texCoord) * (1- isText);
+    FragColor = vec4(textColor, 1.0) * sampled * isText + texture(texture0, texCoord) * (1 - isText);
 }
 "#;

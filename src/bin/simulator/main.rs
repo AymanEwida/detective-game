@@ -5,8 +5,9 @@ use std::time::{Duration, Instant};
 
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::game::{character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
+use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::{color::Color, vertice::Vertice}};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use detective_game::library::constants::FPS;
 use simulator::Simulator;
 
 pub mod simulator;
@@ -36,7 +37,7 @@ fn main() {
     let simulator = Simulator::from(
         vec![
             ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }, None),
-            ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, Some(45.0))
+            ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, None)
         ]
     );
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000");
@@ -122,14 +123,19 @@ fn main() {
         let now = Instant::now();
         let delta = now.duration_since(last_update);
 
-        if delta >= Duration::from_secs_f32(1.0/60.0) {
+        if delta >= Duration::from_secs_f32(1.0/FPS) {
             last_update = now;
-            
+             
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
-            
+
+            render.draw_rectangle(Position { x: 150.0, y: 100.0 }, Size { width: 100.0, height: 100.0 }, Color::RGBA(0, 0, 255, 50), Some(45.0));
+            render.draw_line(Position { x: 350.0, y: 300.0 }, Position { x: 550.0, y: 300.0 }, Color::Red);
+            render.draw_triangle(Vertice(Position { x: 150.0, y: 400.0 }, Color::Green), Vertice(Position { x: 250.0, y: 400.0 }, Color::Green), Vertice(Position { x: 200.0, y: 250.0 }, Color::Green), Some(0.0));
+            render.draw_geometric_object(Position { x: 600.0, y: 200.0 }, 50.0, Color::Black, Some(5), Some(90.0));
+
             enemy.draw(&mut render).expect("Unable to draw enemy");
             enemy.move_enemy(None);
-            
+
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();

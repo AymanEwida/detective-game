@@ -1,8 +1,9 @@
 use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
+use glam::{Mat4, Vec3};
 
-use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, convert_angle_to_radians, convert_coordinates, convert_size, length_of_line}}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, length_of_line}}, set_attribute};
 
 use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
@@ -17,7 +18,8 @@ struct Object<'a> {
     vertices: Vec<_VerticeData>,
     indices: Option<Vec<u32>>,
     texture_image_path: Option<&'a str>,
-    mode: GLenum
+    mode: GLenum,
+    transform_matrix: Mat4
 }
 
 impl<'a> Object<'a> {
@@ -26,8 +28,33 @@ impl<'a> Object<'a> {
             vertices,
             indices,
             mode,
-            texture_image_path
+            texture_image_path,
+            transform_matrix: Mat4::IDENTITY
         }
+    }
+}
+
+impl Object<'_> {
+    pub fn scale(&mut self, scale: Vec3) {
+        let scaling_matrix = Mat4::from_scale(scale);
+
+        self.transform_matrix = self.transform_matrix * scaling_matrix;
+    }
+
+    pub fn rotate(&mut self, angle: f32, rotation_point: Position) {
+        let translate_to_origin = Mat4::from_translation(-glam::vec3(rotation_point.x, rotation_point.y, 0.0));
+
+        let rotation_matrix = Mat4::from_axis_angle(glam::vec3(0.0, 0.0, 1.0), convert_angle_to_radians(angle));
+
+        let translate_back = Mat4::from_translation(glam::vec3(rotation_point.x, rotation_point.y, 0.0));
+
+        self.transform_matrix = self.transform_matrix * translate_back * rotation_matrix * translate_to_origin;
+    }
+
+    pub fn translate(&mut self, translate: Vec3) {
+        let translation_matrix = Mat4::from_translation(translate);
+
+        self.transform_matrix = self.transform_matrix * translation_matrix;
     }
 }
 
@@ -213,29 +240,41 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn draw_triangle(&mut self, bottom_left: Vertice, bottom_right: Vertice, other_point: Vertice) {
-        let vertices_data = vec![bottom_left.get_vertice_data(&self.size), bottom_right.get_vertice_data(&self.size), other_point.get_vertice_data(&self.size)];
+    pub fn draw_triangle(&mut self, first_point: Vertice, second_point: Vertice, third_point: Vertice, rotate: Option<f32>) {
+        let vertices_data = vec![first_point.get_vertice_data(&self.size), second_point.get_vertice_data(&self.size), third_point.get_vertice_data(&self.size)];
         let indices = vec![0, 1, 2];
 
-        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLES));
+        let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLES);
+
+        if let Some(rotate) = rotate {
+            object.rotate(rotate, calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0));
+        }
+
+        self.objects.push(object);
     }
 
-    pub fn draw_rectangle(&mut self, position: Position, size: Size, color: Color) {
+    pub fn draw_rectangle(&mut self, position: Position, size: Size, color: Color, rotate: Option<f32>) {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
         let vertices_data = vec![
-            _VerticeData(position.get_vertice_position(None), color.get_vertices_color_in_f32()),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), color.get_vertices_color_in_f32()),
-            _VerticeData(position.get_vertice_position(Some(&size)), color.get_vertices_color_in_f32()),
-            _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), color.get_vertices_color_in_f32()),
+            _VerticeData(position.to_position_array(), color.get_vertices_color_in_f32()),
+            _VerticeData(position.get_position_from_size(&Size { width: size.width, height: 0.0 }).to_position_array(), color.get_vertices_color_in_f32()),
+            _VerticeData(position.get_position_from_size(&size).to_position_array(), color.get_vertices_color_in_f32()),
+            _VerticeData(position.get_position_from_size(&Size { width: 0.0, height: size.height }).to_position_array(), color.get_vertices_color_in_f32()),
         ];
         let indices = vec![0, 1, 2, 2, 3, 0];
 
-        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLES));
+        let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLES);
+
+        if let Some(rotate) = rotate {
+            object.rotate(rotate, position);
+        }
+
+        self.objects.push(object);
     }
 
-    pub fn draw_geometric_object(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>) {
+    pub fn draw_geometric_object(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>, rotate: Option<f32>) {
         let num_segments = num_segments.unwrap_or(360);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
@@ -257,7 +296,13 @@ impl<'a> Render<'a> {
             indices.extend_from_slice(&[0, num, num+1]);
         }
 
-        self.objects.push(Object::new(vertices_data, Some(indices), None, gl::TRIANGLE_FAN));
+        let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLE_FAN);
+
+        if let Some(rotate) = rotate {
+            object.rotate(rotate, center);
+        }
+
+        self.objects.push(object);
     }
 
     pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>) {
@@ -290,8 +335,8 @@ impl<'a> Render<'a> {
         let end = convert_coordinates(end, &self.size);
         
         let vertices_data = vec![
-            _VerticeData(start.get_vertice_position(None), color.get_vertices_color_in_f32()),
-            _VerticeData(end.get_vertice_position(None), color.get_vertices_color_in_f32()),
+            _VerticeData(start.to_position_array(), color.get_vertices_color_in_f32()),
+            _VerticeData(end.to_position_array(), color.get_vertices_color_in_f32()),
         ];
         let indices = vec![0, 1];
 
@@ -302,33 +347,24 @@ impl<'a> Render<'a> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
-        let mut vertices_data = Vec::new();
+        let vertices_data = vec![
+            _VerticeData(position.to_position_array(), [0.0, 0.0, 0.0, 0.0]),
+            _VerticeData(position.get_position_from_size(&Size { width: size.width, height: 0.0 }).to_position_array(), [1.0, 0.0, 0.0, 0.0]),
+            _VerticeData(position.get_position_from_size(&size).to_position_array(), [1.0, 1.0, 0.0, 0.0]),
+            _VerticeData(position.get_position_from_size(&Size { width: 0.0, height: size.height }).to_position_array(), [0.0, 1.0, 0.0, 0.0]),
+        ];
         let indices = vec![0, 1, 2, 2, 3, 0];
-
-        if let Some(rotate) = rotate {
-            assert!(rotate >= 0.0 && rotate <= 360.0, "rotate must be between 0.0 - 360.0 (includes)");
-
-            let rotate = convert_angle_to_radians(rotate);
-
-            vertices_data.extend_from_slice(&[
-                _VerticeData(position.get_vertice_position_with_rotate(None, rotate), [0.0, 0.0, 0.0, 0.0]),
-                _VerticeData(position.get_vertice_position_with_rotate(Some(&Size { width: size.width, height: 0.0 }), rotate), [1.0, 0.0, 0.0, 0.0]),
-                _VerticeData(position.get_vertice_position_with_rotate(Some(&size), rotate), [1.0, 1.0, 0.0, 0.0]),
-                _VerticeData(position.get_vertice_position_with_rotate(Some(&Size { width: 0.0, height: size.height }), rotate), [0.0, 1.0, 0.0, 0.0]),
-            ]);
-        } else {
-            vertices_data.extend_from_slice(&[
-                _VerticeData(position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
-                _VerticeData(position.get_vertice_position(Some(&Size { width: size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
-                _VerticeData(position.get_vertice_position(Some(&size)), [1.0, 1.0, 0.0, 0.0]),
-                _VerticeData(position.get_vertice_position(Some(&Size { width: 0.0, height: size.height })), [0.0, 1.0, 0.0, 0.0]),
-            ]);
-        }
 
         let found_texture = self.images.get(image_path);
 
         if found_texture.is_some() {
-            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES));
+            let mut object = Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES);
+
+            if let Some(rotate) = rotate {
+                object.rotate(rotate, position);
+            }
+
+            self.objects.push(object);
 
             return Ok(());
         }
@@ -344,9 +380,15 @@ impl<'a> Render<'a> {
 
             self.images.insert(image_path, texture);
             
-            self.objects.push(Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES));
+            let mut object = Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES);
+
+            if let Some(rotate) = rotate {
+                object.rotate(rotate, position);
+            }
+
+            self.objects.push(object);
         }
-        
+
         Ok(())
     }
 
@@ -440,10 +482,10 @@ impl<'a> Render<'a> {
                 let character_start_position = Position { x: start_position.x + width_offset, y: start_position.y - line_height - height_offset - offset_y };
 
                 let vertices_data = [
-                    _VerticeData(character_start_position.get_vertice_position(None), [0.0, 0.0, 0.0, 0.0]),
-                    _VerticeData(character_start_position.get_vertice_position(Some(&Size { width: character_size.width, height: 0.0 })), [1.0, 0.0, 0.0, 0.0]),
-                    _VerticeData(character_start_position.get_vertice_position(Some(&character_size)), [1.0, 1.0, 0.0, 0.0]),
-                    _VerticeData(character_start_position.get_vertice_position(Some(&Size { width: 0.0, height: character_size.height })), [0.0, 1.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.to_position_array(), [0.0, 0.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.get_position_from_size(&Size { width: character_size.width, height: 0.0 }).to_position_array(), [1.0, 0.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.get_position_from_size(&character_size).to_position_array(), [1.0, 1.0, 0.0, 0.0]),
+                    _VerticeData(character_start_position.get_position_from_size(&Size { width: 0.0, height: character_size.height }).to_position_array(), [0.0, 1.0, 0.0, 0.0]),
                 ];
 
                 self.renderable_characters.push(RenderableCharacter::new(ch, vertices_data, (r, g, b)));
@@ -467,11 +509,12 @@ impl<'a> Render<'a> {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             
             if let Some(background_image) = &self.background.image {
-                self.vertices_program.apply();
+                self.texture_program.apply();
                 background_image.vertex_array.bind();
                 background_image.vertex_buffer.bind();
                 background_image.index_buffer.bind();
 
+                self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
                 self.texture_program.set_int_uniform("texture0", 0)?;
                 background_image.texture.activate(gl::TEXTURE0);
 
@@ -486,6 +529,7 @@ impl<'a> Render<'a> {
                 assert!(self.characters.get(&randerable_character.character) != None, "character must exist");
 
                 self.texture_program.apply();
+                self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
                 self.texture_program.set_bool_uniform("isText", 1)?;
                 self.texture_program.set_color_data_uniform("textColor", randerable_character.color)?;
 
@@ -518,11 +562,13 @@ impl<'a> Render<'a> {
                     let texture = self.images.get(texture_image_path).unwrap();
 
                     self.texture_program.apply();
+                    self.texture_program.set_transform_matrix_uniform(object.transform_matrix)?;
                     self.texture_program.set_bool_uniform("isText", 0)?;
                     self.texture_program.set_int_uniform("texture0", 0)?;
                     texture.activate(gl::TEXTURE0);
                 } else {
                     self.vertices_program.apply();
+                    self.vertices_program.set_transform_matrix_uniform(object.transform_matrix)?;
                 }
 
                 if let Some(indices) = &object.indices {

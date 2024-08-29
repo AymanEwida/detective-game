@@ -77,3 +77,10 @@ pub fn convert_path(path: &str) -> Vec<(u32, Direction, u64)> {
 pub fn convert_angle_to_radians(angle: f32) -> f32 {
     angle * (PI / 180.0)
 }
+
+pub fn calc_mid_point_position_of_triangle(first_point_position: Position, second_point_position: Position, third_point_position: Position) -> Position {
+    Position {
+        x: (first_point_position.x + second_point_position.x + third_point_position.x) / 3.0,
+        y: (first_point_position.y + second_point_position.y + third_point_position.y) / 3.0 
+    }
+}

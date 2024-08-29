@@ -68,7 +68,7 @@ fn test_move_player_right() {
 
 #[test]
 fn test_collide_and_move_player_to_prev_position() {
-    let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 60.0, y: 10.0 }, Size { width: 50.0, height: 60.0 });
+    let wall = ObjectLevel::new(ObjectLevelType::Wall, Position { x: 60.0, y: 10.0 }, Size { width: 50.0, height: 60.0 }, None);
     let mut player = Player::new(Position { x: 10.0, y: 10.0 });
 
     let input_direction = Direction::Right;

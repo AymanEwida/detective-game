@@ -165,3 +165,27 @@ fn test_convert_angle_to_radians_test2() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_calc_mid_point_position_of_triangle_test1() {
+    let input_first_point = Position { x: 10.0, y: 50.0 };
+    let input_second_point = Position { x: 50.0, y: 50.0  };
+    let input_third_point = Position { x: 30.0, y: 20.0 };
+
+    let actual = calc_mid_point_position_of_triangle(input_first_point, input_second_point, input_third_point);
+    let expected = Position { x: 30.0, y: 40.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_mid_point_position_of_triangle_test2() {
+    let input_first_point = Position { x: 50.0, y: 20.0 };
+    let input_second_point = Position { x: 50.0, y: 50.0  };
+    let input_third_point = Position { x: 20.0, y: 30.0 };
+
+    let actual = calc_mid_point_position_of_triangle(input_first_point, input_second_point, input_third_point);
+    let expected = Position { x: 40.0, y: 33.333332 };
+
+    assert_eq!(actual, expected);
+}

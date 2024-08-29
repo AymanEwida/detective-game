@@ -6,7 +6,9 @@ use std::time::{Duration, Instant};
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::library::constants::{
-    HEIGHT, WIDTH
+    FPS,
+    HEIGHT,
+    WIDTH
 };
 use detective_game::game::{character::Direction, level::GameLevel, player::Player};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
@@ -117,7 +119,7 @@ fn main() {
         let now = Instant::now();
         let delta = now.duration_since(last_update);
 
-        if delta >= Duration::from_secs_f32(1.0/60.0) {
+        if delta >= Duration::from_secs_f32(1.0/FPS) {
             last_update = now;
 
             if player.is_off_window(render.get_size()) || player.is_off_border(Some(level.get_boder_start_position()), level.get_boder_size()) {

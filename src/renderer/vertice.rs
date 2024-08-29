@@ -57,36 +57,30 @@ impl Sub for Position {
 }
 
 impl Position {
-    pub fn get_vertice_position(&self, size: Option<&Size>) -> PositionType {
-        match size {
-            Some(Size { width, height }) => {
-                let x = self.x + width;
-                let y = self.y - height;
-                
-                [x, y]
-            },
-            None => [self.x, self.y]
+    pub fn get_position_from_size(&self, size: &Size) -> Self {
+        let x = self.x + size.width;
+        let y = self.y - size.height;
+
+        Self {
+            x, 
+            y
+        }
+    }
+    
+    pub fn rotate(&self, angle_in_radians: f32) -> Self {
+        let x = self.x * angle_in_radians.cos() - self.y * angle_in_radians.sin();
+        let y = self.x * angle_in_radians.sin() + self.y * angle_in_radians.cos();
+
+        Self {
+            x,
+            y
         }
     }
 
-    pub fn get_vertice_position_with_rotate(&self, size: Option<&Size>, angle: f32) -> PositionType {
-        assert!(angle >= 0.0 && angle <= 360.0, "rotate must be between 0.0 - 360.0 (includes)");
-
-        match size {
-            Some(Size { width, height }) => {
-                let x = self.x + width;
-                let y = self.y - height;
-                
-                [x * angle.cos() - y * angle.sin(), x * angle.sin() + y * angle.cos()]
-            },
-            None => {
-                let x = self.x * angle.cos() - self.y * angle.sin();
-                let y = self.x * angle.sin() + self.y * angle.cos();
-                
-                [x, y]
-            },
-        }
+    pub fn to_position_array(&self) -> PositionType {
+        [self.x, self.y]
     }
+
 }
 
 #[derive(Debug)]
@@ -101,9 +95,9 @@ pub struct _TextureVerticeData(pub PositionType, pub [f32; 2]);
 pub struct _VerticeData(pub PositionType, pub [f32; 4]);
 
 impl Vertice {
-    pub fn get_vertice_data(self, size: &Size<f32>) -> _VerticeData {
+    pub fn get_vertice_data(&self, size: &Size<f32>) -> _VerticeData {
         let new_position = convert_coordinates(self.0, size);
 
-        _VerticeData(new_position.get_vertice_position(None), self.1.get_vertices_color_in_f32())
+        _VerticeData(new_position.to_position_array(), self.1.get_vertices_color_in_f32())
     }
 }
