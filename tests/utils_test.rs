@@ -189,3 +189,58 @@ fn test_calc_mid_point_position_of_triangle_test2() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_calc_mid_point_position_of_quadrilateral_shape_test1() {
+    let input_top_left = Position { x: 10.0, y: 10.0 };
+    let input_size = Size { width: 50.0, height: 50.0  };
+
+    let actual = calc_mid_point_position_of_quadrilateral_shape(&input_top_left, &input_size);
+    let expected = Position { x: 35.0, y: -15.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_mid_point_position_of_quadrilateral_shape_test2() {
+    let input_top_left = Position { x: 20.0, y: 35.0 };
+    let input_size = Size { width: 60.0, height: 50.0  };
+
+    let actual = calc_mid_point_position_of_quadrilateral_shape(&input_top_left, &input_size);
+    let expected = Position { x: 50.0, y: 10.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_mid_point_same_y() {
+    let input_start = Position { x: 10.0, y: 10.0 };
+    let input_end = Position { x: 50.0, y: 10.0  };
+
+    let actual = calc_mid_point(&input_start, &input_end);
+    let expected = Position { x: 30.0, y: 10.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_mid_point_same_x() {
+    let input_start = Position { x: 50.0, y: 10.0 };
+    let input_end = Position { x: 50.0, y: -10.0  };
+
+    let actual = calc_mid_point(&input_start, &input_end);
+    let expected = Position { x: 50.0, y: 0.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_mid_point_different() {
+    let input_start = Position { x: -30.0, y: -20.0 };
+    let input_end = Position { x: 30.0, y: 20.0  };
+
+    let actual = calc_mid_point(&input_start, &input_end);
+    let expected = Position { x: 0.0, y: 0.0 };
+
+    assert_eq!(actual, expected);
+}

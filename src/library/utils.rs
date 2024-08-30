@@ -6,11 +6,18 @@ pub fn length_of_line(start: &Position, end: &Position) -> f32 {
     ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt()
 }
 
-pub fn calc_control_point(start: &Position, end: &Position) -> Position {
+pub fn calc_mid_point(start: &Position, end: &Position) -> Position {
     let x_middle = (start.x + end.x) / 2.0;
-    let y_middle = start.y.abs() + end.y.abs();
+    let y_middle = (start.y + end.y) / 2.0;
 
     Position { x: x_middle, y: y_middle }
+}
+
+pub fn calc_control_point(start: &Position, end: &Position) -> Position {
+    let control_x = (start.x + end.x) / 2.0;
+    let control_y = start.y.abs() + end.y.abs();
+
+    Position { x: control_x, y: control_y }
 }
 
 pub fn convert_coordinates(coordinate: Position, size: &Size) -> Position {
@@ -82,5 +89,12 @@ pub fn calc_mid_point_position_of_triangle(first_point_position: Position, secon
     Position {
         x: (first_point_position.x + second_point_position.x + third_point_position.x) / 3.0,
         y: (first_point_position.y + second_point_position.y + third_point_position.y) / 3.0 
+    }
+}
+
+pub fn calc_mid_point_position_of_quadrilateral_shape(top_left: &Position, size: &Size) -> Position {
+    Position {
+        x: top_left.x + (size.width / 2.0),
+        y: top_left.y - (size.height / 2.0) 
     }
 }
