@@ -21,8 +21,8 @@ pub fn calc_control_point(start: &Position, end: &Position) -> Position {
 }
 
 pub fn convert_coordinates(coordinate: Position, size: &Size) -> Position {
-    let half_width = size.width as f32 / 2.0;
-    let half_height = size.height as f32 / 2.0;
+    let half_width = size.width / 2.0;
+    let half_height = size.height / 2.0;
 
     let new_x = ((coordinate.x - half_width) / half_width).abs();
     let new_y = ((coordinate.y - half_height) / half_height).abs();
@@ -96,5 +96,12 @@ pub fn calc_mid_point_position_of_quadrilateral_shape(top_left: &Position, size:
     Position {
         x: top_left.x + (size.width / 2.0),
         y: top_left.y - (size.height / 2.0) 
+    }
+}
+
+pub fn create_translate(translate: Position, window_size: &Size) -> Position {
+    Position {
+        x: (translate.x / window_size.width) * 2.0,
+        y: (translate.y / window_size.height) * -2.0
     }
 }

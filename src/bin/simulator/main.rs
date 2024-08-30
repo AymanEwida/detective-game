@@ -7,13 +7,13 @@ use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHi
 
 use detective_game::game::{character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
-use detective_game::library::constants::FPS;
 use simulator::Simulator;
 
 pub mod simulator;
 
 pub const SIMULATOR_WINDOW_WIDTH: u32 = 800;
 pub const SIMULATOR_WINDOW_HEIGHT: u32 = 600;
+pub const SIMULATION_FPS: f32 = 60.0;
 
 fn main() {
     let mut glfw = glfw::init(fail_on_errors).expect("Failed on init.");
@@ -123,10 +123,12 @@ fn main() {
         let now = Instant::now();
         let delta = now.duration_since(last_update);
 
-        if delta >= Duration::from_secs_f32(1.0/FPS) {
+        if delta >= Duration::from_secs_f32(1.0/SIMULATION_FPS) {
             last_update = now;
              
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
+
+            render.load_image("assets/test/test.jpg", Position { x: 350.0, y: 250.0 }, Size { width: 100.0, height: 100.0 }, None, Some(Position { x: 300.0, y: 200.0 }), Some(glfw.get_timer_value() as f32)).expect("Unable to load image");
 
             enemy.draw(&mut render).expect("Unable to draw enemy");
             enemy.move_enemy(None);

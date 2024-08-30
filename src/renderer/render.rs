@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, ptr};
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
 
-use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, length_of_line}}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
 
 use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
@@ -240,20 +240,32 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn draw_triangle(&mut self, first_point: Vertice, second_point: Vertice, third_point: Vertice, rotate: Option<f32>) {
+    pub fn draw_triangle(&mut self, first_point: Vertice, second_point: Vertice, third_point: Vertice, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
         let vertices_data = vec![first_point.get_vertice_data(&self.size), second_point.get_vertice_data(&self.size), third_point.get_vertice_data(&self.size)];
         let indices = vec![0, 1, 2];
 
         let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLES);
 
+        if let Some(translate) = translate {
+            let translate = create_translate(translate, &self.size);
+
+            object.translate(glam::vec3(translate.x, translate.y, 0.0));
+        }
+
         if let Some(rotate) = rotate {
             object.rotate(rotate, convert_coordinates(calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0), &self.size));
+        }
+
+        if let Some(scale) = scale {
+            assert!(scale > 0.0, "scale must be a positive number");
+
+            object.scale(glam::vec3(scale, scale, 1.0));
         }
 
         self.objects.push(object);
     }
 
-    pub fn draw_rectangle(&mut self, position: Position, size: Size, color: Color, rotate: Option<f32>) {
+    pub fn draw_rectangle(&mut self, position: Position, size: Size, color: Color, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
@@ -267,14 +279,26 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLES);
 
+        if let Some(translate) = translate {
+            let translate = create_translate(translate, &self.size);
+
+            object.translate(glam::vec3(translate.x, translate.y, 0.0));
+        }
+
         if let Some(rotate) = rotate {
             object.rotate(rotate, calc_mid_point_position_of_quadrilateral_shape(&position, &size));
+        }
+
+        if let Some(scale) = scale {
+            assert!(scale > 0.0, "scale must be a positive number");
+
+            object.scale(glam::vec3(scale, scale, 1.0));
         }
 
         self.objects.push(object);
     }
 
-    pub fn draw_geometric_object(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>, rotate: Option<f32>) {
+    pub fn draw_geometric_object(&mut self, center: Position, radius: f32, color: Color, num_segments: Option<u32>, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
         assert!(radius > 0.0, "radius must be positive number");
         
         let num_segments = num_segments.unwrap_or(360);
@@ -302,14 +326,26 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLE_FAN);
 
+        if let Some(translate) = translate {
+            let translate = create_translate(translate, &self.size);
+
+            object.translate(glam::vec3(translate.x, translate.y, 0.0));
+        }
+
         if let Some(rotate) = rotate {
             object.rotate(rotate, center);
+        }
+
+        if let Some(scale) = scale {
+            assert!(scale > 0.0, "scale must be a positive number");
+
+            object.scale(glam::vec3(scale, scale, 1.0));
         }
 
         self.objects.push(object);
     }
 
-    pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>, rotate: Option<f32>) {
+    pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
 
         assert!(num_segments > 0, "num_segments must be a positive number");
@@ -335,14 +371,26 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP);
 
+        if let Some(translate) = translate {
+            let translate = create_translate(translate, &self.size);
+
+            object.translate(glam::vec3(translate.x, translate.y, 0.0));
+        }
+
         if let Some(rotate) = rotate {
             object.rotate(rotate, calc_mid_point(&start, &end));
+        }
+
+        if let Some(scale) = scale {
+            assert!(scale > 0.0, "scale must be a positive number");
+
+            object.scale(glam::vec3(scale, scale, 1.0));
         }
 
         self.objects.push(object);
     }
 
-    pub fn draw_line(&mut self, start: Position, end: Position, color: Color, rotate: Option<f32>) {    
+    pub fn draw_line(&mut self, start: Position, end: Position, color: Color, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {    
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
         
@@ -354,14 +402,26 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP);
 
+        if let Some(translate) = translate {
+            let translate = create_translate(translate, &self.size);
+
+            object.translate(glam::vec3(translate.x, translate.y, 0.0));
+        }
+
         if let Some(rotate) = rotate {
             object.rotate(rotate, calc_mid_point(&start, &end));
+        }
+
+        if let Some(scale) = scale {
+            assert!(scale > 0.0, "scale must be a positive number");
+
+            object.scale(glam::vec3(scale, scale, 1.0));
         }
 
         self.objects.push(object);
     }
 
-    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, rotate: Option<f32>) -> Result<()> {
+    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) -> Result<()> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
@@ -378,8 +438,20 @@ impl<'a> Render<'a> {
         if found_texture.is_some() {
             let mut object = Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES);
 
+            if let Some(translate) = translate {
+                let translate = create_translate(translate, &self.size);
+
+                object.translate(glam::vec3(translate.x, translate.y, 0.0));
+            }
+
             if let Some(rotate) = rotate {
                 object.rotate(rotate, calc_mid_point_position_of_quadrilateral_shape(&position, &size));
+            }
+
+            if let Some(scale) = scale {
+                assert!(scale > 0.0, "scale must be a positive number");
+
+                object.scale(glam::vec3(scale, scale, 1.0));
             }
 
             self.objects.push(object);
@@ -400,8 +472,20 @@ impl<'a> Render<'a> {
             
             let mut object = Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES);
 
+            if let Some(translate) = translate {
+                let translate = create_translate(translate, &self.size);
+
+                object.translate(glam::vec3(translate.x, translate.y, 0.0));
+            }
+
             if let Some(rotate) = rotate {
                 object.rotate(rotate, calc_mid_point_position_of_quadrilateral_shape(&position, &size));
+            }
+
+            if let Some(scale) = scale {
+                assert!(scale > 0.0, "scale must be a positive number");
+
+                object.scale(glam::vec3(scale, scale, 1.0));
             }
 
             self.objects.push(object);

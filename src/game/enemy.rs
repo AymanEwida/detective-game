@@ -44,7 +44,7 @@ impl Enemy<'_> {
 
 impl<'a> GameObject<'a> for Enemy<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, None)?;
+        render.load_image(self.image, self.position, self.size, None, None, None)?;
 
         Ok(())
     }
