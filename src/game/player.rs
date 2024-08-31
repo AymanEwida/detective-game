@@ -7,23 +7,25 @@ pub struct Player<'a> {
     position: Position,
     prev_position: Option<Position>,
     size: Size,
-    image: &'a str
+    image: &'a str,
+    flip: bool
 }
 
 impl Player<'_> {
-    pub fn new(start_position: Position) -> Self {
+    pub fn new(start_position: Position, flip: bool) -> Self {
         Self {
             position: start_position, 
             prev_position: None,
             size: Size { width: 50.0, height: 60.0 },
-            image: "assets/game/detective.png"
+            image: "assets/game/detective.png",
+            flip
         }
     }
 }
 
 impl<'a> GameObject<'a> for Player<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, self.flip, None, None, None)?;
 
         Ok(())
     }
@@ -40,6 +42,10 @@ impl<'a> GameObject<'a> for Player<'a> {
 impl<'a> Character<'a> for Player<'a> {
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+    }
+
+    fn set_flip(&mut self, new_value: bool) {
+        self.flip = new_value;
     }
 }
 
@@ -60,7 +66,9 @@ impl<'a> Player<'a> {
         self.prev_position
     }
 
-    pub fn move_to(&mut self, new_position: Position) {
+    pub fn move_to(&mut self, new_position: Position, flip: bool) {
+        self.flip = flip;
+
         self.position = new_position;
     }
 

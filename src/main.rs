@@ -31,7 +31,7 @@ fn main() {
 
     let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
-    let mut player = Player::new(Position { x: 90.0, y: 180.0 });
+    let mut player = Player::new(Position { x: 90.0, y: 180.0 }, true);
     let mut level = GameLevel::default();
     level.next_level(&mut player);
     level.next_level(&mut player);

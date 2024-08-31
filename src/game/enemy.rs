@@ -17,6 +17,7 @@ pub struct Enemy<'a> {
     position: Position,
     size: Size,
     image: &'a str,
+    flip: bool,
     last_move_time: Instant,
     move_interval: Duration,
     moves_path: Vec<(u32, Direction, u64)>,
@@ -24,7 +25,7 @@ pub struct Enemy<'a> {
 }
 
 impl Enemy<'_> {
-    pub fn new(enemy_type: EnemyType, start_position: Position, path: &str) -> Self {
+    pub fn new(enemy_type: EnemyType, start_position: Position, path: &str, flip: bool) -> Self {
         match enemy_type {
             EnemyType::Regular => {
                 Self {
@@ -32,6 +33,7 @@ impl Enemy<'_> {
                     position: start_position,
                     size: Size { width: 55.0, height: 60.0 },
                     image: "assets/game/regular-enemy.png",
+                    flip,
                     last_move_time: Instant::now(),
                     move_interval: DEFAULT_MOVE_INTERVAL,
                     moves_path: convert_path(path),
@@ -44,7 +46,7 @@ impl Enemy<'_> {
 
 impl<'a> GameObject<'a> for Enemy<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, self.flip, None, None, None)?;
 
         Ok(())
     }
@@ -62,17 +64,13 @@ impl<'a> Character<'a> for Enemy<'a> {
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
     }
+
+    fn set_flip(&mut self, new_value: bool) {
+        self.flip = new_value;
+    }
 }
 
 impl<'a> Enemy<'a> {
-    pub fn get_position(&self) -> Position {
-        self.position
-    }
-
-    pub fn set_position(&mut self, new_position: Position) {
-        self.position = new_position;
-    }
-
     pub fn get_start_position(&self) -> Position {
         self.start_position
     }
