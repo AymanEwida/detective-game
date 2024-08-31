@@ -105,3 +105,11 @@ pub fn create_translate(translate: Position, window_size: &Size) -> Position {
         y: (translate.y / window_size.height) * -2.0
     }
 }
+
+pub fn absolute_f32(num: f32) -> f32 {
+    if num >= 0.0 {
+        return num;
+    }
+
+    num * -1.0
+}

@@ -299,3 +299,24 @@ fn test_create_translate_on_both_axis() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_absolute_f32() {
+    let input = 1.0;
+    let actual = absolute_f32(input);
+    let expected = 1.0;
+
+    assert_eq!(actual, expected);
+
+    let input = 0.0;
+    let actual = absolute_f32(input);
+    let expected = 0.0;
+
+    assert_eq!(actual, expected);
+
+    let input = -1.0;
+    let actual = absolute_f32(input);
+    let expected = 1.0;
+
+    assert_eq!(actual, expected);
+}

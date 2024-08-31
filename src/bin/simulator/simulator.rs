@@ -1,4 +1,4 @@
-use detective_game::{game::{character::Character, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::{color::Color, error::Result, render::Render, vertice::{Position, Vertice}}};
+use detective_game::{game::{character::Character, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::{error::Result, render::Render}};
 
 pub struct Simulator<'a> {
     objects: Vec<ObjectLevel<'a>>
@@ -38,15 +38,6 @@ impl<'a> Simulator<'a> {
 
             object.draw(render)?;
         }
-        
-        render.draw_triangle(
-            Vertice(Position { x: 600.0, y: 350.0 }, Color::Red),
-            Vertice(Position { x: 700.0, y: 350.0 }, Color::Red),
-            Vertice(Position { x: 650.0, y: 250.0 }, Color::Red),
-            Some(1.0),
-            Some(Position { x: -250.0, y: 0.0 }),
-            Some(180.0)
-        );
 
         player.draw(render)?;
 

@@ -128,7 +128,7 @@ fn main() {
              
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
-            render.load_image("assets/test/test.jpg", Position { x: 350.0, y: 250.0 }, Size { width: 100.0, height: 100.0 }, None, Some(Position { x: 300.0, y: 200.0 }), Some(glfw.get_timer_value() as f32)).expect("Unable to load image");
+            render.load_image("assets/game/camera.png", Position { x: 350.0, y: 250.0 }, Size { width: 50.0, height: 60.0 }, true, None, None, None).expect("Unable to load image");
 
             enemy.draw(&mut render).expect("Unable to draw enemy");
             enemy.move_enemy(None);

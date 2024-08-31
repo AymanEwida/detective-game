@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, ptr};
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
 
-use crate::{library::{constants::TWICE_PI, utils::{calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
 
 use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
@@ -421,15 +421,17 @@ impl<'a> Render<'a> {
         self.objects.push(object);
     }
 
-    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) -> Result<()> {
+    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, flip: bool, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) -> Result<()> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
+        let flip = if flip {  1.0 } else { 0.0 };
+
         let vertices_data = vec![
-            _VerticeData(position.to_position_array(), [0.0, 0.0, 0.0, 0.0]),
-            _VerticeData(position.get_position_from_size(&Size { width: size.width, height: 0.0 }).to_position_array(), [1.0, 0.0, 0.0, 0.0]),
-            _VerticeData(position.get_position_from_size(&size).to_position_array(), [1.0, 1.0, 0.0, 0.0]),
-            _VerticeData(position.get_position_from_size(&Size { width: 0.0, height: size.height }).to_position_array(), [0.0, 1.0, 0.0, 0.0]),
+            _VerticeData(position.to_position_array(), [absolute_f32(flip - 0.0), 0.0, 0.0, 0.0]),
+            _VerticeData(position.get_position_from_size(&Size { width: size.width, height: 0.0 }).to_position_array(), [absolute_f32(flip - 1.0), 0.0, 0.0, 0.0]),
+            _VerticeData(position.get_position_from_size(&size).to_position_array(), [absolute_f32(flip - 1.0), 1.0, 0.0, 0.0]),
+            _VerticeData(position.get_position_from_size(&Size { width: 0.0, height: size.height }).to_position_array(), [absolute_f32(flip - 0.0), 1.0, 0.0, 0.0]),
         ];
         let indices = vec![0, 1, 2, 2, 3, 0];
 
