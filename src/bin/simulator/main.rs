@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::game::{character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
+use detective_game::game::{camera::Camera, character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 use simulator::Simulator;
 
@@ -37,9 +37,10 @@ fn main() {
     let simulator = Simulator::from(
         vec![
             ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }, false, None, None),
-            ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, true, None, None)
+            // ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, true, None, None)
         ]
     );
+    let mut camera = Camera::new_without_repeat(Position { x: 170.0, y: 95.0 }, true, None, None);
     let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000", false);
 
     let mut last_update = Instant::now();
@@ -132,6 +133,8 @@ fn main() {
 
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
+            camera.draw(&mut render).expect("Unable to draw camera");
+            
             enemy.draw(&mut render).expect("Unable to draw enemy");
             enemy.move_enemy(None);
 

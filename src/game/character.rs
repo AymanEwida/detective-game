@@ -49,7 +49,5 @@ pub trait Character<'a>: GameObject<'a> {
         character_position.y + character_size.height > other_position.y
     }
 
-    fn set_position(&mut self, new_position: Position);
-
     fn set_flip(&mut self, new_value: bool);
 }

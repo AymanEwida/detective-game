@@ -55,16 +55,16 @@ impl<'a> GameObject<'a> for Enemy<'a> {
         self.position
     }
 
+    fn set_position(&mut self, new_position: Position) {
+        self.position = new_position;
+    }
+
     fn get_size(&self) -> Size {
         self.size
     }
 }
 
 impl<'a> Character<'a> for Enemy<'a> {
-    fn set_position(&mut self, new_position: Position) {
-        self.position = new_position;
-    }
-
     fn set_flip(&mut self, new_value: bool) {
         self.flip = new_value;
     }

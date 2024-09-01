@@ -1,6 +1,6 @@
 use crate::{game::enemy::EnemyType, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::Character, enemy::Enemy, player::Player};
+use super::{camera::Camera, character::Character, enemy::Enemy, player::Player};
 
 pub const DEFAULT_SIZE: f32 = 30.0;
 pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
@@ -10,6 +10,7 @@ pub const DEFAULT_SIZE_FOR_CAMERA: Size = Size { width: 30.0, height: 30.0 };
 pub trait GameObject<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()>;
     fn get_position(&self) -> Position;
+    fn set_position(&mut self, new_position: Position);
     fn get_size(&self) -> Size;
 }
 
@@ -96,6 +97,10 @@ impl<'a> GameObject<'a> for ObjectLevel<'a> {
         self.position
     }
 
+    fn set_position(&mut self, new_position: Position) {
+        self.position = new_position
+    }
+
     fn get_size(&self) -> Size {
         self.size
     }
@@ -109,6 +114,7 @@ pub struct GameLevel<'a> {
     current_level: u8,
     enemies: Vec<Enemy<'a>>,
     level_objects: Vec<ObjectLevel<'a>>,
+    cameras: Vec<Camera<'a>>
 }
 
 impl Default for GameLevel<'_> {
@@ -126,6 +132,7 @@ impl Default for GameLevel<'_> {
             current_level: 0,
             enemies,
             level_objects,
+            cameras: Vec::new()
         }
     }
 }
@@ -159,7 +166,7 @@ impl<'a> GameLevel<'a> {
         }
 
         for level_object in self.level_objects.iter_mut() {
-            match level_object.object_type {
+            match level_object.get_type() {
                 ObjectLevelType::RegularDoor => {
                     if player.collide(level_object) {
                         level_object.open_door();
@@ -186,6 +193,10 @@ impl<'a> GameLevel<'a> {
             level_object.draw(render)?;
         }
 
+        for camera in self.cameras.iter_mut() {
+            camera.draw(render)?;
+        }
+
         for enemy in self.enemies.iter_mut() {
             enemy.draw(render)?;
             enemy.move_enemy(None);
@@ -199,7 +210,8 @@ impl<'a> GameLevel<'a> {
     fn insert_object(&mut self, mut object: ObjectLevel<'a>) {
         let start_position = self.get_boder_start_position();
 
-        object.position = object.position + start_position;
+        let object_position = object.get_position();
+        object.set_position(object_position + start_position);
 
         self.level_objects.push(object);
     }
@@ -214,6 +226,15 @@ impl<'a> GameLevel<'a> {
         enemy.set_position(enemy_position + start_position);
 
         self.enemies.push(enemy);
+    }
+
+    fn insert_camera(&mut self, mut camera: Camera<'a>) {
+        let start_position = self.get_boder_start_position();
+
+        let camera_position = camera.get_position();
+        camera.set_position(camera_position + start_position);
+
+        self.cameras.push(camera);
     }
 
     pub fn next_level(&mut self, player: &mut Player) {
@@ -454,8 +475,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1027.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 1275.0, y: 520.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1450.0, y: 582.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1110.0, y: 582.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1450.0, y: 582.0 }, false, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1110.0, y: 582.0 }, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 920.0, y: 480.0 }, Size { width: DEFAULT_SIZE, height: 197.0 }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 950.0, y: 480.0 }, Size { width: 225.0, height: DEFAULT_SIZE }, false, None, None));
@@ -471,7 +492,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 950.0, y: 615.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1050.0, y: 515.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1120.0, y: 485.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1110.0, y: 485.0 }, true, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1240.0, y: 415.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1290.0, y: 300.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
@@ -484,10 +505,10 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1050.0, y: 240.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 980.0, y: 327.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 960.0, y: 250.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1105.0, y: 320.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1105.0, y: 320.0 }, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1030.0, y: 422.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, Some(0.98), None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 985.0, y: 395.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270 (repeat)
+                self.insert_camera(Camera::new_with_repeat(Position { x: 985.0, y: 395.0 }, false, None, None, Some(4000)));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 605.0, y: 390.0 }, Size { width: 315.0, height: DEFAULT_SIZE }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 780.0, y: 420.0 }, Size { width: DEFAULT_SIZE, height: 187.0 }, false, None, None));
@@ -495,7 +516,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 840.0, y: 417.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 880.0, y: 530.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 790.0, y: 550.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_without_repeat(Position { x: 795.0, y: 550.0 }, true, None, Some(350.0)));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 475.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 0.0, y: 577.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None));
@@ -508,10 +529,10 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 330.0, y: 615.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 85.0, y: 615.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 220.0, y: 582.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 220.0, y: 582.0 }, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 120.0, y: 515.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 230.0, y: 482.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_without_repeat(Position { x: 230.0, y: 482.0 }, true, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::CodePaper, Position { x: 323.0, y: 532.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 5.0, y: 335.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }, false, None, None));
@@ -527,11 +548,11 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 70.0, y: 235.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 0.0, y: 130.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 35.0, y: 0.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 95.0, y: 130.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 135
+                self.insert_camera(Camera::new_without_repeat(Position { x: -20.0, y: 80.0 }, true, None, Some(80.0)));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 210.0, y: 0.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 145.0, y: 135.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 245.0, y: 125.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 245.0, y: 125.0 }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Key, Position { x: 220.0, y: 250.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::LockedDoor, Position { x: 417.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 15.0, height: 60.0 }, false, None, None));
@@ -548,7 +569,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 620.0, y: 328.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 800.0, y: 328.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 715.0, y: 305.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_without_repeat(Position { x: 715.0, y: 305.0 }, true, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 640.0, y: 240.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 545.0, y: 235.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 68.0 }, false, None, None));
@@ -580,8 +601,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 540.0, y: 147.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 675.0, y: 115.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 800.0, y: 147.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 607.5, y: 95.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 858.5, y: 95.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_without_repeat(Position { x: 607.5, y: 95.0 }, true, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 858.5, y: 95.0 }, true, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 920.0, y: 120.0 }, Size { width: DEFAULT_SIZE, height: 30.0 }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 917.0, y: 150.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
@@ -589,7 +610,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 980.0, y: 147.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1110.0, y: 147.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1240.0, y: 147.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1110.0, y: 95.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270 (repeat)
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1110.0, y: 95.0 }, false, None, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 1180.0, y: 160.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
                 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 1327.0, y: 150.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
@@ -600,10 +621,10 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 870.0, y: 27.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1005.0, y: 27.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1140.0, y: 27.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 610.0, y: -25.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270 (repeat)
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 812.5, y: -25.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1005.0, y: -25.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270 (repeat)
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1207.5, y: -25.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_with_repeat(Position { x: 610.0, y: -25.0 }, false, None, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 812.5, y: -25.0 }, true, None, None));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1005.0, y: -25.0 }, false, None, None, None));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1207.5, y: -25.0 }, true, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 940.0, y: 40.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::TeleportDoor, Position { x: 1270.0, y: 23.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 70.0 }, false, None, None));
@@ -617,7 +638,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1480.0, y: 515.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1640.0, y: 515.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1540.0, y: 485.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 270
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1540.0, y: 485.0 }, true, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Coin, Position { x: 1590.0, y: 527.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1360.0, y: 120.0 }, Size { width: 175.0, height: DEFAULT_SIZE }, false, None, None));
@@ -633,12 +654,12 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1415.0, y: 150.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1360.0, y: 275.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1360.0, y: 415.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1440.0, y: 380.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 90
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1440.0, y: 380.0 }, false, None, Some(25.0)));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1490.0, y: 150.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1545.0, y: 275.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1520.0, y: 415.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1470.0, y: 270.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 45
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1460.0, y: 250.0 }, true, None, Some(80.0)));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1470.0, y: 55.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1360.0, y: 0.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
@@ -647,7 +668,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1650.0, y: 415.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1715.0, y: 315.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 1640.0, y: 210.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.insert_object(ObjectLevel::new(ObjectLevelType::Camera, Position { x: 1600.0, y: 320.0 }, DEFAULT_SIZE_FOR_CAMERA, false, None, None)); // rotate here 45
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1590.0, y: 320.0 }, true, None, Some(80.0)));
 
                 self.insert_object(ObjectLevel::new(ObjectLevelType::LockedDoor, Position { x: 1613.0, y: 63.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None));
                 self.insert_object(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 1677.0, y: 63.0 }, Size { width: DEFAULT_SIZE - 10.0, height: 117.0 }, false, None, None));

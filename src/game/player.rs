@@ -34,16 +34,16 @@ impl<'a> GameObject<'a> for Player<'a> {
         self.position
     }
 
+    fn set_position(&mut self, new_position: Position) {
+        self.position = new_position;
+    }
+
     fn get_size(&self) -> Size {
         self.size
     }
 }
 
 impl<'a> Character<'a> for Player<'a> {
-    fn set_position(&mut self, new_position: Position) {
-        self.position = new_position;
-    }
-
     fn set_flip(&mut self, new_value: bool) {
         self.flip = new_value;
     }
