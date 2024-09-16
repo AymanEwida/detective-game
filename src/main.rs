@@ -37,7 +37,7 @@ fn main() {
     level.next_level(&mut player);
     level.next_level(&mut player);
     level.next_level(&mut player);
-    // level.next_level(&mut player);
+    level.next_level(&mut player);
     
     let mut last_update = Instant::now();
 
