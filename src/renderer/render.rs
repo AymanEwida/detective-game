@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, ptr};
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
 
-use crate::{library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
+use crate::{library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line, print_ch_status}}, set_attribute};
 
 use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
@@ -496,6 +496,7 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
+    // find a better way to offset a new word relative to the max height
     pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, max_width: Option<f32>, color: Color) -> Result<()> {
         assert!(scale > 0.0, "scale must be a positive number");
         
@@ -509,6 +510,8 @@ impl<'a> Render<'a> {
         let mut line_height = 0.0;
 
         for line in lines {
+            print!("new line down from here\n\n");
+
             let mut width_offset = 0.0;
             let mut max_height = 0.0;
             let mut prev_height = 0.0;
@@ -521,7 +524,10 @@ impl<'a> Render<'a> {
                     prev_height = 0.0;
                     height_offset = 0.0;
                     is_new_word = true;
-    
+                    
+                    print!("ch is: <Space>\n");
+                    print_ch_status(width_offset, max_height, prev_height, height_offset, is_new_word);                 
+
                     continue;
                 }
 
@@ -557,9 +563,13 @@ impl<'a> Render<'a> {
 
                 let character = self.characters.get(&ch).unwrap();
 
+                print!("ch is: {} -> {:?}\n", ch, character);
+
                 let character_size = convert_size(Size { width: character.size.width * scale, height: character.size.height * scale }, &self.size);
 
                 let offset_y = ((character.size.height - character.offset.y) * scale * 2.0) / self.size.height;
+                
+                print!("character_size: {:?}, offset_y: {}, character.size: {:?}, character.offset.y: {:?}\n", character_size, offset_y, character.size, character.offset);
 
                 if max_height == 0.0 {
                     max_height = character_size.height;
@@ -580,10 +590,12 @@ impl<'a> Render<'a> {
                 }
                 
                 if is_new_word {
-                    height_offset += (max_height - character_size.height) - (prev_height - character_size.height);
+                    height_offset += (max_height - character_size.height) - (prev_height - character_size.height);    
                 } else {
                     height_offset += prev_height - character_size.height;
                 }
+
+                print_ch_status(width_offset, max_height, prev_height, height_offset, is_new_word);
 
                 let character_start_position = Position { x: start_position.x + width_offset, y: start_position.y - line_height - height_offset - offset_y };
 
