@@ -320,3 +320,14 @@ fn test_absolute_f32() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_get_level_challenges() -> Result<(), std::io::Error> {
+    let input = 1;
+    let actual = get_level_challenges(input)?;
+    let expected_length = 3;
+
+    assert_eq!(actual.len(), expected_length);
+
+    Ok(())
+}

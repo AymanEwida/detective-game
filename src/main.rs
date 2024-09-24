@@ -11,7 +11,7 @@ use detective_game::library::constants::{
     WIDTH
 };
 use detective_game::game::{character::Direction, level::GameLevel, player::Player};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position, color::Color};
+use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 
 fn main() {
     let mut glfw = glfw::init(fail_on_errors).expect("Failed on init.");
@@ -127,19 +127,8 @@ fn main() {
                 player.move_to_prev_position();
             }
 
-            render.display_text("here challenges up to 3", Position { x: 50.0, y: 20.0 }, 0.5, None, Color::White).expect("Unable to display text");
-            render.display_text("here challenges up to 3", Position { x: 50.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
-            render.display_text("here challenges up to 3", Position { x: 50.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
-
-            render.display_text("here notoriety level up to 3 starts", Position { x: 720.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
-
-            render.display_text("here which level (e.g. 1/5)", Position { x: 1580.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
-            render.display_text("here player status", Position { x: 1580.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
-
             level.draw(&mut player, &mut render).expect("Unable to draw level");
             
-            render.display_text("here what holding", Position { x: 50.0, y: 900.0 }, 0.5, None, Color::White).expect("Unable to display text");
-
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();

@@ -3,12 +3,30 @@ use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 use super::{character::{Character, Direction}, level::GameObject};
 
 #[derive(Debug)]
+pub enum PlayerStatus {
+    NotHidden,
+    Hidden,
+    Detectit
+}
+
+impl std::fmt::Display for PlayerStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotHidden => write!(f, "not hidden"),
+            Self::Hidden => write!(f, "hidden"),
+            Self::Detectit => write!(f, "detectit")
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Player<'a> {
     position: Position,
     prev_position: Option<Position>,
     size: Size,
     image: &'a str,
-    flip: bool
+    flip: bool,
+    status: PlayerStatus
 }
 
 impl Player<'_> {
@@ -18,7 +36,8 @@ impl Player<'_> {
             prev_position: None,
             size: Size { width: 50.0, height: 60.0 },
             image: "assets/game/detective.png",
-            flip
+            flip,
+            status: PlayerStatus::NotHidden
         }
     }
 }
@@ -90,5 +109,13 @@ impl<'a> Player<'a> {
         self.position.y > (start_position.y + size.height) ||
         (self.position.y + self.size.height) > (start_position.y + size.height) ||
         self.position.y < start_position.y
+    }
+
+    pub fn get_status(&self) -> &PlayerStatus {
+        &self.status
+    }
+
+    pub fn set_status(&mut self, new_status: PlayerStatus) {
+        self.status = new_status;
     }
 }

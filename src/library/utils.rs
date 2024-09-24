@@ -1,4 +1,6 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
+
+use rand::Rng;
 
 use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
 
@@ -112,4 +114,29 @@ pub fn absolute_f32(num: f32) -> f32 {
     }
 
     num * -1.0
+}
+
+pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
+    let level_challenges_file_path = format!("./assets/game/challenges/level{}.txt", level);
+    let content = fs::read_to_string(Path::new(&level_challenges_file_path))?; 
+
+    let challenges_vec: Vec<&str> = content.split("\r\n").collect();
+
+    if challenges_vec.len() == 0 {
+        return Err(Error::new(ErrorKind::InvalidData, format!("There is no challenges in the file, path is: {}", level_challenges_file_path)));
+    }
+
+    let mut challenges = Vec::new();
+    while challenges.len() < 3 {
+        let mut rng = rand::thread_rng();
+        let idx = rng.gen_range(0..challenges_vec.len());
+
+        let challenge = challenges_vec[idx].to_string();
+
+        if !challenges.contains(&challenge) {
+            challenges.push(challenge);
+        }
+    }
+
+    Ok(challenges)
 }

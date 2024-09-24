@@ -1,4 +1,4 @@
-use crate::{game::enemy::EnemyType, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{game::{enemy::EnemyType, player::PlayerStatus}, library::utils::get_level_challenges, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{camera::Camera, character::Character, enemy::Enemy, player::Player};
 
@@ -117,7 +117,8 @@ pub struct GameLevel<'a> {
     current_level: u8,
     enemies: Vec<Enemy<'a>>,
     level_objects: Vec<ObjectLevel<'a>>,
-    cameras: Vec<Camera<'a>>
+    cameras: Vec<Camera<'a>>,
+    challenges: Vec<String>
 }
 
 impl Default for GameLevel<'_> {
@@ -135,7 +136,8 @@ impl Default for GameLevel<'_> {
             current_level: 0,
             enemies,
             level_objects,
-            cameras: Vec::new()
+            cameras: Vec::new(),
+            challenges: Vec::new()
         }
     }
 }
@@ -150,6 +152,17 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
+        for (idx , challenge) in self.challenges.iter().enumerate() {
+            render.display_text(challenge, Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, Color::White).expect("Unable to display text");
+        }
+
+        render.display_text("Notoriety level: 0", Position { x: 720.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
+        render.display_text(&format!("Level: {}", self.current_level), Position { x: 1580.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+        render.display_text(&format!("Status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
+        render.display_text("Holding: nothing", Position { x: 50.0, y: 900.0 }, 0.5, None, Color::White).expect("Unable to display text");
+
         render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None)?;
 
         for num in 0..8 {
@@ -244,11 +257,15 @@ impl<'a> GameLevel<'a> {
         assert!(self.current_level < 5, "level must be between 1 to 5 (include)");
         
         self.current_level += 1;
-        
+
+        self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
+
         self.enemies.clear();
         self.level_objects.clear();
         self.cameras.clear();
-        
+
+        player.set_status(PlayerStatus::NotHidden);
+
         match self.current_level {
             1 => {
                 player.move_to(Position { x: 90.0, y: 180.0 }, true);
