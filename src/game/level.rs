@@ -253,11 +253,19 @@ impl<'a> GameLevel<'a> {
         self.cameras.push(camera);
     }
 
-    pub fn next_level(&mut self, player: &mut Player) {
+    pub fn set_level(&mut self, level: u8) {
+        assert!(level >= 1 && level <= 5, "level must be between 1 to 5 (include)");
+
+        self.current_level = level;
+    }
+
+    pub fn next_level(&mut self) {
         assert!(self.current_level < 5, "level must be between 1 to 5 (include)");
         
         self.current_level += 1;
+    }
 
+    pub fn load_level(&mut self, player: &mut Player<'a>) {
         self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
 
         self.enemies.clear();
