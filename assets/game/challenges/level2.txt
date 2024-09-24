@@ -1,0 +1,5 @@
+Collect both keys
+Collect at least 7 Coins
+Complete the level without being detectit
+Complete the level with at most kiling 3 gards
+Collect the paper

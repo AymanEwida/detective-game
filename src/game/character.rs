@@ -24,9 +24,13 @@ pub trait Character<'a>: GameObject<'a> {
                 self.set_position(Position { x: current_position.x, y: current_position.y+speed });
             },
             Direction::Left => {
+                self.set_flip(false);
+
                 self.set_position(Position { x: current_position.x-speed, y: current_position.y });
             },
             Direction::Right => {
+                self.set_flip(true);
+                
                 self.set_position(Position { x: current_position.x+speed, y: current_position.y });
             }
         }
@@ -45,5 +49,5 @@ pub trait Character<'a>: GameObject<'a> {
         character_position.y + character_size.height > other_position.y
     }
 
-    fn set_position(&mut self, new_position: Position);
+    fn set_flip(&mut self, new_value: bool);
 }

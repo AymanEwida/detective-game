@@ -1,6 +1,7 @@
 use std::ffi::CString;
 
 use gl::types::*;
+use glam::Mat4;
 
 use super::{error::{Error, Result}, shader::Shader};
 
@@ -93,6 +94,15 @@ impl Program {
             .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
 
         gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
+
+        Ok(())
+    }
+
+    pub unsafe fn set_transform_matrix_uniform(&self, matrix: Mat4) -> Result<()> {
+        let transform_uniform = CString::new("transform")
+            .map_err(|_| Error::LinkingError("Unable to get transform uniform string".to_string()))?;
+
+        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, transform_uniform.as_ptr()), 1, gl::FALSE, matrix.to_cols_array().as_ptr());
 
         Ok(())
     }
