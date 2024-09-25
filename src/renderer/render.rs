@@ -518,10 +518,8 @@ impl<'a> Render<'a> {
             for (idx, ch) in line.chars().enumerate() {
                 if ch == ' ' {
                     width_offset += 0.03 * scale;
-                    prev_height = 0.0;
-                    height_offset = 0.0;
                     is_new_word = true;
-    
+                    
                     continue;
                 }
 
@@ -560,7 +558,7 @@ impl<'a> Render<'a> {
                 let character_size = convert_size(Size { width: character.size.width * scale, height: character.size.height * scale }, &self.size);
 
                 let offset_y = ((character.size.height - character.offset.y) * scale * 2.0) / self.size.height;
-
+                
                 if max_height == 0.0 {
                     max_height = character_size.height;
                 } else {
@@ -580,7 +578,11 @@ impl<'a> Render<'a> {
                 }
                 
                 if is_new_word {
-                    height_offset += (max_height - character_size.height) - (prev_height - character_size.height);
+                    if max_height == character_size.height {
+                        height_offset += prev_height - max_height;
+                    } else {
+                        height_offset += prev_height - character_size.height;   
+                    }
                 } else {
                     height_offset += prev_height - character_size.height;
                 }

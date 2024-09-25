@@ -156,12 +156,12 @@ impl<'a> GameLevel<'a> {
             render.display_text(challenge, Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, Color::White).expect("Unable to display text");
         }
 
-        render.display_text("Notoriety level: 0", Position { x: 720.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+        render.display_text("notoriety level: 0", Position { x: 720.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
 
-        render.display_text(&format!("Level: {}", self.current_level), Position { x: 1580.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
-        render.display_text(&format!("Status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
+        render.display_text(&format!("level: {}", self.current_level), Position { x: 1580.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
+        render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
 
-        render.display_text("Holding: nothing", Position { x: 50.0, y: 900.0 }, 0.5, None, Color::White).expect("Unable to display text");
+        render.display_text("holding: nothing", Position { x: 50.0, y: 900.0 }, 0.5, None, Color::White).expect("Unable to display text");
 
         render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None)?;
 

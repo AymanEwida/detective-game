@@ -1,4 +1,4 @@
-use detective_game::{game::{character::Character, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::{error::Result, render::Render}};
+use detective_game::{game::{character::Character, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::{color::Color, error::Result, render::Render, vertice::Position}};
 
 pub struct Simulator<'a> {
     objects: Vec<ObjectLevel<'a>>
@@ -40,6 +40,8 @@ impl<'a> Simulator<'a> {
         }
 
         player.draw(render)?;
+
+        render.display_text("notoriety level: 0", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White)?;
 
         Ok(())
     }
