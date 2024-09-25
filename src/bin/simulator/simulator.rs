@@ -41,7 +41,7 @@ impl<'a> Simulator<'a> {
 
         player.draw(render)?;
 
-        render.display_text("holding: nothing", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White)?;
+        render.display_text("notoriety level: 0", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White)?;
 
         Ok(())
     }
