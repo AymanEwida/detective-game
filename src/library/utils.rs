@@ -140,9 +140,3 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
 
     Ok(challenges)
 }
-
-
-// for debug
-pub fn print_ch_status(width_offset: f32, max_height: f32, prev_height: f32, height_offset: f32, is_new_word: bool) {
-    print!("width_offset: {}, max_height: {}, prev_height: {}, height_offset: {}, is_new_word: {}\n\n", width_offset, max_height, prev_height, height_offset, is_new_word);
-}
