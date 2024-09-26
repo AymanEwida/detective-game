@@ -140,3 +140,44 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
 
     Ok(challenges)
 }
+
+pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, angle_direction: Direction) -> (Position, Position, Position) {
+    assert!(angle > 0.0 && angle < 180.0, "angle must be bigger than 0.0 and smaller than 180.0");
+   
+    let angle = convert_angle_to_radians(angle);
+
+    let middle_line_length = angle.cos() * line_length;
+    let middle_part_line_length = (line_length.powi(2) - middle_line_length.powi(2)).sqrt(); 
+
+    let middle_point;
+    let top_point;
+    let bottom_point;        
+
+    match angle_direction {
+        Direction::Right => {
+            middle_point = Position { x: apex.x + middle_line_length, y: apex.y };
+            top_point = Position { x: middle_point.x, y: middle_point.y + middle_part_line_length };
+            bottom_point = Position { x: middle_point.x, y: middle_point.y - middle_part_line_length };
+        },
+
+        Direction::Left => {
+            middle_point = Position { x: apex.x - middle_line_length, y: apex.y };
+            top_point = Position { x: middle_point.x, y: middle_point.y + middle_part_line_length };
+            bottom_point = Position { x: middle_point.x, y: middle_point.y - middle_part_line_length };
+        },
+
+        Direction::Down => {
+            middle_point = Position { x: apex.x, y: apex.y + middle_line_length };
+            top_point = Position { x: middle_point.x + middle_part_line_length, y: middle_point.y};
+            bottom_point = Position { x: middle_point.x - middle_part_line_length, y: middle_point.y };
+        },
+
+        Direction::Up => {
+            middle_point = Position { x: apex.x, y: apex.y - middle_line_length };    
+            top_point = Position { x: middle_point.x + middle_part_line_length, y: middle_point.y};
+            bottom_point = Position { x: middle_point.x - middle_part_line_length, y: middle_point.y };
+        },
+    }
+
+    (top_point, bottom_point, apex)
+}

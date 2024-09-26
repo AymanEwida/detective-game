@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, ptr};
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
 
-use crate::{library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
+use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
 
 use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
@@ -610,6 +610,14 @@ impl<'a> Render<'a> {
         }
 
         Ok(())
+    }
+
+    pub fn draw_equidistant_from_angle_and_length(&mut self, apex: Position, angle: f32, line_length: f32, angle_direction: Direction) {
+        let (first_point, second_point, apex) = calc_equidistant_points(apex, angle, line_length, angle_direction);
+
+        self.draw_line(apex, first_point, Color::Red, None, None, None);
+        self.draw_line(apex, second_point, Color::Red, None, None, None);
+        self.draw_line(first_point, second_point, Color::Red, None, None, None); 
     }
 
     pub fn render(&mut self) -> Result<()> {

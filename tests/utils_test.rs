@@ -331,3 +331,47 @@ fn test_get_level_challenges() -> Result<(), std::io::Error> {
 
     Ok(())
 }
+
+#[test]
+fn test_calc_equidistant_points_left_direction() {
+    let input_apex = Position { x: 10.0, y: 50.0 };
+    let input_angle = 120.0;
+    let input_line_length = 10.0;
+    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Left);
+    let expected= (Position { x: 15.0, y: 50.0 + (5.0 * 3.0_f32.sqrt()) }, Position { x: 15.0, y: 50.0 - (5.0 * 3.0_f32.sqrt()) }, input_apex);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_equidistant_points_right_direction() {
+    let input_apex = Position { x: 10.0, y: 50.0 };
+    let input_angle = 120.0;
+    let input_line_length = 10.0;
+    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Right);
+    let expected= (Position { x: 4.9999995, y: 50.0 + (5.0 * 3.0_f32.sqrt()) }, Position { x: 4.9999995, y: 50.0 - (5.0 * 3.0_f32.sqrt()) }, input_apex);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_equidistant_points_up_direction() {
+    let input_apex = Position { x: 10.0, y: 50.0 };
+    let input_angle = 120.0;
+    let input_line_length = 10.0;
+    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Up);
+    let expected= (Position { x: 10.0 + (5.0 * 3.0_f32.sqrt()), y: 55.0 }, Position { x: 10.0 - (5.0 * 3.0_f32.sqrt()), y: 55.0 }, input_apex);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_equidistant_points_down_direction() {
+    let input_apex = Position { x: 10.0, y: 50.0 };
+    let input_angle = 120.0;
+    let input_line_length = 10.0;
+    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Down);
+    let expected= (Position { x: 10.0 + (5.0 * 3.0_f32.sqrt()), y: 45.0 }, Position { x: 10.0 - (5.0 * 3.0_f32.sqrt()), y: 45.0 }, input_apex);
+
+    assert_eq!(actual, expected);
+}
