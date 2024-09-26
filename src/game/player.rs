@@ -2,7 +2,7 @@ use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
 use super::{character::{Character, Direction}, level::GameObject};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
     NotHidden,
     Hidden,

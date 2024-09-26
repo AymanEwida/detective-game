@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::game::{camera::Camera, character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
+use detective_game::{game::{camera::Camera, character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::{Player, PlayerStatus}}, renderer::color::Color};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
 use simulator::Simulator;
 
@@ -41,7 +41,7 @@ fn main() {
         ]
     );
     let mut camera = Camera::new_without_repeat(Position { x: 170.0, y: 95.0 }, true, None, None);
-    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000", false);
+    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 200.0 }, "5d/0 4r/2000 4l/0 5u/2000", false);
 
     let mut last_update = Instant::now();
 
@@ -131,6 +131,14 @@ fn main() {
                 player.move_to_prev_position();
             }
 
+            if enemy.detect_player(&mut player) {
+                player.set_status(PlayerStatus::Detectit);
+
+                render.display_text("Detected", Position { x: 10.0, y: 400.0 }, 1.0, None, Color::White).expect("Unable to display text");
+            } else {
+                render.display_text("Not seen", Position { x: 10.0, y: 400.0 }, 1.0, None, Color::White).expect("Unable to display text");
+            }
+            
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
             camera.draw(&mut render).expect("Unable to draw camera");
