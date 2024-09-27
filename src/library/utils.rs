@@ -4,6 +4,8 @@ use rand::Rng;
 
 use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
 
+pub type PathVec = Vec<(u32, Direction, u64)>;
+
 pub fn length_of_line(start: &Position, end: &Position) -> f32 {
     ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt()
 }
@@ -60,7 +62,7 @@ pub fn convert_size(object_size: Size, window: &Size) -> Size {
     Size { width: (object_size.width * 2.0) / window.width, height: (object_size.height * 2.0) / window.height }
 }
 
-pub fn convert_path(path: &str) -> Vec<(u32, Direction, u64)> {
+pub fn convert_path(path: &str) -> PathVec {
     let full_path = path.to_lowercase();
 
     full_path.split(' ').map(| full_move_path | {
@@ -180,4 +182,49 @@ pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, ang
     }
 
     (top_point, bottom_point, apex)
+}
+
+// TODO: find a better way to find an optimal path to a point
+pub fn get_optimal_path(start_position: &Position, end_position: &Position, speed: u32) -> PathVec {
+    if start_position == end_position {
+        return Vec::new();
+    }
+
+    if start_position.y == end_position.y {
+        if start_position.x > end_position.x {
+            return vec![((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0)];
+        } else {
+            return vec![((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0)];
+        }
+    }
+    
+    if start_position.x == end_position.x {
+        if start_position.y > end_position.y {
+            return vec![((start_position.y - end_position.y) as u32 / speed, Direction::Up, 0)];
+        } else {
+            return vec![((end_position.y - start_position.y) as u32 / speed, Direction::Down, 0)];
+        }
+    }
+
+    let mut path_vec = Vec::new();
+
+    if start_position.y > end_position.y {
+       path_vec.push(((start_position.y - end_position.y) as u32 / speed, Direction::Up, 0)); 
+
+        if start_position.x > end_position.x {
+            path_vec.push(((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0));
+        } else {
+            path_vec.push(((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0));
+        }
+    } else {
+       path_vec.push(((end_position.y - start_position.y) as u32 / speed, Direction::Down, 0)); 
+
+        if start_position.x > end_position.x {
+            path_vec.push(((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0));
+        } else {
+            path_vec.push(((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0));
+        }
+    }
+
+    path_vec
 }
