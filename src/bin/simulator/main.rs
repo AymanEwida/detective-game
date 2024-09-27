@@ -5,9 +5,9 @@ use std::time::{Duration, Instant};
 
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::{game::{camera::Camera, character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::{Player, PlayerStatus}}, renderer::color::Color};
+use detective_game::{game::{camera::Camera, character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::color::Color};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
-use simulator::Simulator;
+use simulator::{SimulationStatus, Simulator};
 
 pub mod simulator;
 
@@ -33,15 +33,17 @@ fn main() {
 
     let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
+    let mut notoriety_level = 0;
+
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
-    let simulator = Simulator::from(
+    let mut simulator = Simulator::from(
         vec![
             ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }, false, None, None),
             // ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, true, None, None)
         ]
     );
     let mut camera = Camera::new_without_repeat(Position { x: 170.0, y: 95.0 }, true, None, None);
-    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 200.0 }, "5d/0 4r/2000 4l/0 5u/2000", false);
+    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 200.0 }, "5d/5000 5r/5000 5l/5000 5u/5000", false);
 
     let mut last_update = Instant::now();
 
@@ -76,7 +78,9 @@ fn main() {
                         Key::W => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Up, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Up, None);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -85,7 +89,9 @@ fn main() {
                         Key::S => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Down, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Down, None);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -94,7 +100,9 @@ fn main() {
                         Key::A => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Left, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Left, None);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -103,7 +111,9 @@ fn main() {
                         Key::D => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Right, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Right, None);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -131,20 +141,24 @@ fn main() {
                 player.move_to_prev_position();
             }
 
-            if enemy.detect_player(&mut player) {
-                player.set_status(PlayerStatus::Detectit);
+            if enemy.collide_with_player(&player) {
+                simulator.set_status(SimulationStatus::Lose);
 
-                render.display_text("Detected", Position { x: 10.0, y: 400.0 }, 1.0, None, Color::White).expect("Unable to display text");
+                render.display_text("Lost", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text");
             } else {
-                render.display_text("Not seen", Position { x: 10.0, y: 400.0 }, 1.0, None, Color::White).expect("Unable to display text");
+                render.display_text("Still playing", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text");
             }
-            
+
+            render.display_text(&format!("status: {}", player.get_status()), Position { x: 400.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
+            render.display_text(&format!("notoriety level: {}", notoriety_level), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
+             
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
             camera.draw(&mut render).expect("Unable to draw camera");
             
             enemy.draw(&mut render).expect("Unable to draw enemy");
-            enemy.move_enemy(None);
+            notoriety_level = enemy.detect_player(notoriety_level, &mut player);
+            enemy.move_enemy(notoriety_level, None);
 
             render.render().expect("Uable to render object on window");
             

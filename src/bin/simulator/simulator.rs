@@ -1,13 +1,22 @@
 use detective_game::{game::{character::Character, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player}, renderer::{error::Result, render::Render}};
 
+#[derive(PartialEq)]
+pub enum SimulationStatus {
+    Lose,
+    Win,
+    NotDetermine,
+}
+
 pub struct Simulator<'a> {
-    objects: Vec<ObjectLevel<'a>>
+    objects: Vec<ObjectLevel<'a>>,
+    status: SimulationStatus,
 }
 
 impl<'a> From<Vec<ObjectLevel<'a>>> for Simulator<'a> {
     fn from(value: Vec<ObjectLevel<'a>>) -> Self {
         Self {
-            objects: value
+            objects: value,
+            status: SimulationStatus::NotDetermine,
         }
     }
 }
@@ -15,7 +24,8 @@ impl<'a> From<Vec<ObjectLevel<'a>>> for Simulator<'a> {
 impl Simulator<'_> {
     pub fn new() -> Self {
         Self {
-            objects: Vec::new()
+            objects: Vec::new(),
+            status: SimulationStatus::NotDetermine,
         }
     }
 }
@@ -52,5 +62,13 @@ impl<'a> Simulator<'a> {
 
     pub fn insert_objects(&mut self, new_objects: &[ObjectLevel<'a>]) {
         self.objects.extend_from_slice(new_objects);
+    }
+
+    pub fn get_status(&self) -> &SimulationStatus {
+        &self.status
+    }
+
+    pub fn set_status(&mut self, new_value: SimulationStatus) {
+        self.status = new_value;
     }
 }

@@ -118,7 +118,8 @@ pub struct GameLevel<'a> {
     enemies: Vec<Enemy<'a>>,
     level_objects: Vec<ObjectLevel<'a>>,
     cameras: Vec<Camera<'a>>,
-    challenges: Vec<String>
+    challenges: Vec<String>,
+    notoriety_level: u64
 }
 
 impl Default for GameLevel<'_> {
@@ -137,7 +138,8 @@ impl Default for GameLevel<'_> {
             enemies,
             level_objects,
             cameras: Vec::new(),
-            challenges: Vec::new()
+            challenges: Vec::new(),
+            notoriety_level: 0,
         }
     }
 }
@@ -215,7 +217,8 @@ impl<'a> GameLevel<'a> {
 
         for enemy in self.enemies.iter_mut() {
             enemy.draw(render)?;
-            enemy.move_enemy(None);
+            self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
+            enemy.move_enemy(self.notoriety_level, None);
         }
 
         player.draw(render)?;
