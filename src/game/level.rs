@@ -30,7 +30,7 @@ pub enum ObjectLevelType {
     Key
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ObjectLevel<'a> {
     object_type: ObjectLevelType,
     position: Position,

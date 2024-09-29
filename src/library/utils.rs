@@ -1,10 +1,15 @@
-use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
+use std::{collections::HashMap, f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
 use rand::Rng;
 
-use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
+use crate::{game::{character::Direction, level::GameObject}, renderer::{render::Size, vertice::Position}};
 
 pub type PathVec = Vec<(u32, Direction, u64)>;
+
+struct Possibility {
+    position: Position,
+    size: Size
+}
 
 pub fn length_of_line(start: &Position, end: &Position) -> f32 {
     ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt()
@@ -184,47 +189,130 @@ pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, ang
     (top_point, bottom_point, apex)
 }
 
+// TODO: make ObjectLevel a trait and put it instead of the GameObject trait here
+pub fn get_movement_possibilities_from_near_objects<'a>(start: &Position, objects: &[impl GameObject<'a>]) -> HashMap<Direction, Vec<Possibility>> {
+    todo!()
+}
+
 // TODO: find a better way to find an optimal path to a point
-pub fn get_optimal_path(start_position: &Position, end_position: &Position, speed: u32) -> PathVec {
+pub fn get_optimal_path<'a>(start_position: &Position, end_position: &Position, objects: &[impl GameObject<'a>], speed: u32) -> PathVec {
     if start_position == end_position {
         return Vec::new();
     }
 
+    let movement_possibilities = get_movement_possibilities_from_near_objects(start_position, objects);
+
     if start_position.y == end_position.y {
         if start_position.x > end_position.x {
-            return vec![((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0)];
-        } else {
-            return vec![((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0)];
+            if let Some(left_possibilities) = movement_possibilities.get(&Direction::Left) {
+                if left_possibilities.len() > 0 {
+                    let mut best_possibility = left_possibilities[0];
+
+                    if start_position.y == best_possibility.position.y {
+                        return vec![((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0)];
+                    }
+
+                    let mut best_possibility_steps = absolute_f32(start_position.y - best_possibility.position.y) as u32 / speed;
+                    let mut best_direction = if start_position.y > best_possibility.position.y {
+                        Direction::Up
+                    } else {
+                        Direction::Down
+                    };
+
+                    for i in 1..left_possibilities.len() {
+                        let possibility = left_possibilities[i];
+
+                        if start_position.y == possibility.position.y {
+                            return vec![((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0)];
+                        }
+
+                        let possibility_steps = absolute_f32(start_position.y - possibility.position.y) as u32 / speed;
+
+                        if possibility_steps < best_possibility_steps {
+                            best_possibility = possibility;
+                            best_possibility_steps = possibility_steps;
+
+                            if start_position.y > possibility.position.y {
+                                best_direction = Direction::Up;
+                            } else {
+                                best_direction = Direction::Down;
+                            }
+                        }
+                    }
+
+                    let last_direction = if best_direction == Direction::Up {
+                        Direction::Down
+                    } else {
+                        Direction::Up
+                    };
+
+                    return vec![
+                        (best_possibility_steps, best_direction, 0),
+                        ((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0),
+                        (best_possibility_steps, last_direction, 0)
+                    ];
+                } 
+            }
         }
     }
+
+    todo!()
     
-    if start_position.x == end_position.x {
-        if start_position.y > end_position.y {
-            return vec![((start_position.y - end_position.y) as u32 / speed, Direction::Up, 0)];
-        } else {
-            return vec![((end_position.y - start_position.y) as u32 / speed, Direction::Down, 0)];
-        }
-    }
+    // if start_position.x == end_position.x {
+    //     if start_position.y > end_position.y {
+    //         if let Some(up_objects) = near_object.get(&Direction::Up) {
+    //             if up_objects.len() == 0 {
+    //                 return Some(Direction::Up);
+    //             }
 
-    let mut path_vec = Vec::new();
+    //             for object in up_objects {
+    //                 let object_type = object.get_type();
 
-    if start_position.y > end_position.y {
-       path_vec.push(((start_position.y - end_position.y) as u32 / speed, Direction::Up, 0)); 
+    //                 if object_type == ObjectLevelType::RegularDoor || object_type == ObjectLevelType::LockedDoor || object_type == ObjectLevelType::CodedDoor {
+    //                     return Some(Direction::Up);
+    //                 }
+    //             }
+    //         } else {
+    //             return Some(Direction::Up);
+    //         }
+    //     }
 
-        if start_position.x > end_position.x {
-            path_vec.push(((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0));
-        } else {
-            path_vec.push(((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0));
-        }
-    } else {
-       path_vec.push(((end_position.y - start_position.y) as u32 / speed, Direction::Down, 0)); 
+    //     if let Some(down_objects) = near_object.get(&Direction::Down) {
+    //         if down_objects.len() == 0 {
+    //             return Some(Direction::Down);
+    //         }
 
-        if start_position.x > end_position.x {
-            path_vec.push(((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0));
-        } else {
-            path_vec.push(((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0));
-        }
-    }
+    //         for object in down_objects {
+    //             let object_type = object.get_type();
 
-    path_vec
+    //             if object_type == ObjectLevelType::RegularDoor || object_type == ObjectLevelType::LockedDoor || object_type == ObjectLevelType::CodedDoor {
+    //                 return Some(Direction::Down);
+    //             }
+    //         }
+    //     } else {
+    //         return Some(Direction::Down);
+    //     }
+    // }
+
+    // let mut path_vec = Vec::new();
+
+    // if start_position.y > end_position.y {
+    //    path_vec.push(((start_position.y - end_position.y) as u32 / speed, Direction::Up, 0)); 
+
+    //     if start_position.x > end_position.x {
+    //         path_vec.push(((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0));
+    //     } else {
+    //         path_vec.push(((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0));
+    //     }
+    // } else {
+    //    path_vec.push(((end_position.y - start_position.y) as u32 / speed, Direction::Down, 0)); 
+
+    //     if start_position.x > end_position.x {
+    //         path_vec.push(((start_position.x - end_position.x) as u32 / speed, Direction::Left, 0));
+    //     } else {
+    //         path_vec.push(((end_position.x - start_position.x) as u32 / speed, Direction::Right, 0));
+    //     }
+    // }
+
+    // path_vec
 }

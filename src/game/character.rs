@@ -3,13 +3,15 @@ use crate::renderer::vertice::Position;
 use super::level::GameObject;
 
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum Direction {
     Up,
     Down,
     Left,
     Right
 }
+
+// TODO: rename speed to val or value it does not make any sense
 pub trait Character<'a>: GameObject<'a> {
     fn move_character(&mut self, direction: Direction, speed: Option<f32>) {
         let current_position = self.get_position();
