@@ -36,6 +36,7 @@ pub struct Enemy<'a> {
     mode: EnemyMode,
     prev_mode: EnemyMode,
     already_detected_player: bool,
+    start_searching_position: Option<Position>,
 }
 
 impl<'a> Enemy<'a> {
@@ -62,6 +63,7 @@ impl<'a> Enemy<'a> {
                     mode: EnemyMode::Regular,
                     prev_mode: EnemyMode::Regular,
                     already_detected_player: false,
+                    start_searching_position: None,
                 }
             }
         }
@@ -77,6 +79,9 @@ impl<'a> GameObject<'a> for Enemy<'a> {
         render.draw_line(apex, first_point, Color::Red, None, None, None);
         render.draw_line(apex, second_point, Color::Red, None, None, None);
         render.draw_line(first_point, second_point, Color::Red, None, None, None); 
+
+        // render.draw_line(position { x: self.start_position.x + 27.5, y: self.start_position.y }, position { x: self.start_position.x + 27.5, y: self.start_position.y + 50.0 + (3.0 * self.size.height / 5.0) }, color::blue, none, none, none);
+        // render.draw_line(Position { x: self.start_position.x + 27.5, y: self.start_position.y + 50.0 + (3.0 * self.size.height / 5.0) }, Position { x: self.start_position.x + 50.0 + self.size.width, y: self.start_position.y + 50.0 + (3.0 * self.size.height / 5.0) }, Color::Blue, None, None, None);
 
         Ok(())
     }
@@ -144,7 +149,7 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    pub fn move_enemy(&mut self, current_notoriety_level: u64, speed: Option<f32>) {
+    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, speed: Option<f32>) {
         match self.mode {
             EnemyMode::Regular => {
                 self.already_detected_player = false;
@@ -157,6 +162,8 @@ impl<'a> Enemy<'a> {
                     if self.position != self.start_position {
                         self.current_moves_path = get_optimal_path(&self.position, &self.start_position, speed.unwrap_or(10.0) as u32);
                     } else {
+                        self.moves_count = 0;
+
                         self.current_moves_path = convert_path(self.original_moves_path);
 
                         self.prev_mode = EnemyMode::Regular;
@@ -168,15 +175,24 @@ impl<'a> Enemy<'a> {
 
             EnemyMode::Detecting => {
                 if let Some(detect_player_position) = self.detect_player_position {
-                    if self.prev_mode != EnemyMode::Detecting && self.move_interval != DEFAULT_MOVE_INTERVAL {
-                        self.move_interval = Duration::from_millis(1500);
+                    if self.position == detect_player_position && !self.is_detecting_player(player) {
+                        self.start_searching_position = Some(self.position);
+                        self.detect_player_position = None;
+                    } else {
+                        if self.prev_mode != EnemyMode::Detecting && self.move_interval != DEFAULT_MOVE_INTERVAL {
+                            self.move_interval = Duration::from_millis(1500);
+                        }
+    
+                        self.current_moves_path = get_optimal_path(&self.position, &detect_player_position, speed.unwrap_or(10.0) as u32);
+    
+                        self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))), speed);
+                    }
+                } else {
+                    if player.get_status() == &PlayerStatus::Detectit {
+                        player.set_status(PlayerStatus::NotHidden);
                     }
 
-                    self.current_moves_path = get_optimal_path(&self.position, &detect_player_position, speed.unwrap_or(10.0) as u32);
-
-                    self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))), speed);
-                } else {
-                    self.mode = EnemyMode::Regular;
+                    self.mode = EnemyMode::Searching;
                 }
 
                 self.already_detected_player = true;
@@ -184,9 +200,82 @@ impl<'a> Enemy<'a> {
             },
 
             EnemyMode::Searching => {
+                if let Some(start_searching_position) = self.start_searching_position {
+                    if self.prev_mode != EnemyMode::Searching {
+                        if self.move_interval != DEFAULT_MOVE_INTERVAL {
+                            self.move_interval = DEFAULT_MOVE_INTERVAL;
+                        }
+    
+                        self.current_moves_path = self.get_searching_path(speed.unwrap_or(10.0) as u32);
+                    } else if self.position == (Position { x: start_searching_position.x + ((50.0 / speed.unwrap_or(10.0)) * speed.unwrap_or(10.0)), y: start_searching_position.y }) && !self.is_detecting_player(player) {
+                        self.mode = EnemyMode::Regular;
+                    } else {
+                        self.move_enemy_in_path(None, speed);
+                    }
+                } else {
+                    self.mode = EnemyMode::Regular;
+                }
+
                 self.already_detected_player = true;
                 self.prev_mode = EnemyMode::Searching;
             }
+        }
+    }
+
+    fn get_searching_path(&self, speed: u32) -> PathVec {
+        let steps = 50 / speed;
+
+        vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
+    } 
+
+    fn is_detecting_player(&self, player: &Player<'a>) -> bool {
+        if player.get_status() == &PlayerStatus::Hidden {
+            return false;
+        }
+
+        let player_start = player.get_position();
+        let player_size = player.get_size();
+        let player_end = Position { x: player_start.x + player_size.width, y: player_start.y + player_size.height };
+
+        let enemy_end = Position { x: self.position.x + self.size.width, y: self.position.y + self.size.height };
+
+        if ((player_start.x >= self.position.x && player_start.x <= enemy_end.x) ||
+            (player_end.x >= self.position.x && player_end.x <= enemy_end.x)) &&
+            ((player_start.y >= self.position.y && player_start.y < enemy_end.y) || 
+            (player_end.y > self.position.y && player_end.y <= enemy_end.y)) {
+            return true;
+        }
+
+        let (first_point, second_point, apex) = self.detect_traingle;
+
+        match self.moving_towards {
+            Direction::Left => {
+                ((player_start.x >= first_point.x && player_start.x < apex.x) ||
+                (player_end.x > first_point.x && player_end.x <= apex.x)) &&
+                ((player_start.y < first_point.y && player_start.y >= second_point.y) ||
+                (player_end.y <= first_point.y && player_end.y > second_point.y)) 
+            },
+
+            Direction::Right => {
+                ((player_start.x < first_point.x && player_start.x >= apex.x) ||
+                (player_end.x <= first_point.x && player_end.x > apex.x)) &&
+                ((player_start.y < first_point.y && player_start.y >= second_point.y) ||
+                (player_end.y <= first_point.y && player_end.y > second_point.y))
+            },
+
+            Direction::Up => {
+                ((player_start.x >= second_point.x && player_start.x < first_point.x) ||
+                (player_end.x > second_point.x && player_end.x <= first_point.x)) &&
+                ((player_start.y >= first_point.y && player_start.y < apex.y) ||
+                (player_end.y > first_point.y && player_end.y <= apex.y)) 
+            },
+
+            Direction::Down => {
+                ((player_start.x >= second_point.x && player_start.x < first_point.x) ||
+                (player_end.x > second_point.x && player_end.x <= first_point.x)) &&
+                ((player_start.y < first_point.y && player_start.y >= apex.y) ||
+                (player_end.y <= first_point.y && player_end.y > apex.y)) 
+            },
         }
     }
 
