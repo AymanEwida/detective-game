@@ -1,6 +1,6 @@
-use std::time::{Duration, Instant};
+use std::{collections::HashMap, intrinsics::fabsf32, time::{Duration, Instant}};
 
-use crate::{library::utils::{calc_equidistant_points, convert_path, get_optimal_path, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::utils::{calc_equidistant_points, convert_path, get_movement_possibilities_from_near_objects, PathVec, Possibility}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{character::{Character, Direction}, level::GameObject, player::{Player, PlayerStatus}};
 
@@ -147,6 +147,10 @@ impl<'a> Enemy<'a> {
                 self.last_move_time = Instant::now();
             }
         }
+    }
+
+    pub fn find_optimal_path(&self, target_position: Position, grid: Vec<Vec<bool>>) -> PathVec {
+        todo!()
     }
 
     pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, speed: Option<f32>) {
