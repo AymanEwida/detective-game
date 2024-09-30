@@ -253,6 +253,14 @@ pub fn get_optimal_path<'a>(start_position: &Position, end_position: &Position, 
                     ];
                 } 
             }
+
+            let up_down_possibilities: Vec<(&Direction, &Vec<Possibility>)> = movement_possibilities
+                .iter()
+                .filter(| (direction, _) | { **direction == Direction::Up || **direction == Direction::Down })
+                .collect();
+
+            if up_down_possibilities.len() > 0 {
+            }
         }
     }
 
