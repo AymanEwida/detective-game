@@ -95,3 +95,18 @@ fn test_get_vertices_data() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_get_position_neighbors() {
+    let position = Position { x: 10.0, y: 50.0 };
+    let input_speed = 10.0;
+    let actual = position.get_neighbors(input_speed);
+    let expected= vec![
+        Position { x: 10.0, y: 40.0 },
+        Position { x: 10.0, y: 60.0 },
+        Position { x: 0.0, y: 50.0 },
+        Position { x: 20.0, y: 50.0 },
+    ];
+
+    assert_eq!(actual, expected);
+}

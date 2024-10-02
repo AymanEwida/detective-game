@@ -1,10 +1,28 @@
-use std::{collections::HashMap, intrinsics::fabsf32, time::{Duration, Instant}};
+use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
-use crate::{library::utils::{calc_equidistant_points, convert_path, get_movement_possibilities_from_near_objects, PathVec, Possibility}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::utils::{calc_equidistant_points, convert_path, get_heuristic_score, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{character::{Character, Direction}, level::GameObject, player::{Player, PlayerStatus}};
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
+
+#[derive(Debug, PartialEq, Eq)]
+struct PossibilityNode {
+    pub position: Position,
+    pub priority_score: i32
+}
+
+impl Ord for PossibilityNode {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.priority_score.cmp(&self.priority_score)
+    }
+}
+
+impl PartialOrd for PossibilityNode {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 #[derive(Debug)]
 pub enum EnemyType {
@@ -149,8 +167,88 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    pub fn find_optimal_path(&self, target_position: Position, grid: Vec<Vec<bool>>) -> PathVec {
-        todo!()
+    pub fn find_optimal_path(&self, target_position: Position, speed: f32, grid: Vec<Vec<bool>>) -> Option<PathVec> {
+        if self.position == target_position {
+            return None;
+        }
+
+        let mut movements = BinaryHeap::new();
+        let mut came_from: HashMap<Position, Option<Position>> = HashMap::new();
+        let mut position_score = HashMap::new();
+
+        movements.push(PossibilityNode {
+            position: self.position,
+            priority_score: 0
+        });
+        came_from.insert(self.position, None);
+        position_score.insert(self.position, 0);
+
+        while let Some(current_movement) = movements.pop() {
+            let current_position = current_movement.position;
+
+            if current_position == target_position {
+                let mut path = vec![current_position];
+                
+                let mut current = current_position;
+
+                while let Some(previous) = came_from[&current] {
+                    path.push(previous);
+                    current = previous;
+                }
+
+                path.reverse();
+
+                let mut moves = Vec::new();
+
+                current = self.position;
+
+                for i in 1..path.len() {
+                    let current_position = path[i];
+
+                    if current.y == current_position.y {
+                        if current.x > current_position.x {
+                            moves.push((1, Direction::Left, 0));                            
+                        } else {
+                            moves.push((1, Direction::Right, 0));
+                        }
+                    } else if current.x == current_position.x {
+                        if current.y > current_position.y {
+                            moves.push((1, Direction::Up, 0));
+                        } else {
+                            moves.push((1, Direction::Down, 0));
+                        }
+                    }
+
+                    current = current_position;
+                }
+
+                return Some(moves);
+            }
+
+            for neighbor in current_position.get_neighbors(speed) {
+                // mabye remove position check
+
+                let neighbor_col = neighbor.x / speed;
+                let neighbor_row = neighbor.y / speed;
+
+                if neighbor_col >= 0.0 && neighbor_col < grid[0].len() as f32 &&
+                   neighbor_row >= 0.0 && neighbor_row < grid.len() as f32 &&
+                   grid[neighbor_row as usize][neighbor_col as usize] {
+                    let tentative_score = position_score[&current_position] + speed as i32; 
+
+                    if tentative_score < *position_score.get(&neighbor).unwrap_or(&i32::MAX) {
+                        came_from.insert(neighbor, Some(current_position));
+                        position_score.insert(neighbor, tentative_score);
+                        movements.push(PossibilityNode {
+                            position: neighbor,
+                            priority_score: tentative_score + get_heuristic_score(&neighbor, &target_position, speed) as i32
+                        });
+                    }
+                } 
+            }
+        }
+
+        None
     }
 
     pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, speed: Option<f32>) {
@@ -164,7 +262,7 @@ impl<'a> Enemy<'a> {
                     }
 
                     if self.position != self.start_position {
-                        self.current_moves_path = get_optimal_path(&self.position, &self.start_position, speed.unwrap_or(10.0) as u32);
+                        self.current_moves_path = self.find_optimal_path(self.start_position, speed.unwrap_or(10.0), vec![vec![]]).unwrap_or(Vec::new());
                     } else {
                         self.moves_count = 0;
 
@@ -187,7 +285,7 @@ impl<'a> Enemy<'a> {
                             self.move_interval = Duration::from_millis(1500);
                         }
     
-                        self.current_moves_path = get_optimal_path(&self.position, &detect_player_position, speed.unwrap_or(10.0) as u32);
+                        self.current_moves_path = self.find_optimal_path(detect_player_position, speed.unwrap_or(10.0), vec![vec![]]).unwrap_or(Vec::new());
     
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))), speed);
                     }

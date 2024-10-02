@@ -6,11 +6,6 @@ use crate::{game::{character::Direction, level::GameObject}, renderer::{render::
 
 pub type PathVec = Vec<(u32, Direction, u64)>;
 
-pub struct Possibility {
-    pub position: Position,
-    pub size: Size
-}
-
 pub fn length_of_line(start: &Position, end: &Position) -> f32 {
     ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt()
 }
@@ -189,7 +184,11 @@ pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, ang
     (top_point, bottom_point, apex)
 }
 
-// TODO: make ObjectLevel a trait and put it instead of the GameObject trait here
-pub fn get_movement_possibilities_from_near_objects<'a>(start: &Position, objects: &[impl GameObject<'a>]) -> HashMap<Direction, Vec<Possibility>> {
-    todo!()
+pub fn get_heuristic_score(a: &Position, b: &Position, speed: f32) -> f32 {
+    (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / speed
 }
+
+// TODO: make ObjectLevel a trait and put it instead of the GameObject trait here
+// pub fn get_movement_possibilities_from_near_objects<'a>(start: &Position, objects: &[impl GameObject<'a>]) -> HashMap<Direction, Vec<Possibility>> {
+//     todo!()
+// }

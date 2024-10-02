@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub};
+use std::{hash::Hash, ops::{Add, Sub}};
 
 use crate::library::utils::convert_coordinates;
 
@@ -11,6 +11,16 @@ pub struct Position {
     pub x: f32,
     pub y: f32,
 }
+
+// mabye this will not work due to f32 bugs and complexity
+impl Hash for Position {
+   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+       state.write_i32(self.x as i32);
+       state.write_i32(self.y as i32);
+   } 
+}
+
+impl Eq for Position {}
 
 impl Add<f32> for Position {
     type Output = Self;
@@ -81,6 +91,14 @@ impl Position {
         [self.x, self.y]
     }
 
+    pub fn get_neighbors(&self, speed: f32) -> Vec<Self> {
+        vec![
+            Self { x: self.x, y: self.y - speed },
+            Self { x: self.x, y: self.y + speed },
+            Self { x: self.x - speed, y: self.y },
+            Self { x: self.x + speed, y: self.y },
+        ]
+    }
 }
 
 #[derive(Debug)]

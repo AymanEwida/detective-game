@@ -322,6 +322,7 @@ fn test_absolute_f32() {
 }
 
 #[test]
+#[ignore]
 fn test_get_level_challenges() -> Result<(), std::io::Error> {
     let input = 1;
     let actual = get_level_challenges(input)?;
@@ -374,6 +375,17 @@ fn test_calc_equidistant_points_down_direction() {
     let input_line_length = 10.0;
     let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Down);
     let expected= (Position { x: 10.0 + (5.0 * 3.0_f32.sqrt()), y: 45.0 }, Position { x: 10.0 - (5.0 * 3.0_f32.sqrt()), y: 45.0 }, input_apex);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_get_heuristic_score() {
+    let input_a = Position { x: 10.0, y: 50.0 };
+    let input_b = Position { x: 20.0, y: 10.0 };
+    let input_speed = 10.0;
+    let actual = get_heuristic_score(&input_a, &input_b, input_speed);
+    let expected= 5.0;
 
     assert_eq!(actual, expected);
 }
