@@ -199,27 +199,40 @@ impl<'a> Enemy<'a> {
                 path.reverse();
 
                 let mut moves = Vec::new();
+                let mut last_direction = None;
+                let mut count = 0;
 
                 current = self.position;
 
                 for i in 1..path.len() {
                     let current_position = path[i];
 
-                    if current.y == current_position.y {
+                    let direction = if current.y == current_position.y {
                         if current.x > current_position.x {
-                            moves.push((1, Direction::Left, 0));                            
+                            Direction::Left
                         } else {
-                            moves.push((1, Direction::Right, 0));
+                            Direction::Right
                         }
-                    } else if current.x == current_position.x {
+                    } else {
                         if current.y > current_position.y {
-                            moves.push((1, Direction::Up, 0));
+                            Direction::Up
                         } else {
-                            moves.push((1, Direction::Down, 0));
+                            Direction::Down
                         }
+                    };
+
+                    if i != 1 && last_direction != Some(direction) {
+                        moves.push((count, last_direction.unwrap(), 0));
+                        count = 0;
                     }
 
                     current = current_position;
+                    last_direction = Some(direction);
+                    count += 1;
+
+                    if i == path.len() - 1 {
+                        moves.push((count, last_direction.unwrap(), 0));
+                    }
                 }
 
                 return Some(moves);

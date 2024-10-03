@@ -15,6 +15,12 @@ pub trait GameObject<'a> {
     fn get_size(&self) -> Size;
 }
 
+pub trait LevelObject {
+    fn get_type(&self) -> ObjectLevelType;
+    fn get_position(&self) -> Position;
+    fn get_size(&self) -> Size;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ObjectLevelType {
     Wall,
@@ -27,7 +33,7 @@ pub enum ObjectLevelType {
     CodePaper,
     ExitDoor,
     Camera,
-    Key
+    Key,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,8 +49,6 @@ pub struct ObjectLevel<'a> {
 
 impl ObjectLevel<'_> {
     pub fn new(object_type: ObjectLevelType, position: Position, size: Size, flip: bool, scale: Option<f32>, rotate: Option<f32>) -> Self {
-        //TODO: delete Camera and move doors to its own struct when finshing level design
-        
         let image_path = match object_type {
             ObjectLevelType::Wall => "assets/game/wall.jpg",
             ObjectLevelType::RegularDoor => "assets/game/regular-close-door.png",
@@ -55,8 +59,8 @@ impl ObjectLevel<'_> {
             ObjectLevelType::Coin => "assets/game/coin.png",
             ObjectLevelType::CodePaper => "assets/game/code-paper.webp",
             ObjectLevelType::ExitDoor => "assets/game/exit-door.png",
-            ObjectLevelType::Camera => "assets/game/camera.png",
             ObjectLevelType::Key => "assets/game/key.png",
+            _ => ""
         };
         
         Self {
@@ -197,7 +201,7 @@ impl<'a> GameLevel<'a> {
 
                 ObjectLevelType::LockedDoor => (),
 
-                ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::Camera | ObjectLevelType::TeleportDoor => (),
+                ObjectLevelType::HidePlace | ObjectLevelType::CodePaper | ObjectLevelType::ExitDoor | ObjectLevelType::TeleportDoor => (),
 
                 ObjectLevelType::Coin | ObjectLevelType::Key => (),
 
