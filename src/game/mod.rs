@@ -3,3 +3,8 @@ pub mod player;
 pub mod enemy;
 pub mod camera;
 pub mod level;
+pub mod level_object;
+pub mod wall;
+pub mod door;
+pub mod collectable;
+pub mod hide_place;

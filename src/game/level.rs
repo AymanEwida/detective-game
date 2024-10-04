@@ -15,12 +15,6 @@ pub trait GameObject<'a> {
     fn get_size(&self) -> Size;
 }
 
-pub trait LevelObject {
-    fn get_type(&self) -> ObjectLevelType;
-    fn get_position(&self) -> Position;
-    fn get_size(&self) -> Size;
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ObjectLevelType {
     Wall,
