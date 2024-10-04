@@ -1,8 +1,10 @@
-use std::{collections::HashMap, f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
+use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
 use rand::Rng;
 
-use crate::{game::{character::Direction, level::GameObject}, renderer::{render::Size, vertice::Position}};
+use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
+
+use super::constants::GAME_ASSETS_DIR;
 
 pub type PathVec = Vec<(u32, Direction, u64)>;
 
@@ -85,6 +87,42 @@ pub fn convert_path(path: &str) -> PathVec {
     }).collect()
 }
 
+pub fn sum_direction_length_from_path(path: &str, direction: Direction, speed: f32) -> f32 {
+    let direction = match direction {
+        Direction::Left => 'l',
+        Direction::Right => 'r',
+        Direction::Up => 'u',
+        Direction::Down => 'd' 
+    };
+
+    let mut steps = String::new();
+    let mut count = 0;
+
+    for ch in path.chars() {
+        if ch == ' ' {
+            steps = String::new();
+
+            continue;
+        }
+
+        if ch >= '0' && ch <= '9' {
+            steps.push(ch); 
+        } else if ch == direction {
+            for i in 0..steps.len() {
+                let num = steps[i..i+1]
+                    .chars()
+                    .next()
+                    .unwrap()
+                    .to_ascii_lowercase() as i32 - 48;
+
+                count += 10_i32.pow((steps.len() - 1 - i) as u32) * num;
+            }
+        }
+    }
+
+    count as f32 * speed
+}
+
 pub fn convert_angle_to_radians(angle: f32) -> f32 {
     angle * (PI / 180.0)
 }
@@ -119,7 +157,7 @@ pub fn absolute_f32(num: f32) -> f32 {
 }
 
 pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
-    let level_challenges_file_path = format!("./assets/game/challenges/level{}.txt", level);
+    let level_challenges_file_path = format!("./{}challenges/level{}.txt", GAME_ASSETS_DIR, level);
     let content = fs::read_to_string(Path::new(&level_challenges_file_path))?; 
 
     let challenges_vec: Vec<&str> = content.split("\r\n").collect();
@@ -187,8 +225,3 @@ pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, ang
 pub fn get_heuristic_score(a: &Position, b: &Position, speed: f32) -> f32 {
     (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / speed
 }
-
-// TODO: make ObjectLevel a trait and put it instead of the GameObject trait here
-// pub fn get_movement_possibilities_from_near_objects<'a>(start: &Position, objects: &[impl GameObject<'a>]) -> HashMap<Direction, Vec<Possibility>> {
-//     todo!()
-// }

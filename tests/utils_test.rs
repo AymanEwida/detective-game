@@ -389,3 +389,47 @@ fn test_get_heuristic_score() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_sum_direction_length_from_path_left() {
+    let input_path = "10l 10r 20u 10r 20d 10l";
+    let input_direction = Direction::Left;
+    let input_speed = 10.0;
+    let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
+    let expected= 200.0;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_sum_direction_length_from_path_right() {
+    let input_path = "10l 10r 20u 10r 20d 10l";
+    let input_direction = Direction::Right;
+    let input_speed = 10.0;
+    let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
+    let expected= 200.0;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_sum_direction_length_from_path_up() {
+    let input_path = "5u 10l 10r 4u 4d 5d";
+    let input_direction = Direction::Up;
+    let input_speed = 10.0;
+    let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
+    let expected= 90.0;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_sum_direction_length_from_path_down() {
+    let input_path = "5u 10l 10r 4u 3d 5d";
+    let input_direction = Direction::Down;
+    let input_speed = 10.0;
+    let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
+    let expected= 80.0;
+
+    assert_eq!(actual, expected);
+}

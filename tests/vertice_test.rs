@@ -110,3 +110,37 @@ fn test_get_position_neighbors() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_partial_ord_on_position_same_positions() {
+    let position1 = Position { x: 10.0, y: 10.0 };
+    let position2 = Position { x: 10.0, y: 10.0 };
+
+    assert!(position1 >= position2);
+    assert!(position1 <= position2);
+}
+
+#[test]
+fn test_partial_ord_on_position_same_x() {
+    let position1 = Position { x: 20.0, y: 10.0 };
+    let position2 = Position { x: 20.0, y: 20.0 };
+
+    assert!(position2 >= position1);
+}
+
+#[test]
+fn test_partial_ord_on_position_same_y() {
+    let position1 = Position { x: 10.0, y: 10.0 };
+    let position2 = Position { x: 20.0, y: 10.0 };
+
+    assert!(position2 >= position1);
+}
+
+#[test]
+fn test_partial_ord_on_position_different() {
+    let position1 = Position { x: 10.0, y: 10.0 };
+    let position2 = Position { x: 20.0, y: 20.0 };
+    let position3 = Position { x: 30.0, y: 30.0 };
+
+    assert!(position2 >= position1 && position2 <= position3);
+}

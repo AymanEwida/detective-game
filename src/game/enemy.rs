@@ -1,8 +1,8 @@
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
-use crate::{library::utils::{calc_equidistant_points, convert_path, get_heuristic_score, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{game::level_object::ObjectType, library::utils::{absolute_f32, calc_equidistant_points, convert_path, get_heuristic_score, sum_direction_length_from_path, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, level::GameObject, player::{Player, PlayerStatus}};
+use super::{character::{Character, Direction}, level::GameObject, level_object::LevelObject, player::{Player, PlayerStatus}};
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -165,6 +165,155 @@ impl<'a> Enemy<'a> {
                 self.last_move_time = Instant::now();
             }
         }
+    }
+
+    // TODO: change speed to value/val speed is not a good name,and put it in Enemy and Player structs as a field
+    pub fn get_movement_possibilities_from_near_objects(&self, end: &Position, speed: f32, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
+        let (grid_start_position, grid_size) = if self.position.y == end.y {
+            let (distance, edge_length, is_larger) = if self.position.x > end.x {
+                let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, speed);
+
+                if right_sum < 50.0 {
+                    (self.position.x - end.x, 50.0, 1.0)
+                } else {
+                    (self.position.x - end.x, right_sum, 1.0)
+                }
+            } else {
+                let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, speed);
+
+                if left_sum < 50.0 {
+                    (end.x - self.position.x, 50.0, 0.0)
+                } else {
+                    (end.x - self.position.x, left_sum, 0.0)
+                }
+            };
+
+            let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, speed);
+            if up_length < 50.0 {
+                up_length = 50.0;
+            }
+
+            let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, speed);
+            if down_length < 50.0 {
+                down_length = 50.0;
+            }
+
+            (Position { x: self.position.x - edge_length - (is_larger * distance), y: self.position.y - up_length }, Size { width: distance + (2.0 * edge_length), height: up_length + down_length })
+        } else if self.position.x == end.x {
+            let (distance, edge_length, is_larger) = if self.position.y > end.y {
+                let down_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Down, speed);
+
+                if down_sum < 50.0 {
+                    (self.position.y - end.y, 50.0, 1.0)
+                } else {
+                    (self.position.y - end.y, down_sum, 1.0)
+                }
+            } else {
+                let up_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Up, speed);
+
+                if up_sum < 50.0 {
+                    (end.y - self.position.y, 50.0, 0.0)
+                } else {
+                    (end.y - self.position.y, up_sum, 0.0)
+                }
+            };
+
+            let mut left_length = sum_direction_length_from_path(self.original_moves_path, Direction::Left, speed);
+            if left_length < 50.0 {
+                left_length = 50.0;
+            }
+
+            let mut right_length = sum_direction_length_from_path(self.original_moves_path, Direction::Right, speed);
+            if right_length < 50.0 {
+                right_length = 50.0;
+            }
+
+            (Position { x: self.position.x - left_length, y: self.position.y - edge_length - (is_larger * distance) }, Size { width: left_length + right_length, height: distance + (2.0 * edge_length) })
+            
+        } else {
+            let (distance_x, edge_length, is_larger) = if self.position.x > end.x {
+                let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, speed);
+
+                if right_sum < 50.0 {
+                    (self.position.x - end.x, 50.0, 1.0)
+                } else {
+                    (self.position.x - end.x, right_sum, 1.0)
+                }
+            } else {
+                let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, speed);
+
+                if left_sum < 50.0 {
+                    (end.x - self.position.x, 50.0, 1.0)
+                } else {
+                    (end.x - self.position.x, left_sum, 1.0)
+                }
+            };
+
+            let distance_y = absolute_f32(self.position.y - end.y);
+
+            let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, speed);
+            if up_length < 50.0 {
+                up_length = 50.0;
+            }
+
+            let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, speed);
+            if down_length < 50.0 {
+                down_length = 50.0;
+            }
+
+            (Position { x: self.position.x - edge_length - (is_larger * distance_x), y: self.position.y - up_length - distance_y }, Size { width: distance_x + (2.0 * edge_length), height: up_length + down_length + (2.0 * distance_y) })
+        };
+
+        let grid_rows = (grid_size.height / speed) as usize;
+        let grid_cols = (grid_size.width / speed) as usize;
+
+        let mut grid = Vec::with_capacity(grid_rows);
+
+        for row in 0..grid_rows {
+            let mut col_vec = Vec::with_capacity(grid_cols);
+
+            for col in 0..grid_cols {
+                let current_position = Position { x: grid_start_position.x + (col as f32 * speed), y: grid_start_position.y + (row as f32 * speed) };
+
+                let mut is_walkable = true;
+
+                for object in doors_and_walls {
+                    let object_poistion = object.get_position();
+                    
+                    if object_poistion >= grid_start_position && object_poistion <= (grid_start_position + grid_size) {
+                        let object_size = object.get_size();
+
+                        match object.get_type() {
+                            ObjectType::Wall => {
+                                if current_position >= object_poistion && current_position <= (object_poistion + object_size) {
+                                    is_walkable = false;
+        
+                                    break;
+                                }
+                            },
+    
+                            ObjectType::Door(_) => {
+                                if current_position == object_poistion {
+                                    is_walkable = true;
+    
+                                    break;
+                                }
+                            },
+    
+                            _ => {
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                col_vec.push(is_walkable);
+            }
+
+            grid.push(col_vec);
+        }
+
+        grid
     }
 
     pub fn find_optimal_path(&self, target_position: Position, speed: f32, grid: Vec<Vec<bool>>) -> Option<PathVec> {
@@ -354,6 +503,7 @@ impl<'a> Enemy<'a> {
 
         let enemy_end = Position { x: self.position.x + self.size.width, y: self.position.y + self.size.height };
 
+        // TODO: test player.collide(enemy)
         if ((player_start.x >= self.position.x && player_start.x <= enemy_end.x) ||
             (player_end.x >= self.position.x && player_end.x <= enemy_end.x)) &&
             ((player_start.y >= self.position.y && player_start.y < enemy_end.y) || 
@@ -402,6 +552,7 @@ impl<'a> Enemy<'a> {
 
             let enemy_end = Position { x: self.position.x + self.size.width, y: self.position.y + self.size.height };
 
+            // TODO: test player.collide(enemy)
             if ((player_start.x >= self.position.x && player_start.x <= enemy_end.x) ||
                 (player_end.x >= self.position.x && player_end.x <= enemy_end.x)) &&
                 ((player_start.y >= self.position.y && player_start.y < enemy_end.y) || 
@@ -478,13 +629,7 @@ impl<'a> Enemy<'a> {
             return false;
         }
 
-        let player_position = player.get_position();
-        let player_size = player.get_size();
-
-        self.position.x < player_position.x + player_size.width &&
-        self.position.x + self.size.width > player_position.x &&
-        self.position.y < player_position.y + player_size.height &&
-        self.position.y + self.size.height > player_position.y
+        self.collide(player)
     }
 
     pub fn get_mode(&mut self) -> &EnemyMode {

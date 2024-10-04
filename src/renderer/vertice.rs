@@ -6,13 +6,12 @@ use super::{color::Color, render::Size};
 
 pub type PositionType = [f32; 2];
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Position {
     pub x: f32,
     pub y: f32,
 }
 
-// mabye this will not work due to f32 bugs and complexity
 impl Hash for Position {
    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
        state.write_i32(self.x as i32);
@@ -44,6 +43,17 @@ impl Add for Position {
     }
 }
 
+impl Add<Size> for Position {
+    type Output = Self;
+
+    fn add(self, rhs: Size) -> Self::Output {
+        Self {
+            x: self.x + rhs.width,
+            y: self.y + rhs.height
+        }
+    }
+}
+
 impl Sub<f32> for Position {
     type Output = Self;
 
@@ -62,6 +72,17 @@ impl Sub for Position {
         Self {
             x: self.x - rhs.x,
             y: self.y - rhs.y
+        }
+    }
+}
+
+impl Sub<Size> for Position {
+    type Output = Self;
+
+    fn sub(self, rhs: Size) -> Self::Output {
+        Self {
+            x: self.x - rhs.width,
+            y: self.y - rhs.height
         }
     }
 }
