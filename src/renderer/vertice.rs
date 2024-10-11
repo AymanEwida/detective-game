@@ -112,12 +112,12 @@ impl Position {
         [self.x, self.y]
     }
 
-    pub fn get_neighbors(&self, speed: f32) -> Vec<Self> {
+    pub fn get_neighbors(&self, value: f32) -> Vec<Self> {
         vec![
-            Self { x: self.x, y: self.y - speed },
-            Self { x: self.x, y: self.y + speed },
-            Self { x: self.x - speed, y: self.y },
-            Self { x: self.x + speed, y: self.y },
+            Self { x: self.x, y: self.y - value },
+            Self { x: self.x, y: self.y + value },
+            Self { x: self.x - value, y: self.y },
+            Self { x: self.x + value, y: self.y },
         ]
     }
 }

@@ -74,7 +74,7 @@ fn main() {
                         Key::W => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Up, None);
+                                    player.move_player(Direction::Up);
                                 },
                                 _ => ()
                             }
@@ -83,7 +83,7 @@ fn main() {
                         Key::S => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Down, None);
+                                    player.move_player(Direction::Down);
                                 },
                                 _ => ()
                             }
@@ -92,7 +92,7 @@ fn main() {
                         Key::A => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Left, None);
+                                    player.move_player(Direction::Left);
                                 },
                                 _ => ()
                             }
@@ -101,7 +101,7 @@ fn main() {
                         Key::D => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Right, None);
+                                    player.move_player(Direction::Right);
                                 },
                                 _ => ()
                             }

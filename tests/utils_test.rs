@@ -383,8 +383,8 @@ fn test_calc_equidistant_points_down_direction() {
 fn test_get_heuristic_score() {
     let input_a = Position { x: 10.0, y: 50.0 };
     let input_b = Position { x: 20.0, y: 10.0 };
-    let input_speed = 10.0;
-    let actual = get_heuristic_score(&input_a, &input_b, input_speed);
+    let input_value = 10.0;
+    let actual = get_heuristic_score(&input_a, &input_b, input_value);
     let expected= 5.0;
 
     assert_eq!(actual, expected);

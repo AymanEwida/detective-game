@@ -99,8 +99,8 @@ fn test_get_vertices_data() {
 #[test]
 fn test_get_position_neighbors() {
     let position = Position { x: 10.0, y: 50.0 };
-    let input_speed = 10.0;
-    let actual = position.get_neighbors(input_speed);
+    let input_value = 10.0;
+    let actual = position.get_neighbors(input_value);
     let expected= vec![
         Position { x: 10.0, y: 40.0 },
         Position { x: 10.0, y: 60.0 },

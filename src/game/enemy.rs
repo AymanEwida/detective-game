@@ -43,6 +43,7 @@ pub struct Enemy<'a> {
     size: Size,
     image: &'a str,
     flip: bool,
+    movement_value: f32,
     last_move_time: Instant,
     move_interval: Duration,
     current_moves_path: PathVec,
@@ -70,6 +71,7 @@ impl<'a> Enemy<'a> {
                     size: Size { width: 55.0, height: 60.0 },
                     image: "assets/game/regular-enemy.png",
                     flip,
+                    movement_value: 10.0,
                     last_move_time: Instant::now(),
                     move_interval: DEFAULT_MOVE_INTERVAL,
                     original_moves_path: path,
@@ -132,13 +134,13 @@ impl<'a> Enemy<'a> {
         self.start_position = _new_start_position;
     }
     
-    fn move_enemy_in_path(&mut self, move_interval: Option<Duration>, speed: Option<f32>) {
+    fn move_enemy_in_path(&mut self, move_interval: Option<Duration>) {
         if self.last_move_time.elapsed() >= self.move_interval {
             if let Some((moves_number, direction, wait_time)) = self.current_moves_path.first() {
                 if *moves_number > 0 {
                     self.moving_towards = *direction;
 
-                    self.move_character(*direction, speed);
+                    self.move_character(*direction, self.movement_value);
 
                     self.current_moves_path[0].0 -= 1;
                     self.moves_count += 1;
@@ -158,7 +160,7 @@ impl<'a> Enemy<'a> {
 
                     self.moves_count = 0;
 
-                    self.move_enemy_in_path(move_interval, speed);
+                    self.move_enemy_in_path(move_interval);
                 }
 
                 self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
@@ -168,10 +170,10 @@ impl<'a> Enemy<'a> {
     }
 
     // TODO: change speed to value/val speed is not a good name,and put it in Enemy and Player structs as a field
-    pub fn get_movement_possibilities_from_near_objects(&self, end: &Position, speed: f32, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
+    pub fn get_movement_grid_from_near_objects(&self, end: &Position, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
         let (grid_start_position, grid_size) = if self.position.y == end.y {
             let (distance, edge_length, is_larger) = if self.position.x > end.x {
-                let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, speed);
+                let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
 
                 if right_sum < 50.0 {
                     (self.position.x - end.x, 50.0, 1.0)
@@ -179,7 +181,7 @@ impl<'a> Enemy<'a> {
                     (self.position.x - end.x, right_sum, 1.0)
                 }
             } else {
-                let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, speed);
+                let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, self.movement_value);
 
                 if left_sum < 50.0 {
                     (end.x - self.position.x, 50.0, 0.0)
@@ -188,12 +190,12 @@ impl<'a> Enemy<'a> {
                 }
             };
 
-            let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, speed);
+            let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, self.movement_value);
             if up_length < 50.0 {
                 up_length = 50.0;
             }
 
-            let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, speed);
+            let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, self.movement_value);
             if down_length < 50.0 {
                 down_length = 50.0;
             }
@@ -201,7 +203,7 @@ impl<'a> Enemy<'a> {
             (Position { x: self.position.x - edge_length - (is_larger * distance), y: self.position.y - up_length }, Size { width: distance + (2.0 * edge_length), height: up_length + down_length })
         } else if self.position.x == end.x {
             let (distance, edge_length, is_larger) = if self.position.y > end.y {
-                let down_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Down, speed);
+                let down_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Down, self.movement_value);
 
                 if down_sum < 50.0 {
                     (self.position.y - end.y, 50.0, 1.0)
@@ -209,7 +211,7 @@ impl<'a> Enemy<'a> {
                     (self.position.y - end.y, down_sum, 1.0)
                 }
             } else {
-                let up_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Up, speed);
+                let up_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Up, self.movement_value);
 
                 if up_sum < 50.0 {
                     (end.y - self.position.y, 50.0, 0.0)
@@ -218,12 +220,12 @@ impl<'a> Enemy<'a> {
                 }
             };
 
-            let mut left_length = sum_direction_length_from_path(self.original_moves_path, Direction::Left, speed);
+            let mut left_length = sum_direction_length_from_path(self.original_moves_path, Direction::Left, self.movement_value);
             if left_length < 50.0 {
                 left_length = 50.0;
             }
 
-            let mut right_length = sum_direction_length_from_path(self.original_moves_path, Direction::Right, speed);
+            let mut right_length = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
             if right_length < 50.0 {
                 right_length = 50.0;
             }
@@ -232,7 +234,7 @@ impl<'a> Enemy<'a> {
             
         } else {
             let (distance_x, edge_length, is_larger) = if self.position.x > end.x {
-                let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, speed);
+                let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
 
                 if right_sum < 50.0 {
                     (self.position.x - end.x, 50.0, 1.0)
@@ -240,7 +242,7 @@ impl<'a> Enemy<'a> {
                     (self.position.x - end.x, right_sum, 1.0)
                 }
             } else {
-                let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, speed);
+                let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, self.movement_value);
 
                 if left_sum < 50.0 {
                     (end.x - self.position.x, 50.0, 1.0)
@@ -251,12 +253,12 @@ impl<'a> Enemy<'a> {
 
             let distance_y = absolute_f32(self.position.y - end.y);
 
-            let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, speed);
+            let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, self.movement_value);
             if up_length < 50.0 {
                 up_length = 50.0;
             }
 
-            let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, speed);
+            let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, self.movement_value);
             if down_length < 50.0 {
                 down_length = 50.0;
             }
@@ -264,8 +266,8 @@ impl<'a> Enemy<'a> {
             (Position { x: self.position.x - edge_length - (is_larger * distance_x), y: self.position.y - up_length - distance_y }, Size { width: distance_x + (2.0 * edge_length), height: up_length + down_length + (2.0 * distance_y) })
         };
 
-        let grid_rows = (grid_size.height / speed) as usize;
-        let grid_cols = (grid_size.width / speed) as usize;
+        let grid_rows = (grid_size.height / self.movement_value) as usize;
+        let grid_cols = (grid_size.width / self.movement_value) as usize;
 
         let mut grid = Vec::with_capacity(grid_rows);
 
@@ -273,7 +275,7 @@ impl<'a> Enemy<'a> {
             let mut col_vec = Vec::with_capacity(grid_cols);
 
             for col in 0..grid_cols {
-                let current_position = Position { x: grid_start_position.x + (col as f32 * speed), y: grid_start_position.y + (row as f32 * speed) };
+                let current_position = Position { x: grid_start_position.x + (col as f32 * self.movement_value), y: grid_start_position.y + (row as f32 * self.movement_value) };
 
                 let mut is_walkable = true;
 
@@ -297,6 +299,10 @@ impl<'a> Enemy<'a> {
                                     is_walkable = true;
     
                                     break;
+                                } else if current_position > object_poistion && current_position <= (object_poistion + object_size) {
+                                    is_walkable = false;
+
+                                    break;
                                 }
                             },
     
@@ -316,7 +322,7 @@ impl<'a> Enemy<'a> {
         grid
     }
 
-    pub fn find_optimal_path(&self, target_position: Position, speed: f32, grid: Vec<Vec<bool>>) -> Option<PathVec> {
+    pub fn find_optimal_path(&self, target_position: Position, grid: Vec<Vec<bool>>) -> Option<PathVec> {
         if self.position == target_position {
             return None;
         }
@@ -387,23 +393,23 @@ impl<'a> Enemy<'a> {
                 return Some(moves);
             }
 
-            for neighbor in current_position.get_neighbors(speed) {
+            for neighbor in current_position.get_neighbors(self.movement_value) {
                 // mabye remove position check
 
-                let neighbor_col = neighbor.x / speed;
-                let neighbor_row = neighbor.y / speed;
+                let neighbor_col = neighbor.x / self.movement_value;
+                let neighbor_row = neighbor.y / self.movement_value;
 
                 if neighbor_col >= 0.0 && neighbor_col < grid[0].len() as f32 &&
                    neighbor_row >= 0.0 && neighbor_row < grid.len() as f32 &&
                    grid[neighbor_row as usize][neighbor_col as usize] {
-                    let tentative_score = position_score[&current_position] + speed as i32; 
+                    let tentative_score = position_score[&current_position] + self.movement_value as i32; 
 
                     if tentative_score < *position_score.get(&neighbor).unwrap_or(&i32::MAX) {
                         came_from.insert(neighbor, Some(current_position));
                         position_score.insert(neighbor, tentative_score);
                         movements.push(PossibilityNode {
                             position: neighbor,
-                            priority_score: tentative_score + get_heuristic_score(&neighbor, &target_position, speed) as i32
+                            priority_score: tentative_score + get_heuristic_score(&neighbor, &target_position, self.movement_value) as i32
                         });
                     }
                 } 
@@ -413,7 +419,7 @@ impl<'a> Enemy<'a> {
         None
     }
 
-    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, speed: Option<f32>) {
+    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64) {
         match self.mode {
             EnemyMode::Regular => {
                 self.already_detected_player = false;
@@ -424,7 +430,7 @@ impl<'a> Enemy<'a> {
                     }
 
                     if self.position != self.start_position {
-                        self.current_moves_path = self.find_optimal_path(self.start_position, speed.unwrap_or(10.0), vec![vec![]]).unwrap_or(Vec::new());
+                        self.current_moves_path = self.find_optimal_path(self.start_position, vec![vec![]]).unwrap_or(Vec::new());
                     } else {
                         self.moves_count = 0;
 
@@ -434,7 +440,7 @@ impl<'a> Enemy<'a> {
                     }
                 }
 
-                self.move_enemy_in_path(None, speed);
+                self.move_enemy_in_path(None);
             },
 
             EnemyMode::Detecting => {
@@ -447,9 +453,9 @@ impl<'a> Enemy<'a> {
                             self.move_interval = Duration::from_millis(1500);
                         }
     
-                        self.current_moves_path = self.find_optimal_path(detect_player_position, speed.unwrap_or(10.0), vec![vec![]]).unwrap_or(Vec::new());
+                        self.current_moves_path = self.find_optimal_path(detect_player_position, vec![vec![]]).unwrap_or(Vec::new());
     
-                        self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))), speed);
+                        self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
                 } else {
                     if player.get_status() == &PlayerStatus::Detectit {
@@ -470,11 +476,11 @@ impl<'a> Enemy<'a> {
                             self.move_interval = DEFAULT_MOVE_INTERVAL;
                         }
     
-                        self.current_moves_path = self.get_searching_path(speed.unwrap_or(10.0) as u32);
-                    } else if self.position == (Position { x: start_searching_position.x + ((50.0 / speed.unwrap_or(10.0)) * speed.unwrap_or(10.0)), y: start_searching_position.y }) && !self.is_detecting_player(player) {
+                        self.current_moves_path = self.get_searching_path();
+                    } else if self.position == (Position { x: start_searching_position.x + ((50.0 / self.movement_value) * self.movement_value), y: start_searching_position.y }) && !self.is_detecting_player(player) {
                         self.mode = EnemyMode::Regular;
                     } else {
-                        self.move_enemy_in_path(None, speed);
+                        self.move_enemy_in_path(None);
                     }
                 } else {
                     self.mode = EnemyMode::Regular;
@@ -486,8 +492,8 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    fn get_searching_path(&self, speed: u32) -> PathVec {
-        let steps = 50 / speed;
+    fn get_searching_path(&self) -> PathVec {
+        let steps = 50 / self.movement_value as u32;
 
         vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
     } 
@@ -634,5 +640,9 @@ impl<'a> Enemy<'a> {
 
     pub fn get_mode(&mut self) -> &EnemyMode {
         &self.mode
+    }
+
+    pub fn set_movement_value(&mut self, new_value: f32) {
+        self.movement_value = new_value;
     }
 }

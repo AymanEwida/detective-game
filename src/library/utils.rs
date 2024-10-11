@@ -222,6 +222,6 @@ pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, ang
     (top_point, bottom_point, apex)
 }
 
-pub fn get_heuristic_score(a: &Position, b: &Position, speed: f32) -> f32 {
-    (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / speed
+pub fn get_heuristic_score(a: &Position, b: &Position, value: f32) -> f32 {
+    (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / value
 }

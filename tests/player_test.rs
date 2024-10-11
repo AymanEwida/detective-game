@@ -5,9 +5,8 @@ fn test_move_player_up() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
     let input_direction = Direction::Up;
-    let input_speed = None;
     
-    player.move_player(input_direction, input_speed);
+    player.move_player(input_direction);
 
     let expected_prev_position = Some(Position { x: 10.0, y: 10.0 });
     let expected_position = Position { x: 10.0, y: 0.0 };
@@ -21,10 +20,9 @@ fn test_move_player_down() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
     let input_direction = Direction::Down;
-    let input_speed = None;
     
-    player.move_player(input_direction, input_speed);
-    player.move_player(input_direction, input_speed);
+    player.move_player(input_direction);
+    player.move_player(input_direction);
 
     let expected_prev_position = Some(Position { x: 10.0, y: 20.0 });
     let expected_position = Position { x: 10.0, y: 30.0 };
@@ -38,9 +36,8 @@ fn test_move_player_left() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
     let input_direction = Direction::Left;
-    let input_speed = None;
     
-    player.move_player(input_direction, input_speed);
+    player.move_player(input_direction);
 
     let expected_prev_position = Some(Position { x: 10.0, y: 10.0 });
     let expected_position = Position { x: 0.0, y: 10.0 };
@@ -54,10 +51,9 @@ fn test_move_player_right() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
     let input_direction = Direction::Right;
-    let input_speed = None;
     
-    player.move_player(input_direction, input_speed);
-    player.move_player(input_direction, input_speed);
+    player.move_player(input_direction);
+    player.move_player(input_direction);
 
     let expected_prev_position = Some(Position { x: 20.0, y: 10.0 });
     let expected_position = Position { x: 30.0, y: 10.0 };
@@ -72,9 +68,8 @@ fn test_collide_and_move_player_to_prev_position() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
     let input_direction = Direction::Right;
-    let input_speed = None;
     
-    player.move_player(input_direction, input_speed);
+    player.move_player(input_direction);
     
     if player.collide(&wall) {
         player.move_to_prev_position();
@@ -102,7 +97,9 @@ fn test_move_player_to_new_position() {
 fn test_player_is_off_window_true_on_start_x_axis() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Left, Some(20.0));
+    player.set_movement_value(20.0);
+
+    player.move_player(Direction::Left);
 
     let actual = player.is_off_window(Size { width: 80.0, height: 60.0 });
     let expected = true;
@@ -114,7 +111,9 @@ fn test_player_is_off_window_true_on_start_x_axis() {
 fn test_player_is_off_window_true_on_end_x_axis() {
     let mut player = Player::new(Position { x: 70.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Right, Some(20.0));
+    player.set_movement_value(20.0);
+
+    player.move_player(Direction::Right);
 
     let actual = player.is_off_window(Size { width: 80.0, height: 60.0 });
     let expected = true;
@@ -126,7 +125,9 @@ fn test_player_is_off_window_true_on_end_x_axis() {
 fn test_player_is_off_window_true_on_start_y_axis() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Up, Some(20.0));
+    player.set_movement_value(20.0);
+
+    player.move_player(Direction::Up);
 
     let actual = player.is_off_window(Size { width: 80.0, height: 60.0 });
     let expected = true;
@@ -138,7 +139,9 @@ fn test_player_is_off_window_true_on_start_y_axis() {
 fn test_player_is_off_window_true_on_end_y_axis() {
     let mut player = Player::new(Position { x: 10.0, y: 50.0 }, false);
 
-    player.move_player(Direction::Down, Some(20.0));
+    player.set_movement_value(20.0);
+
+    player.move_player(Direction::Down);
 
     let actual = player.is_off_window(Size { width: 80.0, height: 60.0 });
     let expected = true;
@@ -150,8 +153,8 @@ fn test_player_is_off_window_true_on_end_y_axis() {
 fn test_player_is_off_window_false() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Right, None);
-    player.move_player(Direction::Up, None);
+    player.move_player(Direction::Right);
+    player.move_player(Direction::Up);
 
     let actual = player.is_off_window(Size { width: 80.0, height: 60.0 });
     let expected = false;
@@ -163,7 +166,7 @@ fn test_player_is_off_window_false() {
 fn test_player_is_off_border_true_on_start_x_axis() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Left, None);
+    player.move_player(Direction::Left);
 
     let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
     let expected = true;
@@ -175,7 +178,7 @@ fn test_player_is_off_border_true_on_start_x_axis() {
 fn test_player_is_off_border_true_on_end_x_axis() {
     let mut player = Player::new(Position { x: 20.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Right, None);
+    player.move_player(Direction::Right);
 
     let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
     let expected = true;
@@ -187,7 +190,7 @@ fn test_player_is_off_border_true_on_end_x_axis() {
 fn test_player_is_off_border_true_on_start_y_axis() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Up, None);
+    player.move_player(Direction::Up);
 
     let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
     let expected = true;
@@ -199,7 +202,7 @@ fn test_player_is_off_border_true_on_start_y_axis() {
 fn test_player_is_off_border_true_on_end_y_axis() {
     let mut player = Player::new(Position { x: 10.0, y: 20.0 }, false);
 
-    player.move_player(Direction::Down, None);
+    player.move_player(Direction::Down);
 
     let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
     let expected = true;
@@ -211,8 +214,8 @@ fn test_player_is_off_border_true_on_end_y_axis() {
 fn test_player_is_off_border_false() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
 
-    player.move_player(Direction::Right, None);
-    player.move_player(Direction::Down, None);
+    player.move_player(Direction::Right);
+    player.move_player(Direction::Down);
 
     let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
     let expected = false;

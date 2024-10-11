@@ -72,7 +72,7 @@ fn main() {
                             match action {
                                 Action::Press | Action::Repeat => {
                                     if simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Up, None);
+                                        player.move_player(Direction::Up);
                                     }
                                 },
                                 _ => ()
@@ -83,7 +83,7 @@ fn main() {
                             match action {
                                 Action::Press | Action::Repeat => {
                                     if simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Down, None);
+                                        player.move_player(Direction::Down);
                                     }
                                 },
                                 _ => ()
@@ -94,7 +94,7 @@ fn main() {
                             match action {
                                 Action::Press | Action::Repeat => {
                                     if simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Left, None);
+                                        player.move_player(Direction::Left);
                                     }
                                 },
                                 _ => ()
@@ -105,7 +105,7 @@ fn main() {
                             match action {
                                 Action::Press | Action::Repeat => {
                                     if simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Right, None);
+                                        player.move_player(Direction::Right);
                                     }
                                 },
                                 _ => ()

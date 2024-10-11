@@ -13,27 +13,25 @@ pub enum Direction {
 
 // TODO: rename speed to val or value it does not make any sense
 pub trait Character<'a>: GameObject<'a> {
-    fn move_character(&mut self, direction: Direction, speed: Option<f32>) {
+    fn move_character(&mut self, direction: Direction, value: f32) {
         let current_position = self.get_position();
         
-        let speed = speed.unwrap_or(10.0);
-
         match direction {
             Direction::Up => {
-                self.set_position(Position { x: current_position.x, y: current_position.y-speed });
+                self.set_position(Position { x: current_position.x, y: current_position.y - value });
             },
             Direction::Down => {
-                self.set_position(Position { x: current_position.x, y: current_position.y+speed });
+                self.set_position(Position { x: current_position.x, y: current_position.y + value });
             },
             Direction::Left => {
                 self.set_flip(false);
 
-                self.set_position(Position { x: current_position.x-speed, y: current_position.y });
+                self.set_position(Position { x: current_position.x - value, y: current_position.y });
             },
             Direction::Right => {
                 self.set_flip(true);
                 
-                self.set_position(Position { x: current_position.x+speed, y: current_position.y });
+                self.set_position(Position { x: current_position.x + value, y: current_position.y });
             }
         }
     }

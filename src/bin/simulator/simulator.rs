@@ -77,7 +77,7 @@ impl<'a> Simulator<'a> {
 
             enemy.draw(render)?;
             self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
-            enemy.move_enemy(player, self.notoriety_level, None);
+            enemy.move_enemy(player, self.notoriety_level);
         }
 
         player.draw(render)?;

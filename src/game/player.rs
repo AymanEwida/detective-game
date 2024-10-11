@@ -26,6 +26,7 @@ pub struct Player<'a> {
     size: Size,
     image: &'a str,
     flip: bool,
+    movement_value: f32,
     status: PlayerStatus
 }
 
@@ -37,6 +38,7 @@ impl Player<'_> {
             size: Size { width: 50.0, height: 60.0 },
             image: "assets/game/detective.png",
             flip,
+            movement_value: 10.0,
             status: PlayerStatus::NotHidden
         }
     }
@@ -69,10 +71,10 @@ impl<'a> Character<'a> for Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    pub fn move_player(&mut self, direction: Direction, speed: Option<f32>) {
+    pub fn move_player(&mut self, direction: Direction) {
         self.prev_position = Some(self.get_position());
 
-        self.move_character(direction, speed);
+        self.move_character(direction, self.movement_value);
     }
 
     pub fn move_to_prev_position(&mut self) {
@@ -117,5 +119,9 @@ impl<'a> Player<'a> {
 
     pub fn set_status(&mut self, new_status: PlayerStatus) {
         self.status = new_status;
+    }
+
+    pub fn set_movement_value(&mut self, new_value: f32) {
+        self.movement_value = new_value;
     }
 }
