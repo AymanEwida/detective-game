@@ -11,7 +11,6 @@ pub enum Direction {
     Right
 }
 
-// TODO: rename speed to val or value it does not make any sense
 pub trait Character<'a>: GameObject<'a> {
     fn move_character(&mut self, direction: Direction, value: f32) {
         let current_position = self.get_position();

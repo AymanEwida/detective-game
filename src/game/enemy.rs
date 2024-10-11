@@ -169,7 +169,6 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    // TODO: change speed to value/val speed is not a good name,and put it in Enemy and Player structs as a field
     pub fn get_movement_grid_from_near_objects(&self, end: &Position, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
         let (grid_start_position, grid_size) = if self.position.y == end.y {
             let (distance, edge_length, is_larger) = if self.position.x > end.x {
