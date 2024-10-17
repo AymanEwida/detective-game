@@ -169,84 +169,218 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    pub fn get_movement_grid_from_near_objects(&self, end: &Position, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
+    pub fn get_movement_grid_from_near_objects(&self, end: &Position, window_start_position: Position, window_size: Size, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
         let (grid_start_position, grid_size) = if self.position.y == end.y {
-            let (distance, edge_length, is_larger) = if self.position.x > end.x {
+            let (distance, edge_length_start_position, edge_length_end_position, is_larger) = if self.position.x > end.x {
                 let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
 
                 if right_sum < 50.0 {
-                    (self.position.x - end.x, 50.0, 1.0)
+                    let mut max_size_start_position = (window_start_position.x + window_size.width) - self.position.x;
+                    if max_size_start_position >= 50.0 {
+                        max_size_start_position = 50.0;
+                    }
+
+                    let mut max_size_end_position = end.x - window_start_position.x;
+                    if max_size_end_position >= 50.0 {
+                        max_size_end_position = 50.0;
+                    }
+
+                    (self.position.x - end.x, max_size_start_position, max_size_end_position, true)
                 } else {
-                    (self.position.x - end.x, right_sum, 1.0)
+                    let mut max_size_end_position = end.x - window_start_position.x;
+                    if max_size_end_position >= right_sum {
+                        max_size_end_position = right_sum;
+                    }
+
+                    (self.position.x - end.x, right_sum, max_size_end_position, true)
                 }
             } else {
                 let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, self.movement_value);
 
                 if left_sum < 50.0 {
-                    (end.x - self.position.x, 50.0, 0.0)
+                    let mut max_size_start_position = self.position.x - window_start_position.x;
+                    if max_size_start_position >= 50.0 {
+                        max_size_start_position = 50.0;
+                    }
+
+                    let mut max_size_end_position = (window_start_position.x + window_size.width) - end.x;
+                    if max_size_end_position >= 50.0 {
+                        max_size_end_position = 50.0;
+                    }
+
+                    (end.x - self.position.x, max_size_start_position, max_size_end_position, false)
                 } else {
-                    (end.x - self.position.x, left_sum, 0.0)
+                    let mut max_size_end_position = (window_start_position.x + window_size.width) - end.x;
+                    if max_size_end_position >= left_sum {
+                        max_size_end_position = left_sum;
+                    }
+
+                    (end.x - self.position.x, left_sum, max_size_end_position, false)
                 }
             };
 
             let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, self.movement_value);
             if up_length < 50.0 {
-                up_length = 50.0;
+                let max_distance = self.position.y - window_start_position.y;
+
+                if max_distance >= 50.0 {
+                    up_length = 50.0;
+                } else {
+                    up_length = max_distance;
+                }
             }
 
             let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, self.movement_value);
             if down_length < 50.0 {
-                down_length = 50.0;
+                let max_distance = (window_start_position.y + window_size.height) - self.position.y;
+
+                if max_distance >= 50.0 {
+                    down_length = 50.0;
+                } else {
+                    down_length = max_distance;
+                }
             }
 
-            (Position { x: self.position.x - edge_length - (is_larger * distance), y: self.position.y - up_length }, Size { width: distance + (2.0 * edge_length), height: up_length + down_length })
+            let start_position_x; 
+            if is_larger {
+                start_position_x = self.position.x - edge_length_end_position - distance;
+            } else {
+                start_position_x = self.position.x - edge_length_start_position;
+            }
+
+            let mut start_position_y = self.position.y - up_length;
+            if start_position_y < window_start_position.y {
+                start_position_y = window_start_position.y;
+            }
+            
+            (Position { x: start_position_x, y: start_position_y }, Size { width: distance + edge_length_start_position + edge_length_end_position, height: up_length + down_length })
         } else if self.position.x == end.x {
-            let (distance, edge_length, is_larger) = if self.position.y > end.y {
+            let (distance, edge_length_start_position, edge_length_end_position, is_larger) = if self.position.y > end.y {
                 let down_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Down, self.movement_value);
 
                 if down_sum < 50.0 {
-                    (self.position.y - end.y, 50.0, 1.0)
+                    let mut max_size_start_position = (window_start_position.y + window_size.height) - self.position.y;
+                    if max_size_start_position >= 50.0 {
+                        max_size_start_position = 50.0;
+                    }
+
+                    let mut max_size_end_position = end.y - window_start_position.y;
+                    if max_size_end_position >= 50.0 {
+                        max_size_end_position = 50.0;
+                    }
+
+                    (self.position.y - end.y, max_size_start_position, max_size_end_position, true)
                 } else {
-                    (self.position.y - end.y, down_sum, 1.0)
+                    let mut max_size_end_position = end.y - window_start_position.y;
+                    if max_size_end_position >= down_sum {
+                        max_size_end_position = down_sum;
+                    }
+
+                    (self.position.y - end.y, down_sum, max_size_end_position, true)
                 }
             } else {
                 let up_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Up, self.movement_value);
-
+                
                 if up_sum < 50.0 {
-                    (end.y - self.position.y, 50.0, 0.0)
+                    let mut max_size_start_position = self.position.y - window_start_position.y;
+                    if max_size_start_position >= 50.0 {
+                        max_size_start_position = 50.0;
+                    }
+
+                    let mut max_size_end_position = (window_start_position.y + window_size.height) - end.y;
+                    if max_size_end_position >= 50.0 {
+                        max_size_end_position = 50.0;
+                    }
+
+                    (end.y - self.position.y, max_size_start_position, max_size_end_position, false)
                 } else {
-                    (end.y - self.position.y, up_sum, 0.0)
+                    let mut max_size_end_position = (window_start_position.y + window_size.height) - end.y;
+                    if max_size_end_position >= up_sum {
+                        max_size_end_position = up_sum;
+                    }
+
+                    (end.y - self.position.y, up_sum, max_size_end_position, false)
                 }
             };
 
             let mut left_length = sum_direction_length_from_path(self.original_moves_path, Direction::Left, self.movement_value);
             if left_length < 50.0 {
-                left_length = 50.0;
+                let max_distance = self.position.x - window_start_position.x;
+
+                if max_distance >= 50.0 {
+                    left_length = 50.0;
+                } else {
+                    left_length = max_distance;
+                }
             }
 
             let mut right_length = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
             if right_length < 50.0 {
-                right_length = 50.0;
+                let max_distance = (window_start_position.x + window_size.width) - self.position.x;
+
+                if max_distance >= 50.0 {
+                    right_length = 50.0;
+                } else {
+                    right_length = max_distance;
+                }
             }
 
-            (Position { x: self.position.x - left_length, y: self.position.y - edge_length - (is_larger * distance) }, Size { width: left_length + right_length, height: distance + (2.0 * edge_length) })
-            
+            let start_position_x = self.position.x - left_length; 
+
+            let start_position_y;
+            if is_larger {
+                start_position_y = self.position.y - edge_length_end_position - distance;
+            } else {
+                start_position_y = self.position.y - edge_length_start_position;
+            }
+
+            (Position { x: start_position_x, y: start_position_y }, Size { width: left_length + right_length, height: distance + edge_length_end_position + edge_length_start_position })
         } else {
-            let (distance_x, edge_length, is_larger) = if self.position.x > end.x {
+            let (distance_x, edge_length_start_position, edge_length_end_position, is_larger) = if self.position.x > end.x {
                 let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
 
                 if right_sum < 50.0 {
-                    (self.position.x - end.x, 50.0, 1.0)
+                    let mut max_size_start_position = (window_start_position.x + window_size.width) - self.position.x;
+                    if max_size_start_position >= 50.0 {
+                        max_size_start_position = 50.0;
+                    }
+
+                    let mut max_size_end_position = end.x - window_start_position.x;
+                    if max_size_end_position >= 50.0 {
+                        max_size_end_position = 50.0;
+                    }
+
+                    (self.position.x - end.x, max_size_start_position, max_size_end_position, true)
                 } else {
-                    (self.position.x - end.x, right_sum, 1.0)
+                    let mut max_size_end_position = end.x - window_start_position.x;
+                    if max_size_end_position >= right_sum {
+                        max_size_end_position = right_sum;
+                    }
+
+                    (self.position.x - end.x, right_sum, max_size_end_position, true)
                 }
             } else {
                 let left_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Left, self.movement_value);
 
                 if left_sum < 50.0 {
-                    (end.x - self.position.x, 50.0, 1.0)
+                    let mut max_size_start_position = self.position.x - window_start_position.x;
+                    if max_size_start_position >= 50.0 {
+                        max_size_start_position = 50.0;
+                    }
+
+                    let mut max_size_end_position = (window_start_position.x + window_size.width) - end.x;
+                    if max_size_end_position >= 50.0 {
+                        max_size_end_position = 50.0;
+                    }
+
+                    (end.x - self.position.x, max_size_start_position, max_size_end_position, false)
                 } else {
-                    (end.x - self.position.x, left_sum, 1.0)
+                    let mut max_size_end_position = (window_start_position.x + window_size.width) - end.x;
+                    if max_size_end_position >= left_sum {
+                        max_size_end_position = left_sum;
+                    }
+
+                    (end.x - self.position.x, left_sum, max_size_end_position, false)
                 }
             };
 
@@ -254,15 +388,53 @@ impl<'a> Enemy<'a> {
 
             let mut up_length = sum_direction_length_from_path(self.original_moves_path, Direction::Up, self.movement_value);
             if up_length < 50.0 {
-                up_length = 50.0;
+                let max_distance = self.position.y - window_start_position.y;
+
+                if max_distance >= 50.0 {
+                    up_length = 50.0;
+                } else {
+                    up_length = max_distance;
+                }
             }
 
             let mut down_length = sum_direction_length_from_path(self.original_moves_path, Direction::Down, self.movement_value);
             if down_length < 50.0 {
-                down_length = 50.0;
+                let max_distance = (window_start_position.y + window_size.height) - self.position.y;
+
+                if max_distance >= 50.0 {
+                    down_length = 50.0;
+                } else {
+                    down_length = max_distance;
+                }
             }
 
-            (Position { x: self.position.x - edge_length - (is_larger * distance_x), y: self.position.y - up_length - distance_y }, Size { width: distance_x + (2.0 * edge_length), height: up_length + down_length + (2.0 * distance_y) })
+            let start_position_x; 
+            if is_larger {
+                start_position_x = self.position.x - edge_length_end_position - distance_x;
+            } else {
+                start_position_x = self.position.x - edge_length_start_position;
+            }
+
+            let mut start_position_y = self.position.y - up_length - distance_y;
+            if start_position_y < window_start_position.y {
+                start_position_y = window_start_position.y;
+            }
+
+            let mut up_distance = self.position.y - (up_length + distance_y);
+            if up_distance < window_start_position.y {
+                up_distance = self.position.y - window_start_position.y;
+            } else {
+                up_distance = up_length + distance_y;
+            }
+
+            let mut down_distance = self.position.y + (down_length + distance_y);
+            if (window_start_position.y + window_size.height) < down_distance {
+                down_distance = (window_start_position.y + window_size.height) - self.position.y;
+            } else {
+                down_distance = down_length + distance_y;
+            }
+
+            (Position { x: start_position_x, y: start_position_y }, Size { width: distance_x + edge_length_end_position + edge_length_start_position, height: up_distance + down_distance })
         };
 
         let grid_rows = (grid_size.height / self.movement_value) as usize;
@@ -283,13 +455,28 @@ impl<'a> Enemy<'a> {
                     
                     if object_poistion >= grid_start_position && object_poistion <= (grid_start_position + grid_size) {
                         let object_size = object.get_size();
+                        let object_max_position = object_poistion + object_size;
 
                         match object.get_type() {
                             ObjectType::Wall => {
-                                if current_position >= object_poistion && current_position <= (object_poistion + object_size) {
+                                if (current_position.x >= object_poistion.x && current_position.y >= object_poistion.y) && (current_position.x < object_max_position.x && current_position.y < object_max_position.y) {
                                     is_walkable = false;
         
                                     break;
+                                } else if current_position.x < object_poistion.x {
+                                    if object_poistion.x - current_position.x < self.size.width {
+                                        is_walkable = false;
+
+                                        break;
+                                    }
+                                } else if current_position.x >= object_poistion.x && current_position.x < object_max_position.x {
+                                    if current_position.y < object_poistion.y {
+                                        if object_poistion.y - current_position.y < self.size.height {
+                                            is_walkable = false;
+
+                                            break;
+                                        }
+                                    }
                                 }
                             },
     
@@ -298,7 +485,7 @@ impl<'a> Enemy<'a> {
                                     is_walkable = true;
     
                                     break;
-                                } else if current_position > object_poistion && current_position <= (object_poistion + object_size) {
+                                } else if (current_position.x >= object_poistion.x && current_position.y >= object_poistion.y) && (current_position.x <= object_max_position.x && current_position.y <= object_max_position.y) {
                                     is_walkable = false;
 
                                     break;
