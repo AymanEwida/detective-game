@@ -6,7 +6,7 @@ fn test_find_optimal_path_same_positions() {
     
     let input_target_position = Position { x: 10.0, y: 10.0 };
     let input_grid = vec![vec![]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = None; 
 
     assert_eq!(actual, expected);
@@ -18,7 +18,7 @@ fn test_find_optimal_path_same_xs_without_obstacles() {
     
     let input_target_position = Position { x: 10.0, y: 40.0 };
     let input_grid = vec![vec![true, true, true],  vec![true, true, true], vec![true, true, true], vec![true, true, true], vec![true, true, true]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = Some(vec![(3, Direction::Down, 0)]); 
 
     assert_eq!(actual, expected);
@@ -30,7 +30,7 @@ fn test_find_optimal_path_same_xs_with_obstacles() {
     
     let input_target_position = Position { x: 10.0, y: 40.0 };
     let input_grid = vec![vec![true, true, true],  vec![false, true, true], vec![true, false, true], vec![true, false, true], vec![true, true, true]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = Some(vec![(1, Direction::Right, 0), (3, Direction::Down, 0), (1, Direction::Left, 0)]); 
 
     assert_eq!(actual, expected);
@@ -42,7 +42,7 @@ fn test_find_optimal_path_same_ys_without_obstacles() {
 
     let input_target_position = Position { x: 20.0, y: 30.0 };
     let input_grid = vec![vec![true, true, true],  vec![true, true, true], vec![true, true, true], vec![true, true, true], vec![true, true, true]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = Some(vec![(2, Direction::Right, 0)]); 
 
     assert_eq!(actual, expected);
@@ -54,7 +54,7 @@ fn test_find_optimal_path_same_ys_with_obstacles() {
     
     let input_target_position = Position { x: 20.0, y: 30.0 };
     let input_grid = vec![vec![true, true, true],  vec![false, true, true], vec![true, false, true], vec![true, false, true], vec![true, true, true]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = Some(vec![(1, Direction::Down, 0), (2, Direction::Right, 0), (1, Direction::Up, 0)]); 
 
     assert_eq!(actual, expected);
@@ -66,7 +66,7 @@ fn test_find_optimal_path_different_position_without_obstacles() {
 
     let input_target_position = Position { x: 10.0, y: 0.0 };
     let input_grid = vec![vec![true, true, true],  vec![true, true, true], vec![true, true, true], vec![true, true, true], vec![true, true, true]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = Some(vec![(4, Direction::Up, 0), (1, Direction::Right, 0)]); 
 
     assert_eq!(actual, expected);
@@ -78,7 +78,7 @@ fn test_find_optimal_path_different_position_with_obstacles() {
     
     let input_target_position = Position { x: 10.0, y: 0.0 };
     let input_grid = vec![vec![true, true, true],  vec![false, true, true], vec![true, false, true], vec![true, false, true], vec![true, true, true]];
-    let actual = enemy.find_optimal_path(input_target_position, input_grid);
+    let actual = enemy.find_optimal_path(input_target_position, Position { x: 0.0, y: 0.0 }, input_grid);
     let expected = Some(vec![(2, Direction::Right, 0), (4, Direction::Up, 0), (1, Direction::Left, 0)]); 
 
     assert_eq!(actual, expected);
@@ -93,7 +93,7 @@ fn test_get_movement_grid_from_near_objects_same_ys_left() {
     let input_window_start_position = Position { x: 0.0, y: 0.0 };
     let input_window_size = Size { width: 100.0, height: 80.0 };
     let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
-    let expected = vec![
+    let expected = (Position { x: 0.0, y: 0.0 }, vec![
         vec![false, false, false, false, false, false, false, true, true, true],
         vec![false, false, false, false, false, false, false, true, true, true],
         vec![false, false, false, false, false, false, false, true, true, true],
@@ -101,7 +101,7 @@ fn test_get_movement_grid_from_near_objects_same_ys_left() {
         vec![false, false, false, false, false, false, false, true, true, true],
         vec![false, false, false, false, false, false, false, true, true, true],
         vec![false, false, false, false, false, false, false, true, true, true],
-    ]; 
+    ]); 
 
     assert_eq!(actual, expected);
 }
@@ -115,7 +115,7 @@ fn test_get_movement_grid_from_near_objects_same_ys_right() {
     let input_window_start_position = Position { x: 0.0, y: 0.0 };
     let input_window_size = Size { width: 100.0, height: 80.0 };
     let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
-    let expected = vec![
+    let expected = (Position{ x: 0.0, y: 0.0 }, vec![
         vec![false, false, false, false, true, true, true, true, true, true],
         vec![false, false, false, false, true, true, true, true, true, true],
         vec![false, false, false, false, true, true, true, true, true, true],
@@ -123,7 +123,7 @@ fn test_get_movement_grid_from_near_objects_same_ys_right() {
         vec![false, false, false, false, true, true, true, true, true, true],
         vec![false, false, false, false, true, true, true, true, true, true],
         vec![false, false, false, false, true, true, true, true, true, true],
-    ]; 
+    ]); 
 
     assert_eq!(actual, expected);
 }
@@ -137,7 +137,7 @@ fn test_get_movement_grid_from_near_objects_same_xs_up() {
     let input_window_start_position = Position { x: 0.0, y: 0.0 };
     let input_window_size = Size { width: 100.0, height: 80.0 };
     let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
-    let expected = vec![
+    let expected = (Position { x: 0.0, y: 0.0 }, vec![
         vec![false, false, false, false, false, false, false, true, true],
         vec![false, false, false, false, false, false, false, true, true],
         vec![false, false, false, false, false, false, false, true, true],
@@ -146,7 +146,7 @@ fn test_get_movement_grid_from_near_objects_same_xs_up() {
         vec![false, false, true, true, true, true, true, true, true],
         vec![false, false, true, true, true, true, true, true, true],
         vec![false, false, true, true, true, true, true, true, true],
-    ]; 
+    ]); 
 
     assert_eq!(actual, expected);
 }
@@ -160,7 +160,7 @@ fn test_get_movement_grid_from_near_objects_same_xs_down() {
     let input_window_start_position = Position { x: 0.0, y: 0.0 };
     let input_window_size = Size { width: 100.0, height: 80.0 };
     let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
-    let expected = vec![
+    let expected = (Position { x: 0.0, y: 0.0 }, vec![
         vec![false, false, true, true, true, true, true, true, true, true],
         vec![false, false, true, true, true, true, true, true, true, true],
         vec![false, false, true, true, true, true, true, true, true, true],
@@ -169,7 +169,7 @@ fn test_get_movement_grid_from_near_objects_same_xs_down() {
         vec![false, false, true, true, true, true, true, true, true, true],
         vec![false, false, true, true, true, true, true, true, true, true],
         vec![false, false, true, true, true, true, true, true, true, true],
-    ]; 
+    ]); 
 
     assert_eq!(actual, expected);
 }
