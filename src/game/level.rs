@@ -1,6 +1,6 @@
 use crate::{game::{enemy::EnemyType, player::PlayerStatus}, library::utils::get_level_challenges, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{camera::Camera, character::Character, enemy::Enemy, player::Player};
+use super::{camera::Camera, character::Character, enemy::Enemy, player::Player, wall::Wall};
 
 pub const DEFAULT_SIZE: f32 = 30.0;
 pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
@@ -107,6 +107,7 @@ impl<'a> GameObject<'a> for ObjectLevel<'a> {
     }
 }
 
+// TODO: remove ObjectLevel struct and add Wall, Door, HidePlace, ... instead, also provide move_enemy func a slice of wall and doors only
 #[derive(Debug)]
 pub struct GameLevel<'a> {
     border_top_left: Position,
@@ -216,7 +217,7 @@ impl<'a> GameLevel<'a> {
         for enemy in self.enemies.iter_mut() {
             enemy.draw(render)?;
             self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
-            enemy.move_enemy(player, self.notoriety_level);
+            enemy.move_enemy(player, self.notoriety_level, self.border_top_left, self.border_size, &[Wall::new(Position { x: 10.0, y: 10.0 }, Size { width: DEFAULT_SIZE, height: 100.0 }, None, None)]);
         }
 
         player.draw(render)?;

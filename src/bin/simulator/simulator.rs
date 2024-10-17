@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType, DEFAULT_SIZE, DEFAULT_SIZE_FOR_HIDE_PLACE}, player::Player}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, door::Door, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType, DEFAULT_SIZE, DEFAULT_SIZE_FOR_HIDE_PLACE}, player::Player, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 pub enum SimulatorType {
     EnemyLogic,
@@ -14,6 +14,8 @@ pub enum SimulationStatus {
 
 pub struct Simulator<'a> {
     objects: Vec<ObjectLevel<'a>>,
+    walls: Vec<Wall<'a>>,
+    doors: Vec<Door<'a>>,
     enemies: Vec<Enemy<'a>>,
     cameras: Vec<Camera<'a>>,
     status: SimulationStatus,
@@ -24,6 +26,8 @@ impl Simulator<'_> {
     pub fn new() -> Self {
         Self {
             objects: Vec::new(),
+            walls: Vec::new(),
+            doors: Vec::new(),
             enemies: Vec::new(),
             cameras: Vec::new(),
             status: SimulationStatus::NotDetermine,
@@ -77,7 +81,18 @@ impl<'a> Simulator<'a> {
 
             enemy.draw(render)?;
             self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
-            enemy.move_enemy(player, self.notoriety_level);
+            
+            enemy.move_enemy(
+                player, 
+                self.notoriety_level,
+                Position { x: 0.0, y: 0.0 },
+                Size { width: 800.0, height: 600.0 }, 
+                &[
+                    Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
+                    Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
+                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None)
+                ]
+            );
         }
 
         player.draw(render)?;

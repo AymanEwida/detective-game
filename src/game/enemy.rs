@@ -169,7 +169,7 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    pub fn get_movement_grid_from_near_objects(&self, end: &Position, window_start_position: Position, window_size: Size, doors_and_walls: &[impl LevelObject<'a>]) -> Vec<Vec<bool>> {
+    pub fn get_movement_grid_from_near_objects(&self, end: &Position, window_start_position: Position, window_size: Size, doors_and_walls: &[impl LevelObject<'a>]) -> (Position, Vec<Vec<bool>>) {
         let (grid_start_position, grid_size) = if self.position.y == end.y {
             let (distance, edge_length_start_position, edge_length_end_position, is_larger) = if self.position.x > end.x {
                 let right_sum = sum_direction_length_from_path(self.original_moves_path, Direction::Right, self.movement_value);
@@ -505,10 +505,13 @@ impl<'a> Enemy<'a> {
             grid.push(col_vec);
         }
 
-        grid
+        (grid_start_position, grid)
     }
 
-    pub fn find_optimal_path(&self, target_position: Position, grid: Vec<Vec<bool>>) -> Option<PathVec> {
+    pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: Vec<Vec<bool>>) -> Option<PathVec> {
+        print!("grid: {:?}\n", grid);
+        // print!("current: {:?}, target: {:?}\n", self.position, target_position);
+
         if self.position == target_position {
             return None;
         }
@@ -527,7 +530,11 @@ impl<'a> Enemy<'a> {
         while let Some(current_movement) = movements.pop() {
             let current_position = current_movement.position;
 
+            print!("current_position now: {:?}\n", current_position);
+
             if current_position == target_position {
+                print!("here finish\n");
+                
                 let mut path = vec![current_position];
                 
                 let mut current = current_position;
@@ -538,6 +545,8 @@ impl<'a> Enemy<'a> {
                 }
 
                 path.reverse();
+
+                print!("path: {:?}\n", path);
 
                 let mut moves = Vec::new();
                 let mut last_direction = None;
@@ -576,18 +585,25 @@ impl<'a> Enemy<'a> {
                     }
                 }
 
+                print!("moves: {:?}\n", moves);
+
                 return Some(moves);
             }
 
+            // TODO: fix neighbor bug
             for neighbor in current_position.get_neighbors(self.movement_value) {
                 // mabye remove position check
 
-                let neighbor_col = neighbor.x / self.movement_value;
-                let neighbor_row = neighbor.y / self.movement_value;
+                let neighbor_col = (neighbor.x - grid_start_position.x) / self.movement_value;
+                let neighbor_row = (neighbor.y - grid_start_position.y) / self.movement_value;
 
+                // print!("neighbor: {:?}, row: {}, col: {}\n", neighbor, neighbor_row, neighbor_col);
+                
                 if neighbor_col >= 0.0 && neighbor_col < grid[0].len() as f32 &&
-                   neighbor_row >= 0.0 && neighbor_row < grid.len() as f32 &&
-                   grid[neighbor_row as usize][neighbor_col as usize] {
+                neighbor_row >= 0.0 && neighbor_row < grid.len() as f32 &&
+                grid[neighbor_row as usize][neighbor_col as usize] {
+                    // print!("grid, rows: {}, cols: {}, check_value: {}\n", grid.len(), grid[0].len(), grid[neighbor_row as usize][neighbor_col as usize]);
+
                     let tentative_score = position_score[&current_position] + self.movement_value as i32; 
 
                     if tentative_score < *position_score.get(&neighbor).unwrap_or(&i32::MAX) {
@@ -605,7 +621,7 @@ impl<'a> Enemy<'a> {
         None
     }
 
-    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64) {
+    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, doors_and_walls: &[impl LevelObject<'a>]) {
         match self.mode {
             EnemyMode::Regular => {
                 self.already_detected_player = false;
@@ -616,7 +632,8 @@ impl<'a> Enemy<'a> {
                     }
 
                     if self.position != self.start_position {
-                        self.current_moves_path = self.find_optimal_path(self.start_position, vec![vec![]]).unwrap_or(Vec::new());
+                        let (grid_start_position, grid) = self.get_movement_grid_from_near_objects(&self.start_position, window_start_position, window_size, doors_and_walls);
+                        self.current_moves_path = self.find_optimal_path(self.start_position, grid_start_position, grid).unwrap_or(Vec::new());
                     } else {
                         self.moves_count = 0;
 
@@ -639,8 +656,8 @@ impl<'a> Enemy<'a> {
                             self.move_interval = Duration::from_millis(1500);
                         }
     
-                        self.current_moves_path = self.find_optimal_path(detect_player_position, vec![vec![]]).unwrap_or(Vec::new());
-    
+                        let (grid_start_position, grid) = self.get_movement_grid_from_near_objects(&detect_player_position, window_start_position, window_size, doors_and_walls);
+                        self.current_moves_path = self.find_optimal_path(detect_player_position, grid_start_position, grid).unwrap_or(Vec::new());
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
                 } else {
