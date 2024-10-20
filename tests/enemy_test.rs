@@ -85,90 +85,47 @@ fn test_find_optimal_path_different_position_with_obstacles() {
 }
 
 #[test]
-fn test_get_movement_grid_from_near_objects_same_ys_left() {
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 20.0, y: 20.0 }, "2u/0 3d/0 1u/0", false);
+fn test_get_movement_grid_one_obstacles() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 0.0, y: 0.0 }, "2u/0 3d/0 1u/0", false);
     
-    let input_end_position = Position { x: 80.0, y: 20.0 };
-    let input_doors_and_walls = &[Wall::new(Position { x: 40.0, y: 10.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None)];
+    let input_doors = &[Wall::new(Position { x: 20.0, y: 10.0 }, Size { width: DEFAULT_SIZE, height: 50.0 }, None, None)];
     let input_window_start_position = Position { x: 0.0, y: 0.0 };
     let input_window_size = Size { width: 100.0, height: 80.0 };
-    let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
+    let actual = enemy.get_movement_grid(input_window_start_position, input_window_size, input_doors);
     let expected = (Position { x: 0.0, y: 0.0 }, vec![
-        vec![false, false, false, false, false, false, false, true, true, true],
-        vec![false, false, false, false, false, false, false, true, true, true],
-        vec![false, false, false, false, false, false, false, true, true, true],
-        vec![false, false, false, false, false, false, false, true, true, true],
-        vec![false, false, false, false, false, false, false, true, true, true],
-        vec![false, false, false, false, false, false, false, true, true, true],
-        vec![false, false, false, false, false, false, false, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![true, true, true, true, true, true, true, true, true, true],
+        vec![true, true, true, true, true, true, true, true, true, true],
     ]); 
 
     assert_eq!(actual, expected);
 }
 
 #[test]
-fn test_get_movement_grid_from_near_objects_same_ys_right() {
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 40.0, y: 20.0 }, "2u/0 3d/0 1u/0", false);
+fn test_get_movement_grid_two_obstacles() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 0.0, y: 0.0 }, "2u/0 3d/0 1u/0", false);
     
-    let input_end_position = Position { x: 50.0, y: 20.0 };
-    let input_doors_and_walls = &[Wall::new(Position { x: 10.0, y: 10.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None)];
+    let input_doors = &[
+        Wall::new(Position { x: 20.0, y: 10.0 }, Size { width: DEFAULT_SIZE, height: 50.0 }, None, None),
+        Wall::new(Position { x: 50.0, y: 10.0 }, Size { width: 40.0, height: DEFAULT_SIZE }, None, None)
+    ];
     let input_window_start_position = Position { x: 0.0, y: 0.0 };
     let input_window_size = Size { width: 100.0, height: 80.0 };
-    let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
-    let expected = (Position{ x: 0.0, y: 0.0 }, vec![
-        vec![false, false, false, false, true, true, true, true, true, true],
-        vec![false, false, false, false, true, true, true, true, true, true],
-        vec![false, false, false, false, true, true, true, true, true, true],
-        vec![false, false, false, false, true, true, true, true, true, true],
-        vec![false, false, false, false, true, true, true, true, true, true],
-        vec![false, false, false, false, true, true, true, true, true, true],
-        vec![false, false, false, false, true, true, true, true, true, true],
-    ]); 
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_get_movement_grid_from_near_objects_same_xs_up() {
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 40.0, y: 10.0 }, "2r/0 3l/0 1r/0", false);
-    
-    let input_end_position = Position { x: 40.0, y: 60.0 };
-    let input_doors_and_walls = &[Wall::new(Position { x: 20.0, y: 20.0 }, Size { width: 50.0, height: DEFAULT_SIZE }, None, None)];
-    let input_window_start_position = Position { x: 0.0, y: 0.0 };
-    let input_window_size = Size { width: 100.0, height: 80.0 };
-    let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
+    let actual = enemy.get_movement_grid(input_window_start_position, input_window_size, input_doors);
     let expected = (Position { x: 0.0, y: 0.0 }, vec![
-        vec![false, false, false, false, false, false, false, true, true],
-        vec![false, false, false, false, false, false, false, true, true],
-        vec![false, false, false, false, false, false, false, true, true],
-        vec![false, false, false, false, false, false, false, true, true],
-        vec![false, false, false, false, false, false, false, true, true],
-        vec![false, false, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true],
-    ]); 
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_get_movement_grid_from_near_objects_same_xs_down() {
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 50.0, y: 70.0 }, "2u/0 3d/0 1u/0", false);
-    
-    let input_end_position = Position { x: 50.0, y: 10.0 };
-    let input_doors_and_walls = &[Wall::new(Position { x: 0.0, y: 10.0 }, Size { width: 20.0, height: 70.0 }, None, None)];
-    let input_window_start_position = Position { x: 0.0, y: 0.0 };
-    let input_window_size = Size { width: 100.0, height: 80.0 };
-    let actual = enemy.get_movement_grid_from_near_objects(&input_end_position, input_window_start_position, input_window_size, input_doors_and_walls);
-    let expected = (Position { x: 0.0, y: 0.0 }, vec![
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
-        vec![false, false, true, true, true, true, true, true, true, true],
+        vec![false, false, false, false, false, false, false, false, false, true],
+        vec![false, false, false, false, false, false, false, false, false, true],
+        vec![false, false, false, false, false, false, false, false, false, true],
+        vec![false, false, false, false, false, false, false, false, false, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![false, false, false, false, false, true, true, true, true, true],
+        vec![true, true, true, true, true, true, true, true, true, true],
+        vec![true, true, true, true, true, true, true, true, true, true],
     ]); 
 
     assert_eq!(actual, expected);

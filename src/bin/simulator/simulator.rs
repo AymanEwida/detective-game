@@ -86,12 +86,13 @@ impl<'a> Simulator<'a> {
                 player, 
                 self.notoriety_level,
                 Position { x: 0.0, y: 0.0 },
-                Size { width: 800.0, height: 600.0 }, 
-                &[
+                render.get_size(),  
+                vec![
                     Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
+                    Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
                     Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
-                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None)
-                ]
+                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 190.0, height: DEFAULT_SIZE }, None, None)
+                ],
             );
         }
 
@@ -107,11 +108,24 @@ impl<'a> Simulator<'a> {
             SimulatorType::EnemyLogic => {
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/0 15r/5500 6d/0 15l/3500", false));
 
-                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
                 // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None));
                 // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
+
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 120.0 }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, false, None, None));
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None));
+
+                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
+                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None));
+                self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
                 self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
+                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, false, None, None));
+                self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None));
                 
                 self.objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 302.0, y: 255.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
                 self.objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 375.0, y: 200.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
