@@ -40,6 +40,7 @@ pub enum EnemyMode {
 pub struct Enemy<'a> {
     start_position: Position,
     position: Position,
+    prev_position: Option<Position>,
     size: Size,
     image: &'a str,
     flip: bool,
@@ -68,6 +69,7 @@ impl<'a> Enemy<'a> {
                 Self {
                     start_position: start_position,
                     position: start_position,
+                    prev_position: None,
                     size: Size { width: 55.0, height: 60.0 },
                     image: "assets/game/regular-enemy.png",
                     flip,
@@ -100,8 +102,7 @@ impl<'a> GameObject<'a> for Enemy<'a> {
         render.draw_line(apex, second_point, Color::Red, None, None, None);
         render.draw_line(first_point, second_point, Color::Red, None, None, None); 
 
-        // render.draw_line(position { x: self.start_position.x + 27.5, y: self.start_position.y }, position { x: self.start_position.x + 27.5, y: self.start_position.y + 50.0 + (3.0 * self.size.height / 5.0) }, color::blue, none, none, none);
-        // render.draw_line(Position { x: self.start_position.x + 27.5, y: self.start_position.y + 50.0 + (3.0 * self.size.height / 5.0) }, Position { x: self.start_position.x + 50.0 + self.size.width, y: self.start_position.y + 50.0 + (3.0 * self.size.height / 5.0) }, Color::Blue, None, None, None);
+        // TODO: add logic to draw enemy original path with draw_line func from render
 
         Ok(())
     }
@@ -133,13 +134,18 @@ impl<'a> Enemy<'a> {
     pub fn _set_start_position(&mut self, _new_start_position: Position) {
         self.start_position = _new_start_position;
     }
-    
+
+    pub fn _set_prev_position(&mut self) {
+        self.prev_position = Some(self.position)
+    }
+
     fn move_enemy_in_path(&mut self, move_interval: Option<Duration>) {
         if self.last_move_time.elapsed() >= self.move_interval {
             if let Some((moves_number, direction, wait_time)) = self.current_moves_path.first() {
                 if *moves_number > 0 {
                     self.moving_towards = *direction;
 
+                    self.prev_position = Some(self.position);
                     self.move_character(*direction, self.movement_value);
 
                     self.current_moves_path[0].0 -= 1;
@@ -166,6 +172,12 @@ impl<'a> Enemy<'a> {
                 self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
                 self.last_move_time = Instant::now();
             }
+        }
+    }
+
+    pub fn move_to_prev_position(&mut self) {
+        if let Some(prev_position) = self.prev_position {
+            self.position = prev_position;
         }
     }
 
@@ -545,7 +557,31 @@ impl<'a> Enemy<'a> {
         &self.mode
     }
 
+    pub fn get_movement_value(&self) -> f32 {
+        self.movement_value
+    }
+
     pub fn set_movement_value(&mut self, new_value: f32) {
         self.movement_value = new_value;
+    }
+
+    pub fn is_off_window(&self, window_size: Size) -> bool {
+        self.position.x > window_size.width ||
+        (self.position.x + self.size.width) > window_size.width ||
+        self.position.x < 0.0 ||
+        self.position.y > window_size.height ||
+        (self.position.y + self.size.height) > window_size.height ||
+        self.position.y < 0.0
+    }
+
+    pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
+        let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
+
+        self.position.x > (start_position.x + size.width) ||
+        (self.position.x + self.size.width) > (start_position.x + size.width) ||
+        self.position.x < start_position.x ||
+        self.position.y > (start_position.y + size.height) ||
+        (self.position.y + self.size.height) > (start_position.y + size.height) ||
+        self.position.y < start_position.y
     }
 }

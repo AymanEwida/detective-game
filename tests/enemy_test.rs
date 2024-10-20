@@ -1,4 +1,4 @@
-use detective_game::{game::{character::Direction, enemy::*, level::DEFAULT_SIZE, wall::Wall}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::{Character, Direction}, enemy::*, level::{GameObject, DEFAULT_SIZE}, wall::Wall}, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_find_optimal_path_same_positions() {
@@ -127,6 +127,156 @@ fn test_get_movement_grid_two_obstacles() {
         vec![true, true, true, true, true, true, true, true, true, true],
         vec![true, true, true, true, true, true, true, true, true, true],
     ]); 
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_collide_and_move_enemy_to_prev_position() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    let wall = Wall::new(Position { x: 60.0, y: 10.0 }, Size { width: 50.0, height: 60.0 }, None, None);
+
+    let input_direction = Direction::Right;
+    
+    enemy._set_prev_position();
+    enemy.move_character(input_direction, enemy.get_movement_value());
+    
+    if enemy.collide(&wall) {
+        enemy.move_to_prev_position();
+    }
+
+    let expected_position = Position { x: 10.0, y: 10.0 };
+
+    assert_eq!(enemy.get_position(), expected_position);
+}
+
+#[test]
+fn test_enemy_is_off_window_true_on_start_x_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.set_movement_value(20.0);
+
+    enemy.move_character(Direction::Left, enemy.get_movement_value());
+
+    let actual = enemy.is_off_window(Size { width: 80.0, height: 60.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_window_true_on_end_x_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 70.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.set_movement_value(20.0);
+
+    enemy.move_character(Direction::Right, enemy.get_movement_value());
+
+    let actual = enemy.is_off_window(Size { width: 80.0, height: 60.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_window_true_on_start_y_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.set_movement_value(20.0);
+
+    enemy.move_character(Direction::Up, enemy.get_movement_value());
+
+    let actual = enemy.is_off_window(Size { width: 80.0, height: 60.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_window_true_on_end_y_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 50.0 }, "1u/0 1d/0", false);
+
+    enemy.set_movement_value(20.0);
+
+    enemy.move_character(Direction::Down, enemy.get_movement_value());
+
+    let actual = enemy.is_off_window(Size { width: 80.0, height: 60.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_window_false() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.move_character(Direction::Right, enemy.get_movement_value());
+    enemy.move_character(Direction::Up, enemy.get_movement_value());
+
+    let actual = enemy.is_off_window(Size { width: 80.0, height: 60.0 });
+    let expected = false;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_border_true_on_start_x_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.move_character(Direction::Left, enemy.get_movement_value());
+
+    let actual = enemy.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_border_true_on_end_x_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 20.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.move_character(Direction::Right, enemy.get_movement_value());
+
+    let actual = enemy.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_border_true_on_start_y_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.move_character(Direction::Up, enemy.get_movement_value());
+
+    let actual = enemy.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_border_true_on_end_y_axis() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 20.0 }, "1u/0 1d/0", false);
+
+    enemy.move_character(Direction::Down, enemy.get_movement_value());
+
+    let actual = enemy.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_enemy_is_off_border_false() {
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1u/0 1d/0", false);
+
+    enemy.move_character(Direction::Right, enemy.get_movement_value());
+    enemy.move_character(Direction::Down, enemy.get_movement_value());
+
+    let actual = enemy.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
+    let expected = false;
 
     assert_eq!(actual, expected);
 }

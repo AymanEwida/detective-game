@@ -183,9 +183,11 @@ impl<'a> GameLevel<'a> {
         }
 
         for level_object in self.level_objects.iter_mut() {
+            let collided_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.collide(level_object)).collect();
+
             match level_object.get_type() {
                 ObjectLevelType::RegularDoor => {
-                    if player.collide(level_object) {
+                    if player.collide(level_object) || collided_enemies.len() > 0 {
                         level_object.open_door();
                     } else {
                         level_object.close_door();
@@ -204,6 +206,12 @@ impl<'a> GameLevel<'a> {
                     if player.collide(level_object) {
                         player.move_to_prev_position();
                     }
+
+                    if collided_enemies.len() > 0 {
+                        for collided_enemy in collided_enemies {
+                            collided_enemy.move_to_prev_position();
+                        }
+                    }
                 }
             }
 
@@ -215,9 +223,32 @@ impl<'a> GameLevel<'a> {
         }
 
         for enemy in self.enemies.iter_mut() {
+            if enemy.is_off_window(render.get_size())
+                || enemy.is_off_border(
+                Some(self.border_top_left + DEFAULT_SIZE),
+                Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) }
+            ) {
+                enemy.move_to_prev_position();
+            }
+
+            // TDOD: handle lose, win situation in level
+            // if enemy.collide_with_player(&player) {
+            //     self.status = LevelStatus::Lose;
+
+            //     render.display_text("Lost", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text");
+            // } else {
+            //     render.display_text("Still playing", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text");
+            // }
+
             enemy.draw(render)?;
             self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
-            enemy.move_enemy(player, self.notoriety_level, self.border_top_left, self.border_size, vec![]);
+            enemy.move_enemy(
+                player, 
+                self.notoriety_level, 
+                self.border_top_left + DEFAULT_SIZE, 
+                Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
+                vec![]
+            );
         }
 
         player.draw(render)?;
