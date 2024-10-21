@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, door::Door, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType, DEFAULT_SIZE, DEFAULT_SIZE_FOR_HIDE_PLACE}, player::Player, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType, DEFAULT_SIZE, DEFAULT_SIZE_FOR_HIDE_PLACE}, player::Player, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 pub enum SimulatorType {
     EnemyLogic,
@@ -92,7 +92,20 @@ impl<'a> Simulator<'a> {
             }
 
             enemy.draw(render)?;
-            self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
+            self.notoriety_level = enemy.detect_player(
+                self.notoriety_level,
+                player,
+                &[
+                    Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
+                    Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
+                    Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
+                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None)
+                ],
+                &[
+                    Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None).expect("unable to create a door"),
+                    Door::new(0, DoorType::Regular, Position { x: 430.0, y: 260.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None).expect("unable to create a door"),
+                ]
+            );
             
             enemy.move_enemy(
                 player, 
@@ -103,7 +116,7 @@ impl<'a> Simulator<'a> {
                     Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
                     Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
                     Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
-                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 190.0, height: DEFAULT_SIZE }, None, None)
+                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None)
                 ],
             );
         }
@@ -118,7 +131,7 @@ impl<'a> Simulator<'a> {
 
         match simulator_type {
             SimulatorType::EnemyLogic => {
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/0 15r/5500 6d/0 15l/3500", false));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
 
                 // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
                 // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None));

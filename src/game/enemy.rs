@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, In
 
 use crate::{library::utils::{calc_equidistant_points, convert_path, get_heuristic_score, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, level::GameObject, player::{Player, PlayerStatus}, wall::Wall};
+use super::{character::{Character, Direction}, door::Door, level::GameObject, player::{Player, PlayerStatus}, wall::Wall};
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -465,7 +465,9 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>) -> u64 {
+    // TODO: test and simulate the function when handling Door struct in simulation (and in level) and finish all remaing TODOs
+    // find a better way to handle doors
+    pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> u64 {
         if player.get_status() != &PlayerStatus::Hidden {
             let player_start = player.get_position();
             let player_size = player.get_size();
@@ -494,6 +496,46 @@ impl<'a> Enemy<'a> {
             }
 
             let (first_point, second_point, apex) = self.detect_traingle;
+
+            let mut is_able_to_see = true;
+
+            for wall in walls {
+                let wall_start = wall.get_position();
+                let wall_end = wall_start + wall.get_size();
+
+                let is_between_x_axis = ((self.position.x < wall_start.x && player_start.x >= wall_end.x) || (player_start.x < wall_start.x && self.position.x >= wall_end.x))
+                    && ((player_start.y >= wall_start.y && enemy_end.y <= wall_end.y) || (self.position.y >= wall_start.y && player_end.y <= wall_end.y));
+                
+                let is_between_y_axis = ((self.position.y < wall_start.y && player_start.y >= wall_end.y) || (player_start.y < wall_start.y && self.position.y >= wall_end.y))
+                    && ((player_start.x >= wall_start.x && enemy_end.x <= wall_end.x) || (self.position.x >= wall_start.x && player_end.y <= wall_end.x));
+                
+                if is_between_x_axis || is_between_y_axis {
+                    is_able_to_see = false;
+
+                    break;
+                }
+            }
+
+            for door in doors {
+                let door_start = door.get_position();
+                let door_end = door_start + door.get_size();
+
+                let is_between_x_axis = ((self.position.x < door_start.x && player_start.x >= door_end.x) || (player_start.x < door_start.x && self.position.x >= door_end.x))
+                    && ((player_start.y >= door_start.y && player_end.y <= door_end.y) && (self.position.y >= door_start.y && enemy_end.y <= door_end.y));
+
+                let is_between_y_axis = ((self.position.y < door_start.y && player_start.y >= door_end.y) || (player_start.y < door_start.y && self.position.y >= door_end.y))
+                    && ((player_start.x >= door_start.x && player_end.x <= door_end.x) && (self.position.x >= door_start.x && enemy_end.x <= door_end.x));
+                
+                if (is_between_x_axis || is_between_y_axis) && !door.is_closed() {
+                    is_able_to_see = false;
+
+                    break;
+                }
+            }
+
+            if !is_able_to_see {
+                return current_notoriety_level;
+            }
 
             let is_detected = match self.moving_towards {
                 Direction::Left => {

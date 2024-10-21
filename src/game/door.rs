@@ -88,6 +88,14 @@ impl Door<'_> {
 }
 
 impl Door<'_> {
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
+    pub fn get_opens_by_id(&self) -> Option<usize> {
+        self.opens_by
+    }
+
     pub fn open(&mut self) {
         if !self.is_locked {
             self.image = "assets/game/regular-open-door.png";
@@ -102,6 +110,14 @@ impl Door<'_> {
         if self.is_locked && self.opens_by.is_some() {
             self.is_locked = false;
         }
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.is_closed
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.is_locked
     }
 }
 
@@ -155,6 +171,20 @@ impl TeleportDoor<'_> {
             connected_to,
             player_move_position,
         }
+    }
+}
+
+impl TeleportDoor<'_> {
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
+    pub fn get_connected_door_id(&self) -> usize {
+        self.connected_to
+    }
+
+    pub fn get_player_move_position(&self) -> Position {
+        self.player_move_position
     }
 }
 

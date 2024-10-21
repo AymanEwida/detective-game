@@ -241,7 +241,7 @@ impl<'a> GameLevel<'a> {
             // }
 
             enemy.draw(render)?;
-            self.notoriety_level = enemy.detect_player(self.notoriety_level, player);
+            self.notoriety_level = enemy.detect_player(self.notoriety_level, player, &[], &[]);
             enemy.move_enemy(
                 player, 
                 self.notoriety_level, 
