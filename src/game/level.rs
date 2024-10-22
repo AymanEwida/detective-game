@@ -241,13 +241,14 @@ impl<'a> GameLevel<'a> {
             // }
 
             enemy.draw(render)?;
-            self.notoriety_level = enemy.detect_player(self.notoriety_level, player, &[], &[]);
-            enemy.move_enemy(
+
+            self.notoriety_level = enemy.move_enemy(
                 player, 
                 self.notoriety_level, 
                 self.border_top_left + DEFAULT_SIZE, 
                 Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
-                vec![]
+                &[],
+                &[]
             );
         }
 

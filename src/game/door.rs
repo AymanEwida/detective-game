@@ -22,6 +22,7 @@ pub struct Door<'a> {
     door_type: DoorType,
     position: Position,
     size: Size,
+    original_image: &'a str,
     image: &'a str,
     scale: Option<f32>,
     rotate: Option<f32>,
@@ -76,6 +77,7 @@ impl Door<'_> {
             door_type,
             position, 
             size, 
+            original_image: door_image_path,
             image: door_image_path,
             scale,
             rotate,
@@ -88,6 +90,10 @@ impl Door<'_> {
 }
 
 impl Door<'_> {
+    pub fn get_door_type(&self) -> &DoorType {
+        &self.door_type
+    }
+
     pub fn get_id(&self) -> usize {
         self.id
     }
@@ -98,12 +104,14 @@ impl Door<'_> {
 
     pub fn open(&mut self) {
         if !self.is_locked {
+            self.is_closed = false;
             self.image = "assets/game/regular-open-door.png";
         }
     }
 
     pub fn close(&mut self) {
-        self.image = "assets/game/regular-close-door.png";
+        self.is_closed = true;
+        self.image = self.original_image;
     }
 
     pub fn unlock(&mut self) {

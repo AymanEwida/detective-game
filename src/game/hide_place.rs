@@ -8,11 +8,12 @@ pub struct HidePlace<'a> {
     position: Position,
     size: Size,
     image: &'a str,
+    scale: Option<f32>,
 }
 
 impl<'a> GameObject<'a> for HidePlace<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, false, self.scale, None, None)?;
 
         Ok(())
     }
@@ -37,11 +38,12 @@ impl<'a> LevelObject<'a> for HidePlace<'a> {
 }
 
 impl HidePlace<'_> {
-    pub fn new(position: Position) -> Self {
+    pub fn new(position: Position, scale: Option<f32>) -> Self {
         Self {
             position, 
             size: DEFAULT_SIZE_FOR_HIDE_PLACE, 
             image: "assets/game/hide-place1.webp",
+            scale,
         }
     }
 }

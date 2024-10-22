@@ -1,4 +1,102 @@
-use detective_game::{game::{character::{Character, Direction}, enemy::*, level::{GameObject, DEFAULT_SIZE}, wall::Wall}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::{Character, Direction}, door::{Door, DoorType}, enemy::*, level::{GameObject, DEFAULT_SIZE}, player::Player, wall::Wall}, renderer::{render::Size, vertice::Position}};
+
+#[test]
+fn test_is_detecting_player_without_obstacles_left() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 30.0, y: 10.0 }, "1l/0 1r/0", false);
+    
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
+
+    let actual_true = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_true = true; 
+
+    assert_eq!(actual_true, expected_true);
+
+    player.move_to(Position { x: 30.0, y: 200.0 }, false);
+
+    let actual_false = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_false = false; 
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_detecting_player_without_obstacles_right() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1r/0 1l/0", false);
+    
+    let mut player = Player::new(Position { x: 30.0, y: 10.0 }, false);
+
+    let actual_true = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_true = true; 
+
+    assert_eq!(actual_true, expected_true);
+
+    player.move_to(Position { x: 10.0, y: 200.0 }, false);
+
+    let actual_false = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_false = false; 
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_detecting_player_without_obstacles_up() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 80.0 }, "1u/0 1d/0", false);
+    
+    let mut player = Player::new(Position { x: 10.0, y: 10.0 }, false);
+
+    let actual_true = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_true = true; 
+
+    assert_eq!(actual_true, expected_true);
+
+    player.move_to(Position { x: 80.0, y: 220.0 }, false);
+
+    let actual_false = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_false = false; 
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_detecting_player_without_obstacles_down() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 30.0 }, "1d/0 1u/0", false);
+    
+    let mut player = Player::new(Position { x: 10.0, y: 100.0 }, false);
+
+    let actual_true = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_true = true; 
+
+    assert_eq!(actual_true, expected_true);
+
+    player.move_to(Position { x: 100.0, y: 220.0 }, false);
+
+    let actual_false = enemy.is_detecting_player(&player, &[], &[]);
+    let expected_false = false; 
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_detecting_player_with_obstacles() {
+    let enemy = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 30.0 }, "1d/0 1u/0", false);
+    
+    let mut player = Player::new(Position { x: 60.0, y: 20.0 }, false);
+
+    let input_walls = vec![Wall::new(Position { x: 0.0, y: 90.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, None, None), Wall::new(Position { x: 130.0, y: 90.0 }, Size { width: 100.0, height: DEFAULT_SIZE }, None, None)];
+    let input_doors = vec![Door::new(0, DoorType::Regular, Position { x: 60.0, y: 90.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None).expect("Unable to create door")];
+
+    let actual_true = enemy.is_detecting_player(&player, &input_walls, &input_doors);
+    let expected_true = true; 
+
+    assert_eq!(actual_true, expected_true);
+
+    player.move_to(Position { x: 120.0, y: 30.0 }, false);
+
+    let actual_false = enemy.is_detecting_player(&player, &input_walls, &input_doors);
+    let expected_false = false; 
+
+    assert_eq!(actual_false, expected_false);
+}
 
 #[test]
 fn test_find_optimal_path_same_positions() {

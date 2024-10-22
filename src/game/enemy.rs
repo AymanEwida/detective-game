@@ -70,7 +70,7 @@ impl<'a> Enemy<'a> {
                     start_position: start_position,
                     position: start_position,
                     prev_position: None,
-                    size: Size { width: 55.0, height: 60.0 },
+                    size: Size { width: 50.0, height: 60.0 },
                     image: "assets/game/regular-enemy.png",
                     flip,
                     movement_value: 10.0,
@@ -198,7 +198,6 @@ impl<'a> Enemy<'a> {
                 for wall in walls {
                     let wall_poistion = wall.get_position();
                     
-                    // mabye do not need this out of bounds check
                     if wall_poistion >= window_start_position && wall_poistion <= (window_start_position + window_size) {
                         let wall_size = wall.get_size();
                         let wall_max_position = wall_poistion + wall_size;
@@ -333,7 +332,9 @@ impl<'a> Enemy<'a> {
         None
     }
 
-    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: Vec<Wall<'a>>) {
+    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>]) -> u64 {
+        let new_notority_level = self.detect_player(current_notoriety_level, player, walls, doors);
+
         match self.mode {
             EnemyMode::Regular => {
                 self.already_detected_player = false;
@@ -344,7 +345,7 @@ impl<'a> Enemy<'a> {
                     }
 
                     if self.position != self.start_position {
-                        let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, &walls);
+                        let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
                         self.current_moves_path = self.find_optimal_path(self.start_position, grid_start_position, grid).unwrap_or(Vec::new());
                     } else {
                         self.moves_count = 0;
@@ -360,7 +361,7 @@ impl<'a> Enemy<'a> {
 
             EnemyMode::Detecting => {
                 if let Some(detect_player_position) = self.detect_player_position {
-                    if self.position == detect_player_position && !self.is_detecting_player(player) {
+                    if self.position == detect_player_position && !self.is_detecting_player(player, walls, doors) {
                         self.start_searching_position = Some(self.position);
                         self.detect_player_position = None;
                     } else {
@@ -368,7 +369,7 @@ impl<'a> Enemy<'a> {
                             self.move_interval = Duration::from_millis(1500);
                         }
     
-                        let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, &walls);
+                        let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
                         self.current_moves_path = self.find_optimal_path(detect_player_position, grid_start_position, grid).unwrap_or(Vec::new());
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
@@ -392,7 +393,7 @@ impl<'a> Enemy<'a> {
                         }
     
                         self.current_moves_path = self.get_searching_path();
-                    } else if self.position == (Position { x: start_searching_position.x + ((50.0 / self.movement_value) * self.movement_value), y: start_searching_position.y }) && !self.is_detecting_player(player) {
+                    } else if self.position == (Position { x: start_searching_position.x + ((50.0 / self.movement_value) * self.movement_value), y: start_searching_position.y }) && !self.is_detecting_player(player, walls, doors) {
                         self.mode = EnemyMode::Regular;
                     } else {
                         self.move_enemy_in_path(None);
@@ -405,6 +406,8 @@ impl<'a> Enemy<'a> {
                 self.prev_mode = EnemyMode::Searching;
             }
         }
+
+        new_notority_level
     }
 
     fn get_searching_path(&self) -> PathVec {
@@ -413,7 +416,7 @@ impl<'a> Enemy<'a> {
         vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
     } 
 
-    fn is_detecting_player(&self, player: &Player<'a>) -> bool {
+    pub fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
         if player.get_status() == &PlayerStatus::Hidden {
             return false;
         }
@@ -424,12 +427,51 @@ impl<'a> Enemy<'a> {
 
         let enemy_end = Position { x: self.position.x + self.size.width, y: self.position.y + self.size.height };
 
-        // TODO: test player.collide(enemy)
         if ((player_start.x >= self.position.x && player_start.x <= enemy_end.x) ||
             (player_end.x >= self.position.x && player_end.x <= enemy_end.x)) &&
             ((player_start.y >= self.position.y && player_start.y < enemy_end.y) || 
             (player_end.y > self.position.y && player_end.y <= enemy_end.y)) {
             return true;
+        }
+
+        let mut is_able_to_see = true;
+
+        for wall in walls {
+            let wall_start = wall.get_position();
+            let wall_end = wall_start + wall.get_size();
+
+            let is_between_x_axis = ((self.position.x < wall_start.x && player_start.x >= wall_end.x) || (player_start.x < wall_start.x && self.position.x >= wall_end.x))
+                && ((player_start.y >= wall_start.y && enemy_end.y <= wall_end.y) || (self.position.y >= wall_start.y && player_end.y <= wall_end.y));
+            
+            let is_between_y_axis = ((self.position.y < wall_start.y && player_start.y >= wall_end.y) || (player_start.y < wall_start.y && self.position.y >= wall_end.y))
+                && ((player_start.x >= wall_start.x && enemy_end.x <= wall_end.x) || (self.position.x >= wall_start.x && player_end.y <= wall_end.x));
+            
+            if is_between_x_axis || is_between_y_axis {
+                is_able_to_see = false;
+
+                break;
+            }
+        }
+
+        for door in doors {
+            let door_start = door.get_position();
+            let door_end = door_start + door.get_size();
+
+            let is_between_x_axis = ((self.position.x < door_start.x && player_start.x >= door_end.x) || (player_start.x < door_start.x && self.position.x >= door_end.x))
+                && ((player_start.y >= door_start.y && enemy_end.y <= door_end.y) || (self.position.y >= door_start.y && player_end.y <= door_end.y));
+
+            let is_between_y_axis = ((self.position.y < door_start.y && player_start.y >= door_end.y) || (player_start.y < door_start.y && self.position.y >= door_end.y))
+                && ((player_start.x >= door_start.x && enemy_end.x <= door_end.x) || (self.position.x >= door_start.x && player_end.y <= door_end.x));
+            
+            if (is_between_x_axis || is_between_y_axis) && door.is_closed() {
+                is_able_to_see = false;
+
+                break;
+            }
+        }
+
+        if !is_able_to_see {
+            return false;
         }
 
         let (first_point, second_point, apex) = self.detect_traingle;
@@ -465,123 +507,25 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    // TODO: test and simulate the function when handling Door struct in simulation (and in level) and finish all remaing TODOs
-    // find a better way to handle doors
     pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> u64 {
-        if player.get_status() != &PlayerStatus::Hidden {
+        let is_detected = self.is_detecting_player(player, walls, doors);
+
+        if is_detected {
             let player_start = player.get_position();
-            let player_size = player.get_size();
-            let player_end = Position { x: player_start.x + player_size.width, y: player_start.y + player_size.height };
 
-            let enemy_end = Position { x: self.position.x + self.size.width, y: self.position.y + self.size.height };
-
-            // TODO: test player.collide(enemy)
-            if ((player_start.x >= self.position.x && player_start.x <= enemy_end.x) ||
-                (player_end.x >= self.position.x && player_end.x <= enemy_end.x)) &&
-                ((player_start.y >= self.position.y && player_start.y < enemy_end.y) || 
-                (player_end.y > self.position.y && player_end.y <= enemy_end.y)) {
-                player.set_status(PlayerStatus::Detectit);
-                self.mode = EnemyMode::Detecting;
-                self.detect_player_position = Some(player_start);
-                
-                if !self.already_detected_player {
-                    if current_notoriety_level >= 3 {
-                        return 3;
-                    }
-                    
-                    return current_notoriety_level + 1;
-                }
-
-                return current_notoriety_level;
-            }
-
-            let (first_point, second_point, apex) = self.detect_traingle;
-
-            let mut is_able_to_see = true;
-
-            for wall in walls {
-                let wall_start = wall.get_position();
-                let wall_end = wall_start + wall.get_size();
-
-                let is_between_x_axis = ((self.position.x < wall_start.x && player_start.x >= wall_end.x) || (player_start.x < wall_start.x && self.position.x >= wall_end.x))
-                    && ((player_start.y >= wall_start.y && enemy_end.y <= wall_end.y) || (self.position.y >= wall_start.y && player_end.y <= wall_end.y));
-                
-                let is_between_y_axis = ((self.position.y < wall_start.y && player_start.y >= wall_end.y) || (player_start.y < wall_start.y && self.position.y >= wall_end.y))
-                    && ((player_start.x >= wall_start.x && enemy_end.x <= wall_end.x) || (self.position.x >= wall_start.x && player_end.y <= wall_end.x));
-                
-                if is_between_x_axis || is_between_y_axis {
-                    is_able_to_see = false;
-
-                    break;
-                }
-            }
-
-            for door in doors {
-                let door_start = door.get_position();
-                let door_end = door_start + door.get_size();
-
-                let is_between_x_axis = ((self.position.x < door_start.x && player_start.x >= door_end.x) || (player_start.x < door_start.x && self.position.x >= door_end.x))
-                    && ((player_start.y >= door_start.y && player_end.y <= door_end.y) && (self.position.y >= door_start.y && enemy_end.y <= door_end.y));
-
-                let is_between_y_axis = ((self.position.y < door_start.y && player_start.y >= door_end.y) || (player_start.y < door_start.y && self.position.y >= door_end.y))
-                    && ((player_start.x >= door_start.x && player_end.x <= door_end.x) && (self.position.x >= door_start.x && enemy_end.x <= door_end.x));
-                
-                if (is_between_x_axis || is_between_y_axis) && !door.is_closed() {
-                    is_able_to_see = false;
-
-                    break;
-                }
-            }
-
-            if !is_able_to_see {
-                return current_notoriety_level;
-            }
-
-            let is_detected = match self.moving_towards {
-                Direction::Left => {
-                    ((player_start.x >= first_point.x && player_start.x < apex.x) ||
-                    (player_end.x > first_point.x && player_end.x <= apex.x)) &&
-                    ((player_start.y < first_point.y && player_start.y >= second_point.y) ||
-                    (player_end.y <= first_point.y && player_end.y > second_point.y)) 
-                },
-
-                Direction::Right => {
-                    ((player_start.x < first_point.x && player_start.x >= apex.x) ||
-                    (player_end.x <= first_point.x && player_end.x > apex.x)) &&
-                    ((player_start.y < first_point.y && player_start.y >= second_point.y) ||
-                    (player_end.y <= first_point.y && player_end.y > second_point.y))
-                },
-
-                Direction::Up => {
-                    ((player_start.x >= second_point.x && player_start.x < first_point.x) ||
-                    (player_end.x > second_point.x && player_end.x <= first_point.x)) &&
-                    ((player_start.y >= first_point.y && player_start.y < apex.y) ||
-                    (player_end.y > first_point.y && player_end.y <= apex.y)) 
-                },
-
-                Direction::Down => {
-                    ((player_start.x >= second_point.x && player_start.x < first_point.x) ||
-                    (player_end.x > second_point.x && player_end.x <= first_point.x)) &&
-                    ((player_start.y < first_point.y && player_start.y >= apex.y) ||
-                    (player_end.y <= first_point.y && player_end.y > apex.y)) 
-                },
-            };
-
-            if is_detected {
-                player.set_status(PlayerStatus::Detectit);
-                self.mode = EnemyMode::Detecting;
-                self.detect_player_position = Some(player_start);
-
-                if !self.already_detected_player {
-                    if current_notoriety_level >= 3 {
-                        return 3;
-                    }
+            player.set_status(PlayerStatus::Detectit);
+            self.mode = EnemyMode::Detecting;
+            self.detect_player_position = Some(player_start);
     
-                    return current_notoriety_level + 1;
+            if !self.already_detected_player {
+                if current_notoriety_level >= 3 {
+                    return 3;
                 }
-
-                return current_notoriety_level;
+    
+                return current_notoriety_level + 1;
             }
+    
+            return current_notoriety_level;
         }
 
         current_notoriety_level

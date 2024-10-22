@@ -1,5 +1,25 @@
-use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType, DEFAULT_SIZE, DEFAULT_SIZE_FOR_HIDE_PLACE}, player::Player, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, ObjectLevel, DEFAULT_SIZE}, player::Player, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
+pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
+
+#[derive(Debug)]
+pub enum SimulationError {
+    LoadSimulationError(SimulatorType, String),
+}
+
+impl std::fmt::Display for SimulationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error occurred, ").unwrap();
+        
+        match self {
+            Self::LoadSimulationError(simulation_type, message) => write!(f, "Load Simulation Error: {}\nin: {:?}", message, simulation_type),
+        }
+    }
+}
+
+impl std::error::Error for SimulationError {}
+
+#[derive(Debug, Clone)]
 pub enum SimulatorType {
     EnemyLogic,
     Other
@@ -16,6 +36,7 @@ pub struct Simulator<'a> {
     objects: Vec<ObjectLevel<'a>>,
     walls: Vec<Wall<'a>>,
     doors: Vec<Door<'a>>,
+    hide_places: Vec<HidePlace<'a>>,
     enemies: Vec<Enemy<'a>>,
     cameras: Vec<Camera<'a>>,
     status: SimulationStatus,
@@ -28,6 +49,7 @@ impl Simulator<'_> {
             objects: Vec::new(),
             walls: Vec::new(),
             doors: Vec::new(),
+            hide_places: Vec::new(),
             enemies: Vec::new(),
             cameras: Vec::new(),
             status: SimulationStatus::NotDetermine,
@@ -43,35 +65,51 @@ impl<'a> Simulator<'a> {
         render.display_text(&format!("status: {}", player.get_status()), Position { x: 400.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
         render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
 
-        for object in self.objects.iter_mut() {
-            let collided_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.collide(object)).collect();
+        for wall in self.walls.iter() {
+            let collided_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.collide(wall)).collect();
 
-            match object.get_type() {
-                ObjectLevelType::Wall => {
-                    if player.collide(object) {
-                        player.move_to_prev_position();
-                    }
+            if player.collide(wall) {
+                player.move_to_prev_position();
+            }
 
-                    if collided_enemies.len() > 0 {
-                        for collided_enemy in collided_enemies {
-                            collided_enemy.move_to_prev_position();
-                        }
+            if collided_enemies.len() > 0 {
+                for collided_enemy in collided_enemies {
+                    collided_enemy.move_to_prev_position();
+                }
+            }
+
+            wall.draw(render)?;
+        }
+
+
+        for door in self.doors.iter_mut() {
+            let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | enemy.collide(door)).collect();
+
+            match door.get_door_type() {
+                &DoorType::Regular => {
+                    if player.collide(door) || collided_enemies.len() > 0 {
+                        door.open();
+                    } else {
+                        door.close();
                     }
                 },
 
-                ObjectLevelType::RegularDoor => {
-                    if player.collide(object) || collided_enemies.len() > 0 {
-                        object.open_door();
+                &DoorType::Coded | &DoorType::Locked => {
+                    if !door.is_locked() && (player.collide(door) || collided_enemies.len() > 0) {
+                        door.open();
                     } else {
-                        object.close_door();
+                        door.close();
                     }
-                }
+                },
 
                 _ => ()
             }
-            
 
-            object.draw(render)?;
+            door.draw(render)?;
+        }
+
+        for hide_place in self.hide_places.iter() {
+            hide_place.draw(render)?;
         }
 
         for camera in self.cameras.iter_mut() {
@@ -92,33 +130,32 @@ impl<'a> Simulator<'a> {
             }
 
             enemy.draw(render)?;
-            self.notoriety_level = enemy.detect_player(
-                self.notoriety_level,
-                player,
-                &[
-                    Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
-                    Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
-                    Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
-                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None)
-                ],
-                &[
-                    Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None).expect("unable to create a door"),
-                    Door::new(0, DoorType::Regular, Position { x: 430.0, y: 260.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None).expect("unable to create a door"),
-                ]
-            );
             
-            enemy.move_enemy(
+            self.notoriety_level = enemy.move_enemy(
                 player, 
                 self.notoriety_level,
                 Position { x: 0.0, y: 0.0 },
                 render.get_size(),  
-                vec![
-                    Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
-                    Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
-                    Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
-                    Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None)
-                ],
+                &self.walls,
+                &self.doors
             );
+
+            // self.notoriety_level = enemy.move_enemy(
+            //     player, 
+            //     self.notoriety_level,
+            //     Position { x: 0.0, y: 0.0 },
+            //     render.get_size(),  
+            //     vec![
+            //         Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
+            //         Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
+            //         Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
+            //         Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None)
+            //     ],
+            //     vec![
+            //         Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None).expect("unable to create a door"),
+            //         Door::new(0, DoorType::Regular, Position { x: 430.0, y: 260.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None).expect("unable to create a door"),
+            //     ]
+            // );
         }
 
         player.draw(render)?;
@@ -126,7 +163,7 @@ impl<'a> Simulator<'a> {
         Ok(())
     }
 
-    pub fn load_simulation(&mut self, simulator_type: SimulatorType) {
+    pub fn load_simulation(&mut self, simulator_type: SimulatorType) -> SimulationResult<()> {
         self.clear_all();
 
         match simulator_type {
@@ -145,26 +182,37 @@ impl<'a> Simulator<'a> {
                 // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, false, None, None));
                 // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None));
 
-                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 185.0, height: DEFAULT_SIZE }, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 435.0, y: 320.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                self.doors.push(
+                    Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
+                self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None));
+                self.doors.push(
+                    Door::new(1, DoorType::Regular, Position { x: 430.0, y: 320.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                );
+                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 435.0, y: 320.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None));
                 
-                self.objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 302.0, y: 255.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 375.0, y: 200.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
-                self.objects.push(ObjectLevel::new(ObjectLevelType::HidePlace, Position { x: 455.0, y: 240.0 }, DEFAULT_SIZE_FOR_HIDE_PLACE, false, None, None));
+                self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 375.0, y: 200.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
             },
 
             SimulatorType::Other => () 
         }
+
+        Ok(())
     }
 
     pub fn clear_all(&mut self) {
         self.objects.clear();
         self.doors.clear();
         self.walls.clear();
+        self.hide_places.clear();
         self.enemies.clear();
         self.cameras.clear();
     }
