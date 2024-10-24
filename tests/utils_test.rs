@@ -433,3 +433,53 @@ fn test_sum_direction_length_from_path_down() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_round_position_to_full_numbers_with_no_decimal_point_test1() {
+    let input_position = Position { x: 15.0, y: 25.0 };
+    let input_value = 10.0;
+    let actual = round_position_to_full_numbers(input_position, input_value);
+    let expected= Position { x: 10.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_round_position_to_full_numbers_with_no_decimal_point_test2() {
+    let input_position = Position { x: 10.0, y: 20.0 };
+    let input_value = 10.0;
+    let actual = round_position_to_full_numbers(input_position, input_value);
+    let expected= Position { x: 10.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_round_position_to_full_numbers_with_decimal_point_test1() {
+    let input_position = Position { x: 15.3, y: 20.25 };
+    let input_value = 10.0;
+    let actual = round_position_to_full_numbers(input_position, input_value);
+    let expected= Position { x: 10.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_round_position_to_full_numbers_with_decimal_point_test2() {
+    let input_position = Position { x: 15.50, y: 25.75 };
+    let input_value = 10.0;
+    let actual = round_position_to_full_numbers(input_position, input_value);
+    let expected= Position { x: 10.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_round_position_to_full_numbers_with_decimal_point_test3() {
+    let input_position = Position { x: 10.3, y: 20.25 };
+    let input_value = 10.0;
+    let actual = round_position_to_full_numbers(input_position, input_value);
+    let expected= Position { x: 10.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}

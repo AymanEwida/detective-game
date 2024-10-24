@@ -248,6 +248,7 @@ impl<'a> GameLevel<'a> {
                 self.border_top_left + DEFAULT_SIZE, 
                 Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
                 &[],
+                &[],
                 &[]
             );
         }

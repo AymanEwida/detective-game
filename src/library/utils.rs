@@ -225,3 +225,13 @@ pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, ang
 pub fn get_heuristic_score(a: &Position, b: &Position, value: f32) -> f32 {
     (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / value
 }
+
+
+pub fn round_position_to_full_numbers(position: Position, value: f32) -> Position {
+    let decimal_round_position = Position { x: position.x.round(), y: position.y.round() };
+
+    let rounded_x = (decimal_round_position.x / value).floor() * value;
+    let rounded_y = (decimal_round_position.y / value).floor() * value;
+
+    Position { x: rounded_x, y: rounded_y }
+}

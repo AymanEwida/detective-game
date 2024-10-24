@@ -66,15 +66,26 @@ impl<'a> Simulator<'a> {
         render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
 
         for wall in self.walls.iter() {
-            let collided_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.collide(wall)).collect();
+            // let collided_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.collide(wall)).collect();
+            // let not_collided_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | !enemy.collide(wall)).collect();
 
             if player.collide(wall) {
                 player.move_to_prev_position();
             }
 
-            if collided_enemies.len() > 0 {
-                for collided_enemy in collided_enemies {
-                    collided_enemy.move_to_prev_position();
+            // if collided_enemies.len() > 0 {
+            //     for collided_enemy in collided_enemies {
+            //         collided_enemy.set_is_colliding(true);
+            //         collided_enemy.move_to_prev_position();
+            //     }
+            // }
+
+            for enemy in self.enemies.iter_mut() {
+                if enemy.collide(wall) {
+                    enemy.set_is_colliding(true);
+                    enemy.move_to_prev_position();
+                } else {
+                    enemy.set_is_colliding(false);
                 }
             }
 
@@ -118,7 +129,10 @@ impl<'a> Simulator<'a> {
 
         for enemy in self.enemies.iter_mut() {
             if enemy.is_off_window(render.get_size()) {
+                enemy.set_is_colliding(true);
                 enemy.move_to_prev_position();
+            } else {
+                enemy.set_is_colliding(false);
             }
 
             if enemy.collide_with_player(&player) {
@@ -137,7 +151,8 @@ impl<'a> Simulator<'a> {
                 Position { x: 0.0, y: 0.0 },
                 render.get_size(),  
                 &self.walls,
-                &self.doors
+                &self.doors,
+                &[]// &self.hide_places
             );
 
             // self.notoriety_level = enemy.move_enemy(

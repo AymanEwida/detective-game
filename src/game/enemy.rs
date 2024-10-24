@@ -1,8 +1,8 @@
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
-use crate::{library::utils::{calc_equidistant_points, convert_path, get_heuristic_score, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::utils::{calc_equidistant_points, convert_path, get_heuristic_score, round_position_to_full_numbers, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, door::Door, level::GameObject, player::{Player, PlayerStatus}, wall::Wall};
+use super::{character::{Character, Direction}, door::Door, hide_place::HidePlace, level::GameObject, player::{Player, PlayerStatus}, wall::Wall};
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -57,6 +57,11 @@ pub struct Enemy<'a> {
     prev_mode: EnemyMode,
     already_detected_player: bool,
     start_searching_position: Option<Position>,
+    default_search_path: Option<PathVec>,
+    near_hide_places_positions: Option<Vec<Position>>,
+    current_search_idx: usize,
+    current_search_steps: u32,
+    is_colliding: bool,
 }
 
 impl<'a> Enemy<'a> {
@@ -86,6 +91,11 @@ impl<'a> Enemy<'a> {
                     prev_mode: EnemyMode::Regular,
                     already_detected_player: false,
                     start_searching_position: None,
+                    default_search_path: None,
+                    near_hide_places_positions: None,
+                    current_search_idx: 0,
+                    current_search_steps: 1,
+                    is_colliding: false,
                 }
             }
         }
@@ -137,6 +147,10 @@ impl<'a> Enemy<'a> {
 
     pub fn _set_prev_position(&mut self) {
         self.prev_position = Some(self.position)
+    }
+
+    pub fn set_is_colliding(&mut self, new_value: bool) {
+        self.is_colliding = new_value;
     }
 
     fn move_enemy_in_path(&mut self, move_interval: Option<Duration>) {
@@ -238,6 +252,8 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: Vec<Vec<bool>>) -> Option<PathVec> {
+        let target_position = round_position_to_full_numbers(target_position, self.movement_value);
+
         if self.position == target_position {
             return None;
         }
@@ -332,7 +348,7 @@ impl<'a> Enemy<'a> {
         None
     }
 
-    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>]) -> u64 {
+    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
         let new_notority_level = self.detect_player(current_notoriety_level, player, walls, doors);
 
         match self.mode {
@@ -391,14 +407,62 @@ impl<'a> Enemy<'a> {
                         if self.move_interval != DEFAULT_MOVE_INTERVAL {
                             self.move_interval = DEFAULT_MOVE_INTERVAL;
                         }
-    
-                        self.current_moves_path = self.get_searching_path();
-                    } else if self.position == (Position { x: start_searching_position.x + ((50.0 / self.movement_value) * self.movement_value), y: start_searching_position.y }) && !self.is_detecting_player(player, walls, doors) {
-                        self.mode = EnemyMode::Regular;
-                    } else {
-                        self.move_enemy_in_path(None);
+                    }
+
+                    if self.near_hide_places_positions.is_none() {
+                        self.near_hide_places_positions = Some(self.get_near_hide_places_positions(Some(start_searching_position), hide_places));
+                    }
+
+                    if let Some(near_hide_places_positions) = &self.near_hide_places_positions {
+                        if near_hide_places_positions.len() > 0 && self.current_search_idx < near_hide_places_positions.len() {
+                            let current_hide_place_position = near_hide_places_positions[self.current_search_idx];
+        
+                            if self.position != round_position_to_full_numbers(current_hide_place_position, self.movement_value) {
+                                let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
+                                self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
+                                self.move_enemy_in_path(None); 
+                            } else {
+                                self.current_search_idx += 1;
+                            }
+                        } else if near_hide_places_positions.len() == 0 {
+                            // self.current_search_idx = 0;
+
+                            if self.default_search_path.is_none() {
+                                self.default_search_path = Some(self.get_default_search_path());
+                            }
+
+                            // TODO: find a way to move enemy in default search path
+                            if let Some(default_search_path) = &self.default_search_path {
+                                if default_search_path.len() > 0 && self.current_search_idx < default_search_path.len() {
+                                    let (current_steps, current_direction, ..) = default_search_path[self.current_search_idx];
+
+                                    if !self.is_colliding && current_steps >= 1 && self.current_search_steps <= current_steps {
+                                        self.current_moves_path = vec![(1, current_direction, 0)];
+                                        self.move_enemy_in_path(None);
+
+                                        self.current_search_steps += 1;
+                                    } else {
+                                        self.current_search_idx += 1;
+                                        self.current_search_steps = 1;
+                                    }
+                                } else {
+                                    self.current_search_idx = 0;
+                                    self.current_search_steps = 1;
+
+                                    self.mode = EnemyMode::Regular;
+                                }
+                            }
+                        } else {
+                            self.current_search_idx = 0;
+                            self.current_search_steps = 1;
+
+                            self.mode = EnemyMode::Regular;
+                        }
                     }
                 } else {
+                    self.current_search_idx = 0;
+                    self.current_search_steps = 1;
+
                     self.mode = EnemyMode::Regular;
                 }
 
@@ -410,8 +474,77 @@ impl<'a> Enemy<'a> {
         new_notority_level
     }
 
-    fn get_searching_path(&self) -> PathVec {
-        let steps = 50 / self.movement_value as u32;
+    pub fn get_near_hide_places_positions(&self, start_position: Option<Position>, hide_places: &[HidePlace<'a>]) -> Vec<Position> {
+        let start_position = start_position.unwrap_or(self.position);
+
+        let mut near_hide_places_positions = Vec::new();
+
+        for hide_place in hide_places {
+            let hide_place_position = hide_place.get_position();
+
+            let heuristic_distance = get_heuristic_score(&start_position, &hide_place_position, self.movement_value);
+
+            if near_hide_places_positions.len() < 3 {
+                let mut found_idx: i32 = -1;
+
+                for (idx, near_hide_place_position) in near_hide_places_positions.iter().enumerate() {
+                    if get_heuristic_score(&start_position, near_hide_place_position, self.movement_value) > heuristic_distance {
+                        found_idx = idx as i32;
+
+                        break;
+                    }
+                }
+
+                if found_idx == -1 {
+                    near_hide_places_positions.push(hide_place_position); 
+                } else {
+                    near_hide_places_positions.insert(found_idx as usize, hide_place_position);
+                }
+            } else {
+                let mut found_idx: i32 = -1;
+
+                for (idx, near_hide_place_position) in near_hide_places_positions.iter().enumerate() {
+                    if get_heuristic_score(&start_position, near_hide_place_position, self.movement_value) > heuristic_distance {
+                        found_idx = idx as i32;
+
+                        break;
+                    }
+                }
+
+                if found_idx >= 0 {
+                    near_hide_places_positions.remove(near_hide_places_positions.len() - 1);
+                    near_hide_places_positions.insert(found_idx as usize, hide_place_position);
+                }
+            }
+        }
+
+        // hide_places.sort_by(| a, b | {
+        //     get_heuristic_score(&self.position, &a.get_position(), self.movement_value).partial_cmp(&get_heuristic_score(&self.position, &b.get_position(), self.movement_value)).unwrap()
+        // });
+
+        // if hide_places.len() <= 3 {
+        //     let mut foo = Vec::new();
+
+        //     for hide_place in hide_places {
+        //         foo.push(hide_place.get_position());
+        //     }
+
+        //     return foo;
+        // }
+
+        // let mut foo = Vec::new();
+        
+        // for i in 0..3 {
+        //     foo.push(hide_places[i].get_position());
+        // }
+
+        // foo
+
+        near_hide_places_positions
+    }
+
+    fn get_default_search_path(&self) -> PathVec {
+        let steps = 60 / self.movement_value as u32;
 
         vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
     } 
