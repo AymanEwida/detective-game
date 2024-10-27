@@ -235,3 +235,37 @@ pub fn round_position_to_full_numbers(position: Position, value: f32) -> Positio
 
     Position { x: rounded_x, y: rounded_y }
 }
+
+pub fn get_estimated_position(position: &Position, steps: u32, direction: Direction, value: f32) -> Position {
+    let distance = steps as f32 * value;
+
+    match direction {
+        Direction::Left => {
+            Position {
+                x: position.x - distance,
+                ..*position
+            }
+        },
+
+        Direction::Right => {
+            Position {
+                x: position.x + distance,
+                ..*position
+            }
+        },
+
+        Direction::Up => {
+            Position {
+                y: position.y - distance,
+                ..*position
+            }
+        },
+
+        Direction::Down => {
+            Position {
+                y: position.y + distance,
+                ..*position
+            }
+        }
+    }
+}

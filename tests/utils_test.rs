@@ -483,3 +483,45 @@ fn test_round_position_to_full_numbers_with_decimal_point_test3() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_get_estimated_position_left() {
+    let input_position = Position { x: 50.0, y: 20.0 };
+    let input_steps = 3;
+    let input_value = 10.0;
+    let actual = get_estimated_position(&input_position, input_steps, Direction::Left, input_value);
+    let expected= Position { x: 20.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_get_estimated_position_right() {
+    let input_position = Position { x: 50.0, y: 20.0 };
+    let input_steps = 3;
+    let input_value = 10.0;
+    let actual = get_estimated_position(&input_position, input_steps, Direction::Right, input_value);
+    let expected= Position { x: 80.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+#[test]
+fn test_get_estimated_position_up() {
+    let input_position = Position { x: 20.0, y: 50.0 };
+    let input_steps = 3;
+    let input_value = 10.0;
+    let actual = get_estimated_position(&input_position, input_steps, Direction::Up, input_value);
+    let expected= Position { x: 20.0, y: 20.0 };
+
+    assert_eq!(actual, expected);
+}
+#[test]
+fn test_get_estimated_position_down() {
+    let input_position = Position { x: 20.0, y: 50.0 };
+    let input_steps = 3;
+    let input_value = 10.0;
+    let actual = get_estimated_position(&input_position, input_steps, Direction::Down, input_value);
+    let expected= Position { x: 20.0, y: 80.0 };
+
+    assert_eq!(actual, expected);
+}

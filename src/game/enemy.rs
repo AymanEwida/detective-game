@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
-use crate::{library::utils::{calc_equidistant_points, convert_path, get_heuristic_score, round_position_to_full_numbers, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::utils::{calc_equidistant_points, convert_path, get_estimated_position, get_heuristic_score, round_position_to_full_numbers, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{character::{Character, Direction}, door::Door, hide_place::HidePlace, level::GameObject, player::{Player, PlayerStatus}, wall::Wall};
 
@@ -60,7 +60,7 @@ pub struct Enemy<'a> {
     default_search_path: Option<PathVec>,
     near_hide_places_positions: Option<Vec<Position>>,
     current_search_idx: usize,
-    current_search_steps: u32,
+    estimated_search_position: Option<Position>,
     is_colliding: bool,
 }
 
@@ -94,7 +94,7 @@ impl<'a> Enemy<'a> {
                     default_search_path: None,
                     near_hide_places_positions: None,
                     current_search_idx: 0,
-                    current_search_steps: 1,
+                    estimated_search_position: None,
                     is_colliding: false,
                 }
             }
@@ -425,43 +425,43 @@ impl<'a> Enemy<'a> {
                                 self.current_search_idx += 1;
                             }
                         } else if near_hide_places_positions.len() == 0 {
-                            // self.current_search_idx = 0;
-
                             if self.default_search_path.is_none() {
                                 self.default_search_path = Some(self.get_default_search_path());
                             }
 
-                            // TODO: find a way to move enemy in default search path
                             if let Some(default_search_path) = &self.default_search_path {
                                 if default_search_path.len() > 0 && self.current_search_idx < default_search_path.len() {
-                                    let (current_steps, current_direction, ..) = default_search_path[self.current_search_idx];
+                                    let (steps, direction, wait_interval) = default_search_path[self.current_search_idx];
 
-                                    if !self.is_colliding && current_steps >= 1 && self.current_search_steps <= current_steps {
-                                        self.current_moves_path = vec![(1, current_direction, 0)];
+                                    if self.estimated_search_position.is_none() {
+                                        self.estimated_search_position = Some(get_estimated_position(&self.position, steps, direction, self.movement_value));
+                                    }
+
+                                    assert!(self.estimated_search_position != None, "estimated search position must exist");
+
+                                    let estimated_search_position = self.estimated_search_position.unwrap();
+
+                                    if !self.is_colliding && self.position != estimated_search_position {
+                                        self.current_moves_path = vec![(steps, direction, wait_interval)];
                                         self.move_enemy_in_path(None);
-
-                                        self.current_search_steps += 1;
                                     } else {
                                         self.current_search_idx += 1;
-                                        self.current_search_steps = 1;
+                                        self.estimated_search_position = None;
                                     }
                                 } else {
                                     self.current_search_idx = 0;
-                                    self.current_search_steps = 1;
 
                                     self.mode = EnemyMode::Regular;
                                 }
                             }
                         } else {
                             self.current_search_idx = 0;
-                            self.current_search_steps = 1;
 
                             self.mode = EnemyMode::Regular;
                         }
                     }
                 } else {
                     self.current_search_idx = 0;
-                    self.current_search_steps = 1;
 
                     self.mode = EnemyMode::Regular;
                 }
@@ -517,28 +517,6 @@ impl<'a> Enemy<'a> {
                 }
             }
         }
-
-        // hide_places.sort_by(| a, b | {
-        //     get_heuristic_score(&self.position, &a.get_position(), self.movement_value).partial_cmp(&get_heuristic_score(&self.position, &b.get_position(), self.movement_value)).unwrap()
-        // });
-
-        // if hide_places.len() <= 3 {
-        //     let mut foo = Vec::new();
-
-        //     for hide_place in hide_places {
-        //         foo.push(hide_place.get_position());
-        //     }
-
-        //     return foo;
-        // }
-
-        // let mut foo = Vec::new();
-        
-        // for i in 0..3 {
-        //     foo.push(hide_places[i].get_position());
-        // }
-
-        // foo
 
         near_hide_places_positions
     }
