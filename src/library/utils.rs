@@ -227,11 +227,28 @@ pub fn get_heuristic_score(a: &Position, b: &Position, value: f32) -> f32 {
 }
 
 
-pub fn round_position_to_full_numbers(position: Position, value: f32) -> Position {
+pub fn round_position_to_full_numbers(position: Position, value: f32, is_middle_towrds_up_x_axis: bool, is_middle_towrds_up_y_axis: bool) -> Position {
     let decimal_round_position = Position { x: position.x.round(), y: position.y.round() };
 
-    let rounded_x = (decimal_round_position.x / value).floor() * value;
-    let rounded_y = (decimal_round_position.y / value).floor() * value;
+    let rounded_x = if is_middle_towrds_up_x_axis {
+        (decimal_round_position.x / value).round() * value
+    } else {
+        if (decimal_round_position.x % value) <= (value / 2.0).round() {
+            (decimal_round_position.x / value).floor() * value
+        } else {
+            (decimal_round_position.x / value).ceil() * value
+        }
+    };
+
+    let rounded_y = if is_middle_towrds_up_y_axis {
+        (decimal_round_position.y / value).round() * value
+    } else {
+        if (decimal_round_position.y % value) <= (value / 2.0).round() {
+            (decimal_round_position.y / value).floor() * value
+        } else {
+            (decimal_round_position.y / value).ceil() * value
+        }
+    };
 
     Position { x: rounded_x, y: rounded_y }
 }

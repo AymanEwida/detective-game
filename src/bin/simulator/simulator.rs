@@ -145,23 +145,6 @@ impl<'a> Simulator<'a> {
                 &self.doors,
                 &self.hide_places
             );
-
-            // self.notoriety_level = enemy.move_enemy(
-            //     player, 
-            //     self.notoriety_level,
-            //     Position { x: 0.0, y: 0.0 },
-            //     render.get_size(),  
-            //     vec![
-            //         Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None),
-            //         Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None),
-            //         Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None),
-            //         Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None)
-            //     ],
-            //     vec![
-            //         Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None).expect("unable to create a door"),
-            //         Door::new(0, DoorType::Regular, Position { x: 430.0, y: 260.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None).expect("unable to create a door"),
-            //     ]
-            // );
         }
 
         player.draw(render)?;
@@ -190,18 +173,25 @@ impl<'a> Simulator<'a> {
 
                 self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
                 self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                // self.doors.push(
+                //     Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None)
+                //         .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                // );
                 self.doors.push(
-                    Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None)
+                    Door::new(0, DoorType::Regular, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)
                         .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
                 );
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
                 self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
-                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None));
+                // self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                // self.doors.push(
+                //     Door::new(1, DoorType::Regular, Position { x: 430.0, y: 320.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None)
+                //         .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                // );
                 self.doors.push(
-                    Door::new(1, DoorType::Regular, Position { x: 430.0, y: 320.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None)
+                    Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
                         .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
                 );
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 435.0, y: 320.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None));
                 
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
                 self.hide_places.push(HidePlace::new(Position { x: 375.0, y: 200.0 }, None));

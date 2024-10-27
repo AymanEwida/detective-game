@@ -210,11 +210,11 @@ impl<'a> Enemy<'a> {
                 let mut is_walkable = true;
 
                 for wall in walls {
-                    let wall_poistion = wall.get_position();
+                    let wall_poistion = round_position_to_full_numbers(wall.get_position(), self.movement_value, true, true);
                     
                     if wall_poistion >= window_start_position && wall_poistion <= (window_start_position + window_size) {
                         let wall_size = wall.get_size();
-                        let wall_max_position = wall_poistion + wall_size;
+                        let wall_max_position = round_position_to_full_numbers(wall_poistion + wall_size, self.movement_value, true, true);
 
                         if (current_position.x >= wall_poistion.x && current_position.y >= wall_poistion.y) && (current_position.x < wall_max_position.x && current_position.y < wall_max_position.y) {
                             is_walkable = false;
@@ -252,8 +252,6 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: Vec<Vec<bool>>) -> Option<PathVec> {
-        let target_position = round_position_to_full_numbers(target_position, self.movement_value);
-
         if self.position == target_position {
             return None;
         }
@@ -362,7 +360,11 @@ impl<'a> Enemy<'a> {
 
                     if self.position != self.start_position {
                         let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
-                        self.current_moves_path = self.find_optimal_path(self.start_position, grid_start_position, grid).unwrap_or(Vec::new());
+                        self.current_moves_path = self.find_optimal_path(
+                            round_position_to_full_numbers(self.start_position, self.movement_value, true, true),
+                            grid_start_position,
+                            grid
+                        ).unwrap_or(Vec::new());
                     } else {
                         self.moves_count = 0;
 
@@ -386,7 +388,11 @@ impl<'a> Enemy<'a> {
                         }
     
                         let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
-                        self.current_moves_path = self.find_optimal_path(detect_player_position, grid_start_position, grid).unwrap_or(Vec::new());
+                        self.current_moves_path = self.find_optimal_path(
+                            round_position_to_full_numbers(detect_player_position, self.movement_value, true, true),
+                            grid_start_position,
+                            grid
+                        ).unwrap_or(Vec::new());
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
                 } else {
@@ -415,9 +421,9 @@ impl<'a> Enemy<'a> {
 
                     if let Some(near_hide_places_positions) = &self.near_hide_places_positions {
                         if near_hide_places_positions.len() > 0 && self.current_search_idx < near_hide_places_positions.len() {
-                            let current_hide_place_position = near_hide_places_positions[self.current_search_idx];
+                            let current_hide_place_position = round_position_to_full_numbers(near_hide_places_positions[self.current_search_idx], self.movement_value, false, true);
         
-                            if self.position != round_position_to_full_numbers(current_hide_place_position, self.movement_value) {
+                            if self.position != current_hide_place_position {
                                 let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
                                 self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
                                 self.move_enemy_in_path(None); 
