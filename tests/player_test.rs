@@ -1,4 +1,4 @@
-use detective_game::{game::{character::{Character, Direction}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::*}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::{Character, Direction}, hide_place::HidePlace, level::{GameObject, ObjectLevel, ObjectLevelType}, player::*}, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_move_player_up() {
@@ -219,6 +219,85 @@ fn test_player_is_off_border_false() {
 
     let actual = player.is_off_border(Some(Position { x: 5.0, y: 5.0 }), Size { width: 70.0, height: 80.0 });
     let expected = false;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_is_colliding_with_hide_place_x_axis_test1() {
+    let player = Player::new(Position { x: 80.0, y: 80.0 }, false);
+
+    let input_hide_place_true = HidePlace::new(Position { x: 70.0, y: 80.0 }, None);
+    let actual_true = player.is_colliding_with_hide_place(&input_hide_place_true);
+    let expected_true = true;
+
+    assert_eq!(actual_true, expected_true);
+
+    let input_hide_place_false = HidePlace::new(Position { x: 60.0, y: 80.0 }, None);
+    let actual_false = player.is_colliding_with_hide_place(&input_hide_place_false);
+    let expected_false = false;
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_colliding_with_hide_place_x_axis_test2() {
+    let player = Player::new(Position { x: 30.0, y: 80.0 }, false);
+
+    let input_hide_place_true = HidePlace::new(Position { x: 35.0, y: 80.0 }, None);
+    let actual_true = player.is_colliding_with_hide_place(&input_hide_place_true);
+    let expected_true = true;
+
+    assert_eq!(actual_true, expected_true);
+
+    let input_hide_place_false = HidePlace::new(Position { x: 50.0, y: 80.0 }, None);
+    let actual_false = player.is_colliding_with_hide_place(&input_hide_place_false);
+    let expected_false = false;
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_colliding_with_hide_place_y_axis_test1() {
+    let player = Player::new(Position { x: 30.0, y: 80.0 }, false);
+
+    let input_hide_place_true = HidePlace::new(Position { x: 30.0, y: 70.0 }, None);
+    let actual_true = player.is_colliding_with_hide_place(&input_hide_place_true);
+    let expected_true = true;
+
+    assert_eq!(actual_true, expected_true);
+
+    let input_hide_place_false = HidePlace::new(Position { x: 30.0, y: 60.0 }, None);
+    let actual_false = player.is_colliding_with_hide_place(&input_hide_place_false);
+    let expected_false = false;
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_colliding_with_hide_place_y_axis_test2() {
+    let player = Player::new(Position { x: 30.0, y: 30.0 }, false);
+
+    let input_hide_place_true = HidePlace::new(Position { x: 30.0, y: 35.0 }, None);
+    let actual_true = player.is_colliding_with_hide_place(&input_hide_place_true);
+    let expected_true = true;
+
+    assert_eq!(actual_true, expected_true);
+
+    let input_hide_place_false = HidePlace::new(Position { x: 30.0, y: 50.0 }, None);
+    let actual_false = player.is_colliding_with_hide_place(&input_hide_place_false);
+    let expected_false = false;
+
+    assert_eq!(actual_false, expected_false);
+}
+
+#[test]
+fn test_is_colliding_with_hide_place_same_position() {
+    let player = Player::new(Position { x: 30.0, y: 30.0 }, false);
+
+    let input_hide_place = HidePlace::new(Position { x: 30.0, y: 30.0 }, None);
+    let actual = player.is_colliding_with_hide_place(&input_hide_place);
+    let expected = true;
 
     assert_eq!(actual, expected);
 }

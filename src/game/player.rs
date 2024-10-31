@@ -1,6 +1,8 @@
-use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
+use glfw::{Action, Key};
 
-use super::{character::{Character, Direction}, level::GameObject};
+use crate::{library::utils::round_position_to_full_numbers, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+
+use super::{character::{Character, Direction}, hide_place::HidePlace, level::GameObject};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -18,6 +20,30 @@ impl std::fmt::Display for PlayerStatus {
         }
     }
 }
+#[derive(Debug)]
+pub struct PlayerInteraction {
+    key: Key,
+    action: Action
+}
+
+impl PlayerInteraction {
+    pub fn new(key: Key, action: Action) -> Self {
+        Self {
+            key,
+            action
+        }
+    }
+}
+
+impl PlayerInteraction {
+    pub fn key(&self) -> &Key {
+        &self.key
+    }
+
+    pub fn action(&self) -> &Action {
+        &self.action
+    }
+}
 
 #[derive(Debug)]
 pub struct Player<'a> {
@@ -27,7 +53,8 @@ pub struct Player<'a> {
     image: &'a str,
     flip: bool,
     movement_value: f32,
-    status: PlayerStatus
+    status: PlayerStatus,
+    interaction: Option<PlayerInteraction>,
 }
 
 impl Player<'_> {
@@ -39,7 +66,8 @@ impl Player<'_> {
             image: "assets/game/detective.png",
             flip,
             movement_value: 10.0,
-            status: PlayerStatus::NotHidden
+            status: PlayerStatus::NotHidden,
+            interaction: None
         }
     }
 }
@@ -71,10 +99,32 @@ impl<'a> Character<'a> for Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    pub fn move_player(&mut self, direction: Direction) {
-        self.prev_position = Some(self.get_position());
+    pub fn get_status(&self) -> &PlayerStatus {
+        &self.status
+    }
 
-        self.move_character(direction, self.movement_value);
+    pub fn set_status(&mut self, new_status: PlayerStatus) {
+        self.status = new_status;
+    }
+
+    pub fn set_movement_value(&mut self, new_value: f32) {
+        self.movement_value = new_value;
+    }
+
+    pub fn get_interaction(&self) -> &Option<PlayerInteraction> {
+        &self.interaction
+    }
+
+    pub fn set_interaction(&mut self, new_value: Option<PlayerInteraction>) {
+        self.interaction = new_value;
+    }
+
+    pub fn move_player(&mut self, direction: Direction) {
+        if self.status != PlayerStatus::Hidden {
+            self.prev_position = Some(self.get_position());
+    
+            self.move_character(direction, self.movement_value);
+        }
     }
 
     pub fn move_to_prev_position(&mut self) {
@@ -113,15 +163,20 @@ impl<'a> Player<'a> {
         self.position.y < start_position.y
     }
 
-    pub fn get_status(&self) -> &PlayerStatus {
-        &self.status
-    }
+    pub fn is_colliding_with_hide_place(&self, hide_place: &HidePlace) -> bool {
+        let start_hide_place_position = round_position_to_full_numbers(hide_place.get_position(), self.movement_value, true, false);
+        let end_hide_place_position = round_position_to_full_numbers(start_hide_place_position + hide_place.get_size(), self.movement_value, true, false);
+        let start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
+        let end_player_position = self.position + self.size;
 
-    pub fn set_status(&mut self, new_status: PlayerStatus) {
-        self.status = new_status;
-    }
-
-    pub fn set_movement_value(&mut self, new_value: f32) {
-        self.movement_value = new_value;
+        (start_player_position.y == start_hide_place_position.y
+        && (
+            (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + self.movement_value))
+            || (end_player_position.x >= (end_hide_place_position.x - self.movement_value) && end_player_position.x <= end_hide_place_position.x)
+        )) || (start_player_position.x == start_hide_place_position.x
+        && (
+            (start_player_position.y >= start_hide_place_position.y && start_player_position.y <= (start_hide_place_position.y + self.movement_value))
+            || (end_player_position.y >= (end_hide_place_position.y - self.movement_value) && end_player_position.y <= end_hide_place_position.y)
+        ))
     }
 }

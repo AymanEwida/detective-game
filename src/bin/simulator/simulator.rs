@@ -1,4 +1,5 @@
-use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, ObjectLevel, DEFAULT_SIZE}, player::Player, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, ObjectLevel, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
 
@@ -22,6 +23,7 @@ impl std::error::Error for SimulationError {}
 #[derive(Debug, Clone)]
 pub enum SimulatorType {
     EnemyLogic,
+    PlayerInteractionWithHidePlace,
     Other
 }
 
@@ -78,16 +80,8 @@ impl<'a> Simulator<'a> {
             let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | enemy.collide(door)).collect();
 
             match door.get_door_type() {
-                &DoorType::Regular => {
+                &DoorType::Regular | &DoorType::Coded | &DoorType::Locked => {
                     if player.collide(door) || collided_enemies.len() > 0 {
-                        door.open();
-                    } else {
-                        door.close();
-                    }
-                },
-
-                &DoorType::Coded | &DoorType::Locked => {
-                    if !door.is_locked() && (player.collide(door) || collided_enemies.len() > 0) {
                         door.open();
                     } else {
                         door.close();
@@ -101,6 +95,20 @@ impl<'a> Simulator<'a> {
         }
 
         for hide_place in self.hide_places.iter() {
+            if player.is_colliding_with_hide_place(hide_place) {
+                if let Some(player_interaction) = player.get_interaction() {
+                    let player_status = player.get_status();
+
+                    if player_status != &PlayerStatus::Detectit && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                        if player.get_status() == &PlayerStatus::Hidden {
+                            player.set_status(PlayerStatus::NotHidden);
+                        } else {
+                            player.set_status(PlayerStatus::Hidden);
+                        }
+                    }
+                }
+            }
+
             hide_place.draw(render)?;
         }
 
@@ -196,6 +204,10 @@ impl<'a> Simulator<'a> {
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
                 self.hide_places.push(HidePlace::new(Position { x: 375.0, y: 200.0 }, None));
                 self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
+            },
+
+            SimulatorType::PlayerInteractionWithHidePlace => {
+                self.hide_places.push(HidePlace::new(Position { x: 300.0, y: 400.0 }, None));
             },
 
             SimulatorType::Other => () 
