@@ -64,7 +64,7 @@ impl<'a> Camera<'a> {
             self.last_move_time = Instant::now();
         }
 
-        render.load_image(self.image, self.position, self.size, self.flip, self.scale, None, self.rotate)?;
+        render.load_image(self.image, self.position, self.size, self.flip, None, self.scale, None, self.rotate)?;
 
         Ok(())
     }

@@ -104,7 +104,7 @@ impl<'a> Enemy<'a> {
 
 impl<'a> GameObject<'a> for Enemy<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, self.flip, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, self.flip, None, None, None, None)?;
 
         let (first_point, second_point, apex) = self.detect_traingle;
 

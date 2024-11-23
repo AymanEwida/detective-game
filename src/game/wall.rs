@@ -13,7 +13,7 @@ pub struct Wall<'a> {
 
 impl<'a> GameObject<'a> for Wall<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, self.scale, None, self.rotate)?;
+        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, self.rotate)?;
 
         Ok(())
     }

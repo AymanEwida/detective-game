@@ -1,6 +1,6 @@
 use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
-use super::{level::{GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
+use super::{level::GameObject, level_object::{LevelObject, ObjectType}};
 
 pub const DEFAULT_SIZE_FOR_COLLECTABLE: Size = Size { width: 40.0, height: 40.0 };
 
@@ -28,7 +28,7 @@ pub struct DoorCollectable<'a> {
 
 impl<'a> GameObject<'a> for DoorCollectable<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, false, None, None, None, None)?;
 
         Ok(())
     }
@@ -79,7 +79,7 @@ pub struct Coin<'a> {
 
 impl<'a> GameObject<'a> for Coin<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, false, None, None, None, None)?;
 
         Ok(())
     }

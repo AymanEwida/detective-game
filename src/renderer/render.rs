@@ -18,17 +18,19 @@ struct Object<'a> {
     vertices: Vec<_VerticeData>,
     indices: Option<Vec<u32>>,
     texture_image_path: Option<&'a str>,
+    texture_opacity: f32,
     mode: GLenum,
     transform_matrix: Mat4
 }
 
 impl<'a> Object<'a> {
-    fn new(vertices: Vec<_VerticeData>, indices: Option<Vec<u32>>, texture_image_path: Option<&'a str>, mode: GLenum) -> Self {
+    fn new(vertices: Vec<_VerticeData>, indices: Option<Vec<u32>>, texture_image_path: Option<&'a str>, texture_opacity: Option<f32>, mode: GLenum) -> Self {
         Self {
             vertices,
             indices,
             mode,
             texture_image_path,
+            texture_opacity: texture_opacity.unwrap_or(1.0),
             transform_matrix: Mat4::IDENTITY
         }
     }
@@ -244,7 +246,7 @@ impl<'a> Render<'a> {
         let vertices_data = vec![first_point.get_vertice_data(&self.size), second_point.get_vertice_data(&self.size), third_point.get_vertice_data(&self.size)];
         let indices = vec![0, 1, 2];
 
-        let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLES);
+        let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
         if let Some(translate) = translate {
             let translate = create_translate(translate, &self.size);
@@ -277,7 +279,7 @@ impl<'a> Render<'a> {
         ];
         let indices = vec![0, 1, 2, 2, 3, 0];
 
-        let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLES);
+        let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
         if let Some(translate) = translate {
             let translate = create_translate(translate, &self.size);
@@ -324,7 +326,7 @@ impl<'a> Render<'a> {
             indices.extend_from_slice(&[0, num, num+1]);
         }
 
-        let mut object = Object::new(vertices_data, Some(indices), None, gl::TRIANGLE_FAN);
+        let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLE_FAN);
 
         if let Some(translate) = translate {
             let translate = create_translate(translate, &self.size);
@@ -369,7 +371,7 @@ impl<'a> Render<'a> {
             indices.push(num);
         }
 
-        let mut object = Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP);
+        let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
         if let Some(translate) = translate {
             let translate = create_translate(translate, &self.size);
@@ -400,7 +402,7 @@ impl<'a> Render<'a> {
         ];
         let indices = vec![0, 1];
 
-        let mut object = Object::new(vertices_data, Some(indices), None, gl::LINE_STRIP);
+        let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
         if let Some(translate) = translate {
             let translate = create_translate(translate, &self.size);
@@ -421,7 +423,7 @@ impl<'a> Render<'a> {
         self.objects.push(object);
     }
 
-    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, flip: bool, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) -> Result<()> {
+    pub fn load_image(&mut self, image_path: &'a str, position: Position, size: Size, flip: bool, opacity: Option<f32>, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) -> Result<()> {
         let position = convert_coordinates(position, &self.size);
         let size = convert_size(size, &self.size);
 
@@ -438,7 +440,7 @@ impl<'a> Render<'a> {
         let found_texture = self.images.get(image_path);
 
         if found_texture.is_some() {
-            let mut object = Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES);
+            let mut object = Object::new(vertices_data, Some(indices), Some(image_path), opacity, gl::TRIANGLES);
 
             if let Some(translate) = translate {
                 let translate = create_translate(translate, &self.size);
@@ -472,7 +474,7 @@ impl<'a> Render<'a> {
 
             self.images.insert(image_path, texture);
             
-            let mut object = Object::new(vertices_data, Some(indices), Some(image_path), gl::TRIANGLES);
+            let mut object = Object::new(vertices_data, Some(indices), Some(image_path), opacity, gl::TRIANGLES);
 
             if let Some(translate) = translate {
                 let translate = create_translate(translate, &self.size);
@@ -631,6 +633,7 @@ impl<'a> Render<'a> {
                 background_image.index_buffer.bind();
 
                 self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
+                self.texture_program.set_opacity_uniform_to_texture(1.0)?;
                 self.texture_program.set_int_uniform("texture0", 0)?;
                 background_image.texture.activate(gl::TEXTURE0);
 
@@ -680,6 +683,7 @@ impl<'a> Render<'a> {
                     self.texture_program.apply();
                     self.texture_program.set_transform_matrix_uniform(object.transform_matrix)?;
                     self.texture_program.set_bool_uniform("isText", 0)?;
+                    self.texture_program.set_opacity_uniform_to_texture(object.texture_opacity)?;
                     self.texture_program.set_int_uniform("texture0", 0)?;
                     texture.activate(gl::TEXTURE0);
                 } else {

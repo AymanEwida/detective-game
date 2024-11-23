@@ -33,7 +33,7 @@ pub struct Door<'a> {
 
 impl<'a> GameObject<'a> for Door<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, self.scale, None, self.rotate)?;
+        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, self.rotate)?;
 
         Ok(())
     }
@@ -143,7 +143,7 @@ pub struct TeleportDoor<'a> {
 
 impl<'a> GameObject<'a> for TeleportDoor<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, self.scale, None, self.rotate)?;
+        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, self.rotate)?;
 
         Ok(())
     }
@@ -205,7 +205,7 @@ pub struct ExitDoor<'a> {
 
 impl<'a> GameObject<'a> for ExitDoor<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, false, None, None, None, None)?;
 
         Ok(())
     }

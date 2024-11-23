@@ -74,7 +74,13 @@ impl Player<'_> {
 
 impl<'a> GameObject<'a> for Player<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, self.flip, None, None, None)?;
+        let opacity = if self.status == PlayerStatus::Hidden {
+            Some(0.5)
+        } else {
+            None
+        };
+
+        render.load_image(self.image, self.position, self.size, self.flip, opacity, None, None, None)?;
 
         Ok(())
     }

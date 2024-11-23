@@ -46,12 +46,13 @@ in vec2 texCoord;
 out vec4 FragColor;
 
 uniform sampler2D texture0;
+uniform float opacity;
 uniform vec3 textColor;
 uniform int isText;
 
 void main() {
     vec4 sampled = vec4(1.0, 1.0, 1.0, texture(texture0, texCoord).r);
     
-    FragColor = vec4(textColor, 1.0) * sampled * isText + texture(texture0, texCoord) * (1 - isText);
+    FragColor = vec4(textColor, 1.0) * sampled * isText + vec4(1.0, 1.0, 1.0, opacity) * texture(texture0, texCoord) * (1 - isText);
 }
 "#;
