@@ -65,7 +65,7 @@ impl<'a> Simulator<'a> {
         render.fill_with_image("assets/game/background.jpg")?;
         
         render.display_text(&format!("status: {}", player.get_status()), Position { x: 400.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
-        render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
+        render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 10.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
 
         for wall in self.walls.iter() {
             if player.collide(wall) {
@@ -141,6 +141,8 @@ impl<'a> Simulator<'a> {
             } else {
                 render.display_text("Still playing", Position { x: 10.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text");
             }
+
+            render.display_text(&format!("enemy mode: {}", enemy.get_mode()), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White)?;
 
             enemy.draw(render)?;
             

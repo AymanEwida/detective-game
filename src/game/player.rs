@@ -2,7 +2,7 @@ use glfw::{Action, Key};
 
 use crate::{library::utils::round_position_to_full_numbers, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, hide_place::HidePlace, level::GameObject};
+use super::{character::{Character, Direction}, hide_place::HidePlace, level::GameObject, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -184,5 +184,46 @@ impl<'a> Player<'a> {
             (start_player_position.y >= start_hide_place_position.y && start_player_position.y <= (start_hide_place_position.y + self.movement_value))
             || (end_player_position.y >= (end_hide_place_position.y - self.movement_value) && end_player_position.y <= end_hide_place_position.y)
         ))
+    }
+
+    pub fn throw_form_hide_place(&mut self, walls: &[Wall<'a>], enemy_movement_direction: &Direction) {
+        if self.status == PlayerStatus::Hidden {
+            let new_value = 60.0;
+
+            let mut can_throw_left = false;
+            let mut can_throw_right= false;
+
+            let mut i = 0;
+
+            while i < walls.len() {
+                let wall = &walls[i];
+                let wall_start = wall.get_position();
+                let wall_end = wall_start + wall.get_size();
+
+                let player_end = self.position + self.size;
+
+                if self.position.x > wall_end.x && (self.position.x - wall_end.x) >= new_value {
+                    can_throw_left = true;
+                }
+
+                if wall_start.x > player_end.x && (wall_start.x - player_end.x) >= new_value {
+                    can_throw_right = true;
+                }
+
+                i = i + 1;
+            }
+
+            if can_throw_left && can_throw_right {
+                if enemy_movement_direction == &Direction::Left {
+                    self.set_position(Position { x: self.position.x - new_value, y: self.position.y });
+                } else {
+                    self.set_position(Position { x: self.position.x + new_value, y: self.position.y });
+                }
+            } else if can_throw_left {
+                self.set_position(Position { x: self.position.x - new_value, y: self.position.y });
+            } else {
+                self.set_position(Position { x: self.position.x + new_value, y: self.position.y });
+            }
+        }
     }
 }

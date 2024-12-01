@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
 use crate::{library::utils::{calc_equidistant_points, convert_path, get_estimated_position, get_heuristic_score, round_position_to_full_numbers, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
@@ -34,6 +35,24 @@ pub enum EnemyMode {
     Regular,
     Detecting,
     Searching
+}
+
+impl fmt::Display for EnemyMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Regular => {
+                write!(f, "Regular")
+            },
+
+            Self::Detecting => {
+                write!(f, "Detecting")
+            },
+
+            Self::Searching => {
+                write!(f, "Searching")
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -428,7 +447,18 @@ impl<'a> Enemy<'a> {
                                 self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
                                 self.move_enemy_in_path(None); 
                             } else {
-                                self.current_search_idx += 1;
+                                if self.collide(player) {
+                                    player.throw_form_hide_place(walls, &self.moving_towards);
+                                    player.set_status(PlayerStatus::Detectit);
+
+                                    self.already_detected_player = true;
+                                    self.mode = EnemyMode::Detecting;
+                                    self.detect_player_position = Some(player.get_position());
+                                }
+
+                                if self.last_move_time.elapsed() >= Duration::from_millis(2000) {
+                                    self.current_search_idx += 1;
+                                }
                             }
                         } else if near_hide_places_positions.len() == 0 {
                             if self.default_search_path.is_none() {
