@@ -1,8 +1,6 @@
-use rand::Error;
-
 use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
-use super::{level::{GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
+use super::{character::Character, level::{GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
 
 pub const DEFAULT_SIZE_FOR_TELEPORT_DOOR: Size = Size { width: DEFAULT_SIZE + 20.0, height: 70.0 };
 pub const DEFAULT_SIZE_FOR_EXIT_DOOR: Size = Size { width: 70.0, height: 60.0 };
@@ -58,9 +56,9 @@ impl<'a> LevelObject<'a> for Door<'a> {
 }
 
 impl Door<'_> {
-    pub fn new(id: usize, door_type: DoorType, position: Position, size: Size, is_locked: bool, opens_by: Option<usize>, scale: Option<f32>, rotate: Option<f32>) -> std::result::Result<Self, Error> {
+    pub fn new(id: usize, door_type: DoorType, position: Position, size: Size, is_locked: bool, opens_by: Option<usize>, scale: Option<f32>, rotate: Option<f32>) -> std::result::Result<Self, String> {
         if is_locked && opens_by.is_none() {
-            return Err(Error::new("Please provide a opens_by id to a locked door"));
+            return Err("Please provide a opens_by id to a locked door".to_string());
         }
 
         let door_image_path = match door_type {
@@ -68,7 +66,7 @@ impl Door<'_> {
             DoorType::Locked => "assets/game/locked-door.png",
             DoorType::Coded => "assets/game/coded-door.png",
             _ => {
-                return Err(Error::new("Please provide only Regular, Locked, Coded"));
+                return Err("Please provide only Regular, Locked, Coded".to_string());
             }
         };
         
@@ -138,7 +136,7 @@ pub struct TeleportDoor<'a> {
     scale: Option<f32>,
     rotate: Option<f32>,
     connected_to: usize,
-    player_move_position: Position,
+    character_move_position: Position,
 }
 
 impl<'a> GameObject<'a> for TeleportDoor<'a> {
@@ -168,7 +166,7 @@ impl<'a> LevelObject<'a> for TeleportDoor<'a> {
 }
 
 impl TeleportDoor<'_> {
-    pub fn new(id: usize, position: Position, connected_to: usize, player_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
+    pub fn new(id: usize, position: Position, connected_to: usize, character_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
         Self {
             id,
             position, 
@@ -177,12 +175,12 @@ impl TeleportDoor<'_> {
             scale,
             rotate,
             connected_to,
-            player_move_position,
+            character_move_position,
         }
     }
 }
 
-impl TeleportDoor<'_> {
+impl<'a> TeleportDoor<'a> {
     pub fn get_id(&self) -> usize {
         self.id
     }
@@ -191,21 +189,44 @@ impl TeleportDoor<'_> {
         self.connected_to
     }
 
-    pub fn get_player_move_position(&self) -> Position {
-        self.player_move_position
+    pub fn get_character_move_position(&self) -> Position {
+        self.character_move_position
+    }
+
+    pub fn teleport(&self, character: &mut impl Character<'a>, teleport_doors: &[TeleportDoor]) {
+        let mut teleport_door_idx: i32 = -1;
+
+        for i in 0..teleport_doors.len() {
+            let teleport_door = &teleport_doors[i];
+
+            if teleport_door.id == self.connected_to {
+                teleport_door_idx = i as i32;
+
+                break;
+            } 
+        }
+
+        if teleport_door_idx != -1 {
+            let teleport_door = &teleport_doors[teleport_door_idx as usize];
+
+            character.set_position(teleport_door.get_position());
+        } else {
+            character.set_position(self.character_move_position);
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ExitDoor<'a> {
     position: Position,
     size: Size,
     image: &'a str,
+    scale: Option<f32>,
 }
 
 impl<'a> GameObject<'a> for ExitDoor<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, None, None, None)?;
+        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, None)?;
 
         Ok(())
     }
@@ -230,11 +251,12 @@ impl<'a> LevelObject<'a> for ExitDoor<'a> {
 }
 
 impl ExitDoor<'_> {
-    pub fn new(position: Position) -> Self {
+    pub fn new(position: Position, scale: Option<f32>) -> Self {
         Self {
             position, 
             size: DEFAULT_SIZE_FOR_EXIT_DOOR, 
             image: "assets/game/exit-door.png",
+            scale,
         }
     }
 }

@@ -2,6 +2,8 @@ use std::time::{Duration, Instant};
 
 use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
+use super::level_object::ObjectType;
+
 pub const DEFAULT_SIZE_FOR_CAMERA: Size = Size { width: 30.0, height: 30.0 };
 pub const DEFAULT_REPEAT_INTERVAL: Duration = Duration::from_millis(3000);
 
@@ -75,5 +77,13 @@ impl<'a> Camera<'a> {
 
     pub fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+    }
+
+    fn get_size(&self) -> Size {
+        self.size        
+    }
+
+    fn get_type(&self) -> ObjectType {
+        ObjectType::Camera
     }
 }

@@ -2,7 +2,7 @@ use glfw::{Action, Key};
 
 use crate::{library::utils::round_position_to_full_numbers, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, hide_place::HidePlace, level::GameObject, wall::Wall};
+use super::{character::{Character, Direction}, hide_place::HidePlace, level::GameObject, level_object::ObjectType, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -46,6 +46,12 @@ impl PlayerInteraction {
 }
 
 #[derive(Debug)]
+pub struct DoorCollectableInventory {
+    id: usize,
+    collectable_type: ObjectType,
+}
+
+#[derive(Debug)]
 pub struct Player<'a> {
     position: Position,
     prev_position: Option<Position>,
@@ -55,6 +61,8 @@ pub struct Player<'a> {
     movement_value: f32,
     status: PlayerStatus,
     interaction: Option<PlayerInteraction>,
+    door_collectable_inventory: Vec<DoorCollectableInventory>,
+    coins: u32,
 }
 
 impl Player<'_> {
@@ -67,7 +75,9 @@ impl Player<'_> {
             flip,
             movement_value: 10.0,
             status: PlayerStatus::NotHidden,
-            interaction: None
+            interaction: None,
+            door_collectable_inventory: Vec::new(),
+            coins: 0,
         }
     }
 }
@@ -123,6 +133,22 @@ impl<'a> Player<'a> {
 
     pub fn set_interaction(&mut self, new_value: Option<PlayerInteraction>) {
         self.interaction = new_value;
+    }
+    
+    pub fn get_door_collectable_inventory(&self) -> &[DoorCollectableInventory] {
+        &self.door_collectable_inventory
+    }
+
+    pub fn add_door_collectable(&mut self, door_collectable_id: usize, door_collectble_type: ObjectType) {
+        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, collectable_type: door_collectble_type });
+    }
+
+    pub fn get_coins(&self) -> u32 {
+        self.coins
+    }
+
+    pub fn add_coin(&mut self) {
+        self.coins = self.coins + 1;
     }
 
     pub fn move_player(&mut self, direction: Direction) {

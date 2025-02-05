@@ -4,6 +4,7 @@ use super::{level::GameObject, level_object::{LevelObject, ObjectType}};
 
 pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
 
+#[derive(Debug)]
 pub struct HidePlace<'a> {
     position: Position,
     size: Size,

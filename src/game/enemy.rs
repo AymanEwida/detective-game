@@ -81,6 +81,7 @@ pub struct Enemy<'a> {
     current_search_idx: usize,
     estimated_search_position: Option<Position>,
     is_colliding: bool,
+    want_to_teleport: bool,
 }
 
 impl<'a> Enemy<'a> {
@@ -115,6 +116,7 @@ impl<'a> Enemy<'a> {
                     current_search_idx: 0,
                     estimated_search_position: None,
                     is_colliding: false,
+                    want_to_teleport: false,
                 }
             }
         }
@@ -170,6 +172,14 @@ impl<'a> Enemy<'a> {
 
     pub fn set_is_colliding(&mut self, new_value: bool) {
         self.is_colliding = new_value;
+    }
+    
+    pub fn get_want_to_teleport(&self) -> bool {
+        self.want_to_teleport
+    }
+
+    pub fn set_want_to_teleport(&mut self, new_value: bool) {
+        self.want_to_teleport = new_value;
     }
 
     fn move_enemy_in_path(&mut self, move_interval: Option<Duration>) {
