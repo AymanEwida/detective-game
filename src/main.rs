@@ -38,8 +38,8 @@ fn main() {
     // level.next_level();
     // level.next_level();
     // level.next_level();
-    level.set_level(3);
-    level.load_level(&mut player);
+    level.set_level(2);
+    level.load_level(&mut player).expect("Unable to load level!");
     
     let mut last_update = Instant::now();
 

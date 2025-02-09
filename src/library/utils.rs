@@ -160,7 +160,10 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
     let level_challenges_file_path = format!("./{}challenges/level{}.txt", GAME_ASSETS_DIR, level);
     let content = fs::read_to_string(Path::new(&level_challenges_file_path))?; 
 
-    let challenges_vec: Vec<&str> = content.split("\r\n").collect();
+    let mut challenges_vec: Vec<&str> = content.split("\n").collect();
+    if content.contains("\r\n") {
+        challenges_vec = content.split("\r\n").collect();
+    }
 
     if challenges_vec.len() == 0 {
         return Err(Error::new(ErrorKind::InvalidData, format!("There is no challenges in the file, path is: {}", level_challenges_file_path)));
