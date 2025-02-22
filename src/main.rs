@@ -3,6 +3,7 @@ extern crate glfw;
 
 use std::time::{Duration, Instant};
 
+use detective_game::game::player::PlayerInteraction;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::library::constants::{
@@ -38,7 +39,7 @@ fn main() {
     // level.next_level();
     // level.next_level();
     // level.next_level();
-    level.set_level(5);
+    level.set_level(1);
     level.load_level(&mut player).expect("Unable to load level!");
     
     let mut last_update = Instant::now();
@@ -61,6 +62,8 @@ fn main() {
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::Key(key, _, action, _) => {
+                    player.set_interaction(Some(PlayerInteraction::new(key, action)));
+
                     match key {
                         Key::Escape => {
                             match action {
@@ -134,6 +137,8 @@ fn main() {
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();
+
+            player.set_interaction(None);
         }
     }
 }

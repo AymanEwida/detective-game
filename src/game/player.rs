@@ -201,15 +201,26 @@ impl<'a> Player<'a> {
         let start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
         let end_player_position = self.position + self.size;
 
-        (start_player_position.y == start_hide_place_position.y
-        && (
-            (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + self.movement_value))
-            || (end_player_position.x >= (end_hide_place_position.x - self.movement_value) && end_player_position.x <= end_hide_place_position.x)
-        )) || (start_player_position.x == start_hide_place_position.x
-        && (
-            (start_player_position.y >= start_hide_place_position.y && start_player_position.y <= (start_hide_place_position.y + self.movement_value))
-            || (end_player_position.y >= (end_hide_place_position.y - self.movement_value) && end_player_position.y <= end_hide_place_position.y)
-        ))
+        let is_collide = | movement_val: f32 | {
+            (start_player_position.y == start_hide_place_position.y
+                && (
+                    (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + movement_val))
+                    || (end_player_position.x >= (end_hide_place_position.x - movement_val) && end_player_position.x <= end_hide_place_position.x)
+                )) || (start_player_position.x == start_hide_place_position.x
+                && (
+                    (start_player_position.y >= start_hide_place_position.y && start_player_position.y <= (start_hide_place_position.y + movement_val))
+                    || (end_player_position.y >= (end_hide_place_position.y - movement_val) && end_player_position.y <= end_hide_place_position.y)
+                )
+            )
+        };
+
+        let is_colliding = is_collide(self.movement_value);
+
+        if !is_colliding {
+            return is_collide(self.movement_value * 2.0);
+        }
+
+        is_colliding
     }
 
     pub fn throw_form_hide_place(&mut self, walls: &[Wall<'a>], enemy_movement_direction: &Direction) {

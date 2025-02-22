@@ -77,10 +77,12 @@ pub struct Enemy<'a> {
     already_detected_player: bool,
     start_searching_position: Option<Position>,
     default_search_path: Option<PathVec>,
+    movement_grid: Option<(Position, Vec<Vec<bool>>)>,
     near_hide_places_positions: Option<Vec<Position>>,
     current_search_idx: usize,
     estimated_search_position: Option<Position>,
     is_colliding: bool,
+    collide_info: (u32, Option<Direction>, f32),
     want_to_teleport: bool,
 }
 
@@ -89,10 +91,12 @@ impl<'a> Enemy<'a> {
         let moves_path = convert_path(path);
         let first_direction = moves_path[0].1;
 
+        let start_position = round_position_to_full_numbers(start_position, 10.0, true, true);
+
         match enemy_type {
             EnemyType::Regular => {
                 Self {
-                    start_position: start_position,
+                    start_position,
                     position: start_position,
                     prev_position: None,
                     size: Size { width: 50.0, height: 60.0 },
@@ -112,10 +116,12 @@ impl<'a> Enemy<'a> {
                     already_detected_player: false,
                     start_searching_position: None,
                     default_search_path: None,
+                    movement_grid: None,
                     near_hide_places_positions: None,
                     current_search_idx: 0,
                     estimated_search_position: None,
                     is_colliding: false,
+                    collide_info: (0, None, 10.0),
                     want_to_teleport: false,
                 }
             }
@@ -280,7 +286,7 @@ impl<'a> Enemy<'a> {
         (window_start_position, grid)
     }
 
-    pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: Vec<Vec<bool>>) -> Option<PathVec> {
+    pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: &Vec<Vec<bool>>) -> Option<PathVec> {
         if self.position == target_position {
             return None;
         }
@@ -347,7 +353,7 @@ impl<'a> Enemy<'a> {
                         moves.push((count, last_direction.unwrap(), 0));
                     }
                 }
-
+                
                 return Some(moves);
             }
 
@@ -376,7 +382,127 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
+        if self.is_colliding {
+            self.collide_info.0 += 1;
+
+            if self.collide_info.0 >= 3 {
+                match self.moving_towards {
+                    Direction::Up => {
+                        if self.collide_info.1.is_none() {
+                            self.move_character(Direction::Left, self.collide_info.2);
+
+                            self.collide_info.1 = Some(Direction::Right);
+                        } else {
+                            let mut dir = self.collide_info.1.unwrap();
+
+                            if dir != Direction::Left && dir != Direction::Right {
+                                dir = Direction::Left;
+                            }
+
+                            self.move_character(dir, self.movement_value);
+
+                            if dir == Direction::Left {
+                                self.collide_info.1 = Some(Direction::Right);
+                            } else {
+                                self.collide_info.1 = Some(Direction::Left);
+                            }
+                        }
+                    },
+
+                    Direction::Down => {
+                        if self.collide_info.1.is_none() {
+                            self.move_character(Direction::Right, self.movement_value);
+
+                            self.collide_info.1 = Some(Direction::Left);
+                        } else {
+                            let mut dir = self.collide_info.1.unwrap();
+
+                            if dir != Direction::Left && dir != Direction::Right {
+                                dir = Direction::Right;
+                            }
+
+                            self.move_character(dir, self.movement_value);
+
+                            if dir == Direction::Right {
+                                self.collide_info.1 = Some(Direction::Left);
+                            } else {
+                                self.collide_info.1 = Some(Direction::Right);
+                            }
+                        }
+                    },
+
+                    Direction::Left => {
+                        if self.collide_info.1.is_none() {
+                            self.move_character(Direction::Up, self.movement_value);
+
+                            self.collide_info.1 = Some(Direction::Down);
+                        } else {
+                            let mut dir = self.collide_info.1.unwrap();
+
+                            if dir != Direction::Up && dir != Direction::Down {
+                                dir = Direction::Up;
+                            }
+
+                            self.move_character(dir, self.movement_value);
+
+                            if dir == Direction::Up {
+                                self.collide_info.1 = Some(Direction::Down);
+                            } else {
+                                self.collide_info.1 = Some(Direction::Up);
+                            }
+                        }
+                    },
+
+                    Direction::Right => {
+                        if self.collide_info.1.is_none() {
+                            self.move_character(Direction::Down, self.movement_value);
+
+                            self.collide_info.1 = Some(Direction::Up);
+                        } else {
+                            let mut dir = self.collide_info.1.unwrap();
+
+                            if dir != Direction::Up && dir != Direction::Down {
+                                dir = Direction::Down;
+                            }
+
+                            self.move_character(dir, self.movement_value);
+
+                            if dir == Direction::Down {
+                                self.collide_info.1 = Some(Direction::Up);
+                            } else {
+                                self.collide_info.1 = Some(Direction::Down);
+                            }
+                        }
+                    }
+                }
+
+                self.collide_info.2 += self.movement_value;
+
+                if (self.collide_info.2 / 10.0) % 2.0 == 0.0 {
+                    self.collide_info.2 = 20.0;
+                } else {
+                    self.collide_info.2 = 10.0;
+                }
+
+                self.collide_info.0 = 0;
+                self.is_colliding = false;
+            }
+        }
+
         let new_notority_level = self.detect_player(current_notoriety_level, player, walls, doors);
+
+        let grid_start_position: Position;
+        let grid: &Vec<Vec<bool>>;
+
+        if self.movement_grid.is_none() {
+            self.movement_grid = Some(self.get_movement_grid(window_start_position, window_size, walls));
+
+            grid_start_position = self.movement_grid.as_ref().unwrap().0;
+            grid = &self.movement_grid.as_ref().unwrap().1;
+        } else {
+            grid_start_position = self.movement_grid.as_ref().unwrap().0;
+            grid = &self.movement_grid.as_ref().unwrap().1;
+        }
 
         match self.mode {
             EnemyMode::Regular => {
@@ -388,9 +514,8 @@ impl<'a> Enemy<'a> {
                     }
 
                     if self.position != self.start_position {
-                        let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
                         self.current_moves_path = self.find_optimal_path(
-                            round_position_to_full_numbers(self.start_position, self.movement_value, true, true),
+                            self.start_position,
                             grid_start_position,
                             grid
                         ).unwrap_or(Vec::new());
@@ -416,9 +541,8 @@ impl<'a> Enemy<'a> {
                             self.move_interval = Duration::from_millis(1500);
                         }
     
-                        let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
                         self.current_moves_path = self.find_optimal_path(
-                            round_position_to_full_numbers(detect_player_position, self.movement_value, true, true),
+                            detect_player_position,
                             grid_start_position,
                             grid
                         ).unwrap_or(Vec::new());
@@ -452,8 +576,18 @@ impl<'a> Enemy<'a> {
                         if near_hide_places_positions.len() > 0 && self.current_search_idx < near_hide_places_positions.len() {
                             let current_hide_place_position = round_position_to_full_numbers(near_hide_places_positions[self.current_search_idx], self.movement_value, false, true);
         
-                            if self.position != current_hide_place_position {
-                                let (grid_start_position, grid) = self.get_movement_grid(window_start_position, window_size, walls);
+                            let reach_hide_place = || {
+                                (self.position == current_hide_place_position)
+                                || (
+                                    (
+                                        self.position.y == current_hide_place_position.y && (self.position.x + self.movement_value) == current_hide_place_position.x
+                                    ) || (
+                                        self.position.x == current_hide_place_position.x && (self.position.y + self.movement_value) == current_hide_place_position.y
+                                    )
+                                )
+                            };
+
+                            if !reach_hide_place() {
                                 self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
                                 self.move_enemy_in_path(None); 
                             } else {
@@ -526,7 +660,7 @@ impl<'a> Enemy<'a> {
         let mut near_hide_places_positions = Vec::new();
 
         for hide_place in hide_places {
-            let hide_place_position = hide_place.get_position();
+            let hide_place_position = round_position_to_full_numbers(hide_place.get_position(), self.movement_value, false, true);
 
             let heuristic_distance = get_heuristic_score(&start_position, &hide_place_position, self.movement_value);
 
@@ -672,7 +806,7 @@ impl<'a> Enemy<'a> {
 
             player.set_status(PlayerStatus::Detectit);
             self.mode = EnemyMode::Detecting;
-            self.detect_player_position = Some(player_start);
+            self.detect_player_position = Some(round_position_to_full_numbers(player_start, self.movement_value, true, true));
     
             if !self.already_detected_player {
                 if current_notoriety_level >= 3 {

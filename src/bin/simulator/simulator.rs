@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, ObjectLevel, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
@@ -35,7 +35,6 @@ pub enum SimulationStatus {
 }
 
 pub struct Simulator<'a> {
-    objects: Vec<ObjectLevel<'a>>,
     walls: Vec<Wall<'a>>,
     doors: Vec<Door<'a>>,
     hide_places: Vec<HidePlace<'a>>,
@@ -48,7 +47,6 @@ pub struct Simulator<'a> {
 impl Simulator<'_> {
     pub fn new() -> Self {
         Self {
-            objects: Vec::new(),
             walls: Vec::new(),
             doors: Vec::new(),
             hide_places: Vec::new(),
@@ -169,35 +167,14 @@ impl<'a> Simulator<'a> {
             SimulatorType::EnemyLogic => {
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
 
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
-
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 120.0 }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::Wall, Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, false, None, None));
-                // self.objects.push(ObjectLevel::new(ObjectLevelType::RegularDoor, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None));
-
                 self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
                 self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
-                // self.doors.push(
-                //     Door::new(0, DoorType::Regular, Position { x: 250.0, y: 260.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, false, None, None, None)
-                //         .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
-                // );
                 self.doors.push(
                     Door::new(0, DoorType::Regular, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)
                         .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
                 );
                 self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
-                // self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 180.0, height: DEFAULT_SIZE }, None, None));
                 self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
-                // self.doors.push(
-                //     Door::new(1, DoorType::Regular, Position { x: 430.0, y: 320.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None)
-                //         .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
-                // );
                 self.doors.push(
                     Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
                         .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
@@ -219,7 +196,6 @@ impl<'a> Simulator<'a> {
     }
 
     pub fn clear_all(&mut self) {
-        self.objects.clear();
         self.doors.clear();
         self.walls.clear();
         self.hide_places.clear();
