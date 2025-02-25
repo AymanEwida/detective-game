@@ -151,6 +151,10 @@ impl<'a> Player<'a> {
         self.coins = self.coins + 1;
     }
 
+    pub fn get_movement_value(&self) -> f32 {
+        self.movement_value
+    }
+
     pub fn move_player(&mut self, direction: Direction) {
         if self.status != PlayerStatus::Hidden {
             self.prev_position = Some(self.get_position());
@@ -202,7 +206,8 @@ impl<'a> Player<'a> {
         let end_player_position = self.position + self.size;
 
         let is_collide = | movement_val: f32 | {
-            (start_player_position.y == start_hide_place_position.y
+            self.collide(hide_place) 
+            || (start_player_position.y == start_hide_place_position.y
                 && (
                     (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + movement_val))
                     || (end_player_position.x >= (end_hide_place_position.x - movement_val) && end_player_position.x <= end_hide_place_position.x)
