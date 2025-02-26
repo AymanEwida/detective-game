@@ -808,31 +808,31 @@ impl<'a> GameLevel<'a> {
                 self.insert_coin(Coin::new(Position { x: 1627.0, y: 135.0 }, None));
             },
 
+            // TODO: fix door positions and sizes
             3 => {
-                player.move_to(Position { x: 1787.0, y: 170.0 }, false);
+                player.move_to(Position { x: 1420.0, y: 400.0 }, false); // Position { x: 1790.0, y: 170.0 }
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1525.0, y: 0.0 }, "13d/0 15r/0 1d/3500 1u/0 15l/0 13u/0 5r/6000 5l/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1680.0, y: 480.0 }, "25u/5500 25d/0 2l/3500 2r/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 840.0, y: 0.0 }, "13d/0 4l/3500 4r/0 13u/0 2l/3000 3r/3000 1l/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 585.0, y: 0.0 }, "13d/0 4r/3500 4l/0 13u/0 1r/3000 3l/3000 2r/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 0.0 }, "45r/2500 45l/5500", true));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 342.0, y: 130.0 }, "33l/0 3u/3000 3d/0 33r/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 950.0, y: 0.0 }, "3r/0 13d/0 2r/6500 2l/0 13u/0 3l/4500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1145.0, y: 0.0 }, "3l/0 13d/0 2l/6000 2r/0 13u/0 3r/5000", true));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1250.0, y: 0.0 }, "18r/0 13d/0 8l/4000 8r/0 13u/0 18l/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1400.0, y: 310.0 }, "1r/0 30d/0 1r/4500 1l/0 30u/0 1l/6500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1295.0, y: 310.0 }, "1l/0 30d/0 1l/6000 1r/0 30u/0 1r/4000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1074.0, y: 220.0 }, "10r/3500 20d/5500 10l/0 20u/0", true));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 970.0, y: 615.0 }, "20r/4500 20l/6500", true));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 970.0, y: 220.0 }, "29d/3500 29u/0 1l/5500 1r/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 834.0, y: 310.0 }, "2r/0 20d/6000 20u/0 2l/4500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 729.0, y: 310.0 }, "2l/0 20d/4000 20u/0 2r/5500", true));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 130.0, y: 220.0 }, "46r/3500 46l/5500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 604.0, y: 320.0 }, "20d/0 2l/4000 2r/0 20u/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 421.0, y: 520.0 }, "6r/4500 17u/3000 5l/0 17d/0 1l/5000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 330.0, y: 615.0 }, "35r/4000 35l/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 221.0, y: 310.0 }, "9r/0 11d/3500 8l/0 11u/0 1l/5500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 110.0, y: 310.0 }, "10l/0 20d/5500 9r/0 20u/0 1r/3500", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1680.0, y: 480.0 }, "25u/5500 25d/0 2l/3500 2r/0", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 580.0, y: 0.0 }, "13d/0 6r/3500 20r/0 13u/0 2l/3000 3r/3000 1l/0 13d/0 6l/3500 20l/0 13u/0 2r/3000 3l/3000 1r/0", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 0.0 }, "45r/2500 45l/5500", true));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 342.0, y: 130.0 }, "33l/0 3u/3000 3d/0 33r/6000", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 950.0, y: 0.0 }, "3r/0 13d/0 2r/6500 2l/0 13u/0 3l/4500", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1145.0, y: 0.0 }, "3l/0 13d/0 2l/6000 2r/0 13u/0 3r/5000", true));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1250.0, y: 0.0 }, "18r/0 13d/0 8l/4000 8r/0 13u/0 18l/6000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1400.0, y: 310.0 }, "1r/0 31d/0 1r/4500 1l/0 30u/0 1l/6500", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1295.0, y: 310.0 }, "1l/0 31d/0 1l/6000 1r/0 30u/0 1r/4000", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1074.0, y: 220.0 }, "10r/3500 20d/5500 10l/0 20u/0", true));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 970.0, y: 615.0 }, "20r/4500 20l/6500", true));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 970.0, y: 220.0 }, "29d/3500 29u/0 1l/5500 1r/0", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 834.0, y: 310.0 }, "2r/0 20d/6000 20u/0 2l/4500", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 729.0, y: 310.0 }, "2l/0 20d/4000 20u/0 2r/5500", true));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 130.0, y: 220.0 }, "46r/3500 46l/5500", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 604.0, y: 320.0 }, "20d/0 2l/4000 2r/0 20u/6000", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 421.0, y: 520.0 }, "6r/4500 17u/3000 5l/0 17d/0 1l/5000", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 330.0, y: 615.0 }, "35r/4000 35l/6000", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 221.0, y: 310.0 }, "9r/0 11d/3500 8l/0 11u/0 1l/5500", false));
+                // self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 110.0, y: 310.0 }, "10l/0 20d/5500 9r/0 20u/0 1r/3500", false));
 
                 self.insert_wall(Wall::new(Position { x: 1639.0, y: 60.0 }, Size { width: 120.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1636.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
@@ -890,8 +890,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1280.0, y: -2.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 1365.0, y: 10.0 }, None));
 
-                self.insert_wall(Wall::new(Position { x: 1240.0, y: 60.0 }, Size { width: 194.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1434.0, y: 60.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 1240.0, y: 60.0 }, Size { width: 190.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1430.0, y: 60.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1424.0, y: 125.0 }, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1380.0, y: 65.0 }, false, None, None));
