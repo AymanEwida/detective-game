@@ -569,10 +569,10 @@ impl<'a> GameLevel<'a> {
             },
 
             2 => {
-                player.move_to(Position { x: 1777.0, y: 780.0 }, false);
+                player.move_to(Position { x: 1780.0, y: 790.0 }, false);
 
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 615.0 }, "52r/3500 52l/4000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 615.0 }, "10u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 620.0 }, "52r/3500 52l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 620.0 }, "11u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1270.0, y: 240.0 }, "11l/5500 2r/0 17d/4500 9r/0 17u/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 240.0 }, "10r/4500 8d/6500 10l/0 8u/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 840.0, y: 615.0 }, "19u/0 2r/6000 2l/0 19d/0 2l/5500 2r/0", false));
@@ -595,13 +595,14 @@ impl<'a> GameLevel<'a> {
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1705.0, y: 220.0 }, "8l/0 18d/0 8r/0 1d/6500 19u/4500", false));
                 
                 self.insert_wall(Wall::new(Position { x: 1360.0, y: 577.0 }, Size { width: 400.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1650.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1650.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 1330.0, y: 510.0 }, Size { width: DEFAULT_SIZE, height: 97.0 }, None, None));
                 self.insert_wall(Wall::new(Position { x: 1230.0, y: 480.0 }, Size { width: 130.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_wall(Wall::new(Position { x: 1230.0, y: 510.0 }, Size { width: DEFAULT_SIZE, height: 97.0 }, None, None));
                 self.insert_wall(Wall::new(Position { x: 1030.0, y: 577.0 }, Size { width: 200.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1027.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1027.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
 
+                self.insert_hide_place(HidePlace::new(Position { x: 1220.0, y: 620.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 1275.0, y: 520.0 }, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1450.0, y: 582.0 }, false, None, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1110.0, y: 582.0 }, false, None, None));
@@ -640,16 +641,16 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_wall(Wall::new(Position { x: 605.0, y: 390.0 }, Size { width: 315.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_wall(Wall::new(Position { x: 780.0, y: 420.0 }, Size { width: DEFAULT_SIZE, height: 187.0 }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 777.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 777.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
 
                 self.insert_hide_place(HidePlace::new(Position { x: 840.0, y: 417.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 880.0, y: 530.0 }, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 795.0, y: 550.0 }, true, None, Some(350.0)));
 
-                self.insert_teleport_door(TeleportDoor::new(1, Position { x: 475.0, y: 610.0 }, 2, Position { x: 375.0, y: 510.0 }, None, None));
+                self.insert_teleport_door(TeleportDoor::new(1, Position { x: 475.0, y: 615.0 }, 2, Position { x: 375.0, y: 510.0 }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 577.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 65.0, y: 577.0 }, Size { width: 360.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 423.0, y: 607.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 423.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 425.0, y: 477.0 }, Size { width: DEFAULT_SIZE, height: 130.0 }, None, None));
                 self.insert_wall(Wall::new(Position { x: 0.0, y: 477.0 }, Size { width: 425.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 280.0, y: 507.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);

@@ -231,6 +231,8 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn get_movement_grid(&self, window_start_position: Position, window_size: Size, walls: &[Wall<'a>]) -> (Position, Vec<Vec<bool>>) {
+        let window_end_position = window_start_position + window_size;
+
         let grid_rows = (window_size.height / self.movement_value) as usize;
         let grid_cols = (window_size.width / self.movement_value) as usize;
 
@@ -247,7 +249,7 @@ impl<'a> Enemy<'a> {
                 for wall in walls {
                     let wall_poistion = round_position_to_full_numbers(wall.get_position(), self.movement_value, true, true);
                     
-                    if wall_poistion >= window_start_position && wall_poistion <= (window_start_position + window_size) {
+                    if (wall_poistion.x >= window_start_position.x && wall_poistion.x <= window_end_position.x) && (wall_poistion.y >= window_start_position.y && wall_poistion.y <= window_end_position.y) {
                         let wall_size = wall.get_size();
                         let wall_max_position = round_position_to_full_numbers(wall_poistion + wall_size, self.movement_value, true, true);
 
@@ -381,7 +383,7 @@ impl<'a> Enemy<'a> {
         None
     }
 
-    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
+    fn move_enemy_when_colliding(&mut self) {
         if self.is_colliding {
             self.collide_info.0 += 1;
 
@@ -399,9 +401,11 @@ impl<'a> Enemy<'a> {
                                 dir = Direction::Left;
                             }
 
-                            self.move_character(dir, self.movement_value);
+                            self.move_character(dir, self.collide_info.2);
 
-                            if dir == Direction::Left {
+                            if dir == Direction::Left && self.collide_info.2 == 20.0 {
+                                self.collide_info.2 = 10.0;
+
                                 self.collide_info.1 = Some(Direction::Right);
                             } else {
                                 self.collide_info.1 = Some(Direction::Left);
@@ -411,7 +415,7 @@ impl<'a> Enemy<'a> {
 
                     Direction::Down => {
                         if self.collide_info.1.is_none() {
-                            self.move_character(Direction::Right, self.movement_value);
+                            self.move_character(Direction::Right, self.collide_info.2);
 
                             self.collide_info.1 = Some(Direction::Left);
                         } else {
@@ -421,9 +425,11 @@ impl<'a> Enemy<'a> {
                                 dir = Direction::Right;
                             }
 
-                            self.move_character(dir, self.movement_value);
+                            self.move_character(dir, self.collide_info.2);
 
-                            if dir == Direction::Right {
+                            if dir == Direction::Right && self.collide_info.2 == 20.0 {
+                                self.collide_info.2 = 10.0;
+
                                 self.collide_info.1 = Some(Direction::Left);
                             } else {
                                 self.collide_info.1 = Some(Direction::Right);
@@ -433,7 +439,7 @@ impl<'a> Enemy<'a> {
 
                     Direction::Left => {
                         if self.collide_info.1.is_none() {
-                            self.move_character(Direction::Up, self.movement_value);
+                            self.move_character(Direction::Up, self.collide_info.2);
 
                             self.collide_info.1 = Some(Direction::Down);
                         } else {
@@ -443,9 +449,11 @@ impl<'a> Enemy<'a> {
                                 dir = Direction::Up;
                             }
 
-                            self.move_character(dir, self.movement_value);
+                            self.move_character(dir, self.collide_info.2);
 
-                            if dir == Direction::Up {
+                            if dir == Direction::Up && self.collide_info.2 == 20.0 {
+                                self.collide_info.2 = 10.0;
+
                                 self.collide_info.1 = Some(Direction::Down);
                             } else {
                                 self.collide_info.1 = Some(Direction::Up);
@@ -455,7 +463,7 @@ impl<'a> Enemy<'a> {
 
                     Direction::Right => {
                         if self.collide_info.1.is_none() {
-                            self.move_character(Direction::Down, self.movement_value);
+                            self.move_character(Direction::Down, self.collide_info.2);
 
                             self.collide_info.1 = Some(Direction::Up);
                         } else {
@@ -465,9 +473,11 @@ impl<'a> Enemy<'a> {
                                 dir = Direction::Down;
                             }
 
-                            self.move_character(dir, self.movement_value);
+                            self.move_character(dir, self.collide_info.2);
 
-                            if dir == Direction::Down {
+                            if dir == Direction::Down && self.collide_info.2 == 20.0 {
+                                self.collide_info.2 = 10.0;
+
                                 self.collide_info.1 = Some(Direction::Up);
                             } else {
                                 self.collide_info.1 = Some(Direction::Down);
@@ -487,7 +497,11 @@ impl<'a> Enemy<'a> {
                 self.collide_info.0 = 0;
                 self.is_colliding = false;
             }
-        }
+        } 
+    }
+
+    pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
+        self.move_enemy_when_colliding();
 
         let new_notority_level = self.detect_player(current_notoriety_level, player, walls, doors);
 
@@ -725,6 +739,31 @@ impl<'a> Enemy<'a> {
             return true;
         }
 
+        for wall in walls {
+            let wall_start = round_position_to_full_numbers(wall.get_position(), self.movement_value, true, true);
+            let wall_end = round_position_to_full_numbers(wall_start + wall.get_size(), self.movement_value, true, true);
+
+            let is_between_x_axis = (
+                (player_end.y <= wall_start.y && self.position.y >= wall_end.y)
+                || (enemy_end.y <= wall_start.y && player_start.y >= wall_end.y)
+            ) && (
+                (player_start.x >= wall_start.x && enemy_end.x <= wall_end.x)
+                || (player_end.x <= wall_end.x && self.position.x >= wall_start.x)
+            );
+
+            let is_between_y_axis = (
+                (player_end.x <= wall_start.x && self.position.x >= wall_end.x)
+                || (enemy_end.x <= wall_start.x && player_start.x >= wall_end.x)
+            ) && (
+                (player_start.y >= wall_start.y && enemy_end.y <= wall_end.y)
+                || (player_end.y <= wall_end.y && self.position.y >= wall_start.y)
+            );
+
+            if is_between_x_axis || is_between_y_axis {
+                return false;
+            }
+        }
+
         let (first_point, second_point, apex) = self.detect_traingle;
 
         let is_seeing = match self.moving_towards {
@@ -829,10 +868,6 @@ impl<'a> Enemy<'a> {
                 let wall_end = round_position_to_full_numbers(wall_start + wall.get_size(), self.movement_value, true, true);
 
                 for (start_check_position, end_check_position) in check_positions.iter() {
-                    if player_body_check_positions.0 && player_body_check_positions.1 {
-                        return false;
-                    }
-
                     if !player_body_check_positions.0 && is_in_object(start_check_position, &wall_start, &wall_end) {
                         player_body_check_positions.0 = true;
                     }
