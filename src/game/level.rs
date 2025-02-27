@@ -1068,7 +1068,7 @@ impl<'a> GameLevel<'a> {
             },
 
             4 => {
-                player.move_to(Position { x: 90.0, y: 780.0 }, true);
+                player.move_to(Position { x: 90.0, y: 790.0 }, true);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 132.0, y: 615.0 }, "34r/4000 34l/6000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 587.0, y: 615.0 }, "29r/4500 29l/6500", false));
@@ -1237,8 +1237,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_wall(Wall::new(Position { x: 545.0, y: 361.0 }, Size { width: DEFAULT_SIZE, height: 219.0 }, None, None));
                 self.insert_wall(Wall::new(Position { x: 575.0, y: 361.0 }, Size { width: 197.5, height: DEFAULT_SIZE + 10.0 }, None, None));
 
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 490.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 55.0, y: 490.0 }, Size { width: 490.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 490.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 60.0, y: 490.0 }, Size { width: 490.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 295.0, y: 518.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 65.0, y: 518.0 }, None));
@@ -1298,8 +1298,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 40.0, y: 215.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 77.0, y: 85.0 }, None));
 
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 190.0, y: 280.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 245.0, y: 280.0 }, Size { width: 105.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 194.0, y: 280.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 250.0, y: 280.0 }, Size { width: 100.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 230.0, y: 85.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 265.0, y: 215.0 }, None));                      
@@ -1378,8 +1378,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_wall(Wall::new(Position { x: 907.5, y: 371.0 }, Size { width: 40.0, height: DEFAULT_SIZE }, None, None));
 
                 // right
-                self.insert_wall(Wall::new(Position { x: 947.5, y: 251.0 }, Size { width: DEFAULT_SIZE, height: 40.0 }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 944.5, y: 291.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 947.5, y: 251.0 }, Size { width: DEFAULT_SIZE, height: 34.0 }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 944.5, y: 285.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 75.0 }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 947.5, y: 361.0 }, Size { width: DEFAULT_SIZE, height: 40.0 }, None, None));
                 
                 self.insert_wall(Wall::new(Position { x: 772.5, y: 401.0 }, Size { width: DEFAULT_SIZE, height: 279.0 }, None, None));
@@ -1447,14 +1447,18 @@ impl<'a> GameLevel<'a> {
                 self.insert_wall(Wall::new(Position { x: 947.5, y: 90.0 }, Size { width: DEFAULT_SIZE, height: 161.0 }, None, None));
                 
                 for num in 0..3 {
-                    self.insert_wall(Wall::new(Position { x: 947.5 + (num as f32 * 252.5), y: 60.0 }, Size { width: 252.5, height: DEFAULT_SIZE }, None, None));
+                    if num == 2 {
+                        self.insert_wall(Wall::new(Position { x: 947.5 + (num as f32 * 252.5), y: 60.0 }, Size { width: 245.0, height: DEFAULT_SIZE }, None, None));
+                    } else {
+                        self.insert_wall(Wall::new(Position { x: 947.5 + (num as f32 * 252.5), y: 60.0 }, Size { width: 252.5, height: DEFAULT_SIZE }, None, None));
+                    }
                 }
                 
                 self.insert_hide_place(HidePlace::new(Position { x: 1007.5, y: 296.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1107.5, y: 261.0 }, None));
 
-                self.insert_wall(Wall::new(Position { x: 977.5, y: 221.0 }, Size { width: 120.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1097.5, y: 221.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 977.5, y: 221.0 }, Size { width: 110.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1090.0, y: 221.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
                 
                 self.insert_hide_place(HidePlace::new(Position { x: 1022.5, y: 156.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1094.5, y: 90.0 }, None));
@@ -1469,7 +1473,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_door_collectable(DoorCollectable::new(1, DoorCollectableType::Key, Position { x: 1307.5, y: 100.0 }, vec![1], None));
 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1182.5, y: 221.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 1247.5, y: 221.0 }, Size { width: 110.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_wall(Wall::new(Position { x: 1250.0, y: 221.0 }, Size { width: 110.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1277.5, y: 251.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1182.5, y: 296.0 }, None));
@@ -1477,8 +1481,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_wall(Wall::new(Position { x: 1357.5, y: 90.0 }, Size { width: DEFAULT_SIZE, height: 201.0 }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1354.5, y: 291.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
             
-                self.insert_wall(Wall::new(Position { x: 1387.5, y: 261.0 }, Size { width: 140.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(1, DoorType::Locked, Position { x: 1517.5, y: 261.0 }, Size { width: 85.0, height: DEFAULT_SIZE }, true, Some(1), None, None)?);
+                self.insert_wall(Wall::new(Position { x: 1387.5, y: 261.0 }, Size { width: 135.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(1, DoorType::Locked, Position { x: 1515.0, y: 261.0 }, Size { width: 85.0, height: DEFAULT_SIZE }, true, Some(1), None, None)?);
                 self.insert_wall(Wall::new(Position { x: 1592.5, y: 261.0 }, Size { width: 47.5, height: DEFAULT_SIZE }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1605.0, y: 291.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
                 
@@ -1495,7 +1499,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_coin(Coin::new(Position { x: 1397.5, y: 100.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 1560.0, y: 100.0 }, None));
 
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1705.0, y: 60.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1695.0, y: 60.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
             
                 self.insert_hide_place(HidePlace::new(Position { x: 1705.0, y: 296.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1715.0, y: 181.0 }, None));
@@ -1541,8 +1545,8 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 117.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
 
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 60.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 55.0, y: 60.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 60.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 60.0, y: 60.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_exit_door(ExitDoor::new(Position { x: 30.0, y: 0.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 652.5, y: 251.0 }, Size { width: 120.0, height: DEFAULT_SIZE }, None, None));
@@ -1585,15 +1589,15 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 105.0, y: 615.0 }, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 65.0, y: 585.0 }, false, None, None));
                 
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 580.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 55.0, y: 580.0 }, Size { width: 227.5, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 580.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 60.0, y: 580.0 }, Size { width: 222.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 65.0, y: 515.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 440.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 75.0, y: 370.0 }, None));
 
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 340.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 55.0, y: 340.0 }, Size { width: 95.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 340.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 60.0, y: 340.0 }, Size { width: 90.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_wall(Wall::new(Position { x: 150.0, y: 340.0 }, Size { width: 472.5, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_wall(Wall::new(Position { x: 120.0, y: 60.0 }, Size { width: DEFAULT_SIZE, height: 220.0 }, None, None));
@@ -1621,9 +1625,9 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 814.5, y: 90.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 802.5, y: 191.0 }, None));
                 
-                self.insert_wall(Wall::new(Position { x: 472.5, y: 150.0 }, Size { width: 40.0, height: DEFAULT_SIZE }, None, None));
-                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 512.5, y: 150.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
-                self.insert_wall(Wall::new(Position { x: 577.5, y: 150.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_wall(Wall::new(Position { x: 472.0, y: 150.0 }, Size { width: 35.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 508.0, y: 150.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 580.0, y: 150.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 714.5, y: 85.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 587.5, y: 85.0 }, None));
