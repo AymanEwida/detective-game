@@ -650,12 +650,14 @@ impl<'a> Enemy<'a> {
                             }
                         } else {
                             self.current_search_idx = 0;
+                            self.near_hide_places_positions = None;
 
                             self.mode = EnemyMode::Regular;
                         }
                     }
                 } else {
                     self.current_search_idx = 0;
+                    self.near_hide_places_positions = None;
 
                     self.mode = EnemyMode::Regular;
                 }
