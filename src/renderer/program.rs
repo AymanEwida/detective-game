@@ -98,6 +98,17 @@ impl Program {
         Ok(())
     }
 
+    pub unsafe fn set_opacity_uniform_to_texture(&self, value: f32) -> Result<()> {
+        assert!(value >= 0.0 && value <= 1.0, "opacity value must be between 0.0 to 1.0");
+
+        let opacity_uniform = CString::new("opacity")
+            .map_err(|_| Error::LinkingError("Unable to get opacity uniform string".to_string()))?;
+
+        gl::Uniform1f(gl::GetUniformLocation(self.id, opacity_uniform.as_ptr()), value);
+
+        Ok(())
+    }
+
     pub unsafe fn set_transform_matrix_uniform(&self, matrix: Mat4) -> Result<()> {
         let transform_uniform = CString::new("transform")
             .map_err(|_| Error::LinkingError("Unable to get transform uniform string".to_string()))?;

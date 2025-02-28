@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub};
+use std::{hash::Hash, ops::{Add, Sub}};
 
 use crate::library::utils::convert_coordinates;
 
@@ -6,11 +6,20 @@ use super::{color::Color, render::Size};
 
 pub type PositionType = [f32; 2];
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Position {
     pub x: f32,
     pub y: f32,
 }
+
+impl Hash for Position {
+   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+       state.write_i32(self.x as i32);
+       state.write_i32(self.y as i32);
+   } 
+}
+
+impl Eq for Position {}
 
 impl Add<f32> for Position {
     type Output = Self;
@@ -34,6 +43,17 @@ impl Add for Position {
     }
 }
 
+impl Add<Size> for Position {
+    type Output = Self;
+
+    fn add(self, rhs: Size) -> Self::Output {
+        Self {
+            x: self.x + rhs.width,
+            y: self.y + rhs.height
+        }
+    }
+}
+
 impl Sub<f32> for Position {
     type Output = Self;
 
@@ -52,6 +72,17 @@ impl Sub for Position {
         Self {
             x: self.x - rhs.x,
             y: self.y - rhs.y
+        }
+    }
+}
+
+impl Sub<Size> for Position {
+    type Output = Self;
+
+    fn sub(self, rhs: Size) -> Self::Output {
+        Self {
+            x: self.x - rhs.width,
+            y: self.y - rhs.height
         }
     }
 }
@@ -81,6 +112,14 @@ impl Position {
         [self.x, self.y]
     }
 
+    pub fn get_neighbors(&self, value: f32) -> Vec<Self> {
+        vec![
+            Self { x: self.x, y: self.y - value },
+            Self { x: self.x, y: self.y + value },
+            Self { x: self.x - value, y: self.y },
+            Self { x: self.x + value, y: self.y },
+        ]
+    }
 }
 
 #[derive(Debug)]

@@ -1,8 +1,10 @@
-use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
+use glfw::{Action, Key};
 
-use super::{character::{Character, Direction}, level::GameObject};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, round_position_to_full_numbers}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-#[derive(Debug)]
+use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, hide_place::HidePlace, level::{EndStartPositions, GameObject}, level_object::ObjectType, wall::Wall};
+
+#[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
     NotHidden,
     Hidden,
@@ -18,33 +20,81 @@ impl std::fmt::Display for PlayerStatus {
         }
     }
 }
+#[derive(Debug)]
+pub struct PlayerInteraction {
+    key: Key,
+    action: Action
+}
+
+impl PlayerInteraction {
+    pub fn new(key: Key, action: Action) -> Self {
+        Self {
+            key,
+            action
+        }
+    }
+}
+
+impl PlayerInteraction {
+    pub fn key(&self) -> &Key {
+        &self.key
+    }
+
+    pub fn action(&self) -> &Action {
+        &self.action
+    }
+}
+
+#[derive(Debug)]
+pub struct DoorCollectableInventory {
+    id: usize,
+    collectable_type: ObjectType,
+}
 
 #[derive(Debug)]
 pub struct Player<'a> {
     position: Position,
     prev_position: Option<Position>,
+    calc_position: EndStartPositions,
     size: Size,
     image: &'a str,
     flip: bool,
-    status: PlayerStatus
+    movement_value: f32,
+    status: PlayerStatus,
+    interaction: Option<PlayerInteraction>,
+    door_collectable_inventory: Vec<DoorCollectableInventory>,
+    coins: u32,
 }
 
 impl Player<'_> {
     pub fn new(start_position: Position, flip: bool) -> Self {
+        let size = DEFAULT_CHARACTER_SIZE;
+
         Self {
             position: start_position, 
             prev_position: None,
-            size: Size { width: 50.0, height: 60.0 },
+            calc_position: calculate_calc_position(start_position, size, DEFAULT_MOVEMENT_VALUE),
+            size,
             image: "assets/game/detective.png",
             flip,
-            status: PlayerStatus::NotHidden
+            movement_value: DEFAULT_MOVEMENT_VALUE,
+            status: PlayerStatus::NotHidden,
+            interaction: None,
+            door_collectable_inventory: Vec::new(),
+            coins: 0,
         }
     }
 }
 
 impl<'a> GameObject<'a> for Player<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, self.flip, None, None, None)?;
+        let opacity = if self.status == PlayerStatus::Hidden {
+            Some(0.5)
+        } else {
+            None
+        };
+
+        render.load_image(self.image, self.position, self.size, self.flip, opacity, None, None, None)?;
 
         Ok(())
     }
@@ -55,10 +105,15 @@ impl<'a> GameObject<'a> for Player<'a> {
 
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_calc_position();
     }
 
     fn get_size(&self) -> Size {
         self.size
+    }
+
+    fn get_calc_position(&self) -> EndStartPositions {
+        self.calc_position
     }
 }
 
@@ -69,15 +124,63 @@ impl<'a> Character<'a> for Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    pub fn move_player(&mut self, direction: Direction, speed: Option<f32>) {
-        self.prev_position = Some(self.get_position());
+    pub fn get_status(&self) -> &PlayerStatus {
+        &self.status
+    }
 
-        self.move_character(direction, speed);
+    pub fn set_status(&mut self, new_status: PlayerStatus) {
+        self.status = new_status;
+    }
+
+    pub fn set_movement_value(&mut self, new_value: f32) {
+        self.movement_value = new_value;
+    }
+
+    pub fn get_interaction(&self) -> &Option<PlayerInteraction> {
+        &self.interaction
+    }
+
+    pub fn set_interaction(&mut self, new_value: Option<PlayerInteraction>) {
+        self.interaction = new_value;
+    }
+    
+    pub fn get_door_collectable_inventory(&self) -> &[DoorCollectableInventory] {
+        &self.door_collectable_inventory
+    }
+
+    pub fn add_door_collectable(&mut self, door_collectable_id: usize, door_collectble_type: ObjectType) {
+        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, collectable_type: door_collectble_type });
+    }
+
+    pub fn get_coins(&self) -> u32 {
+        self.coins
+    }
+
+    pub fn add_coin(&mut self) {
+        self.coins = self.coins + 1;
+    }
+
+    pub fn get_movement_value(&self) -> f32 {
+        self.movement_value
+    }
+
+    fn set_calc_position(&mut self) {
+        self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
+    }
+
+    pub fn move_player(&mut self, direction: Direction) {
+        if self.status != PlayerStatus::Hidden {
+            self.prev_position = Some(self.get_position());
+    
+            self.move_character(direction, self.movement_value);
+            self.set_calc_position();
+        }
     }
 
     pub fn move_to_prev_position(&mut self) {
         if let Some(prev_position) = self.prev_position {
             self.position = prev_position;
+            self.set_calc_position();
         }
     }
 
@@ -89,6 +192,7 @@ impl<'a> Player<'a> {
         self.flip = flip;
 
         self.position = new_position;
+        self.set_calc_position();
     }
 
     pub fn is_off_window(&self, window_size: Size) -> bool {
@@ -111,11 +215,76 @@ impl<'a> Player<'a> {
         self.position.y < start_position.y
     }
 
-    pub fn get_status(&self) -> &PlayerStatus {
-        &self.status
+    pub fn is_colliding_with_hide_place(&self, hide_place: &HidePlace) -> bool {
+        if (self.get_calc_position().0 == hide_place.get_calc_position().0) || (self.get_calc_position().1 == hide_place.get_calc_position().1) {
+            return true;
+        }
+        
+        let start_hide_place_position = round_position_to_full_numbers(hide_place.get_position(), self.movement_value, true, false);
+        let end_hide_place_position = round_position_to_full_numbers(start_hide_place_position + hide_place.get_size(), self.movement_value, true, false);
+        let start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
+        let end_player_position = self.position + self.size;
+
+        let is_collide = | movement_val: f32 | {
+            (start_player_position.y == start_hide_place_position.y
+                && (
+                    (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + movement_val))
+                    || (end_player_position.x >= (end_hide_place_position.x - movement_val) && end_player_position.x <= end_hide_place_position.x)
+                )) || (start_player_position.x == start_hide_place_position.x
+                && (
+                    (start_player_position.y >= start_hide_place_position.y && start_player_position.y <= (start_hide_place_position.y + movement_val))
+                    || (end_player_position.y >= (end_hide_place_position.y - movement_val) && end_player_position.y <= end_hide_place_position.y)
+                )
+            )
+        };
+
+        let is_colliding = is_collide(self.movement_value);
+
+        if !is_colliding {
+            return is_collide(self.movement_value * 2.0);
+        }
+
+        is_colliding
     }
 
-    pub fn set_status(&mut self, new_status: PlayerStatus) {
-        self.status = new_status;
+    pub fn throw_form_hide_place(&mut self, walls: &[Wall<'a>], enemy_movement_direction: &Direction) {
+        if self.status == PlayerStatus::Hidden {
+            let new_value = 60.0;
+
+            let mut can_throw_left = false;
+            let mut can_throw_right= false;
+
+            let mut i = 0;
+
+            while i < walls.len() {
+                let wall = &walls[i];
+                let wall_start = wall.get_position();
+                let wall_end = wall_start + wall.get_size();
+
+                let player_end = self.position + self.size;
+
+                if self.position.x > wall_end.x && (self.position.x - wall_end.x) >= new_value {
+                    can_throw_left = true;
+                }
+
+                if wall_start.x > player_end.x && (wall_start.x - player_end.x) >= new_value {
+                    can_throw_right = true;
+                }
+
+                i = i + 1;
+            }
+
+            if can_throw_left && can_throw_right {
+                if enemy_movement_direction == &Direction::Left {
+                    self.set_position(Position { x: self.position.x - new_value, y: self.position.y });
+                } else {
+                    self.set_position(Position { x: self.position.x + new_value, y: self.position.y });
+                }
+            } else if can_throw_left {
+                self.set_position(Position { x: self.position.x - new_value, y: self.position.y });
+            } else {
+                self.set_position(Position { x: self.position.x + new_value, y: self.position.y });
+            }
+        }
     }
 }

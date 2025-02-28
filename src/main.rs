@@ -3,6 +3,7 @@ extern crate glfw;
 
 use std::time::{Duration, Instant};
 
+use detective_game::game::player::PlayerInteraction;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::library::constants::{
@@ -38,8 +39,8 @@ fn main() {
     // level.next_level();
     // level.next_level();
     // level.next_level();
-    level.set_level(3);
-    level.load_level(&mut player);
+    level.set_level(1);
+    level.load_level(&mut player).expect("Unable to load level!");
     
     let mut last_update = Instant::now();
 
@@ -61,6 +62,8 @@ fn main() {
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::Key(key, _, action, _) => {
+                    player.set_interaction(Some(PlayerInteraction::new(key, action)));
+
                     match key {
                         Key::Escape => {
                             match action {
@@ -74,7 +77,7 @@ fn main() {
                         Key::W => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Up, None);
+                                    player.move_player(Direction::Up);
                                 },
                                 _ => ()
                             }
@@ -83,7 +86,7 @@ fn main() {
                         Key::S => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Down, None);
+                                    player.move_player(Direction::Down);
                                 },
                                 _ => ()
                             }
@@ -92,7 +95,7 @@ fn main() {
                         Key::A => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Left, None);
+                                    player.move_player(Direction::Left);
                                 },
                                 _ => ()
                             }
@@ -101,7 +104,7 @@ fn main() {
                         Key::D => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Right, None);
+                                    player.move_player(Direction::Right);
                                 },
                                 _ => ()
                             }
@@ -134,6 +137,8 @@ fn main() {
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();
+
+            player.set_interaction(None);
         }
     }
 }

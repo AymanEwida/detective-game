@@ -2,7 +2,11 @@ use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
 use rand::Rng;
 
-use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
+use crate::{game::{character::Direction, level::EndStartPositions}, renderer::{render::Size, vertice::Position}};
+
+use super::constants::GAME_ASSETS_DIR;
+
+pub type PathVec = Vec<(u32, Direction, u64)>;
 
 pub fn length_of_line(start: &Position, end: &Position) -> f32 {
     ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt()
@@ -60,7 +64,7 @@ pub fn convert_size(object_size: Size, window: &Size) -> Size {
     Size { width: (object_size.width * 2.0) / window.width, height: (object_size.height * 2.0) / window.height }
 }
 
-pub fn convert_path(path: &str) -> Vec<(u32, Direction, u64)> {
+pub fn convert_path(path: &str) -> PathVec {
     let full_path = path.to_lowercase();
 
     full_path.split(' ').map(| full_move_path | {
@@ -81,6 +85,42 @@ pub fn convert_path(path: &str) -> Vec<(u32, Direction, u64)> {
 
         (move_number, move_direction, wait_time)
     }).collect()
+}
+
+pub fn sum_direction_length_from_path(path: &str, direction: Direction, speed: f32) -> f32 {
+    let direction = match direction {
+        Direction::Left => 'l',
+        Direction::Right => 'r',
+        Direction::Up => 'u',
+        Direction::Down => 'd' 
+    };
+
+    let mut steps = String::new();
+    let mut count = 0;
+
+    for ch in path.chars() {
+        if ch == ' ' {
+            steps = String::new();
+
+            continue;
+        }
+
+        if ch >= '0' && ch <= '9' {
+            steps.push(ch); 
+        } else if ch == direction {
+            for i in 0..steps.len() {
+                let num = steps[i..i+1]
+                    .chars()
+                    .next()
+                    .unwrap()
+                    .to_ascii_lowercase() as i32 - 48;
+
+                count += 10_i32.pow((steps.len() - 1 - i) as u32) * num;
+            }
+        }
+    }
+
+    count as f32 * speed
 }
 
 pub fn convert_angle_to_radians(angle: f32) -> f32 {
@@ -117,10 +157,13 @@ pub fn absolute_f32(num: f32) -> f32 {
 }
 
 pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
-    let level_challenges_file_path = format!("./assets/game/challenges/level{}.txt", level);
+    let level_challenges_file_path = format!("./{}challenges/level{}.txt", GAME_ASSETS_DIR, level);
     let content = fs::read_to_string(Path::new(&level_challenges_file_path))?; 
 
-    let challenges_vec: Vec<&str> = content.split("\r\n").collect();
+    let mut challenges_vec: Vec<&str> = content.split("\n").collect();
+    if content.contains("\r\n") {
+        challenges_vec = content.split("\r\n").collect();
+    }
 
     if challenges_vec.len() == 0 {
         return Err(Error::new(ErrorKind::InvalidData, format!("There is no challenges in the file, path is: {}", level_challenges_file_path)));
@@ -139,4 +182,124 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
     }
 
     Ok(challenges)
+}
+
+pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, angle_direction: Direction) -> (Position, Position, Position) {
+    assert!(angle > 0.0 && angle < 180.0, "angle must be bigger than 0.0 and smaller than 180.0");
+   
+    let angle = convert_angle_to_radians(angle);
+
+    let middle_line_length = angle.cos() * line_length;
+    let middle_part_line_length = (line_length.powi(2) - middle_line_length.powi(2)).sqrt(); 
+
+    let middle_point;
+    let top_point;
+    let bottom_point;        
+
+    match angle_direction {
+        Direction::Right => {
+            middle_point = Position { x: apex.x + middle_line_length, y: apex.y };
+            top_point = Position { x: middle_point.x, y: middle_point.y + middle_part_line_length };
+            bottom_point = Position { x: middle_point.x, y: middle_point.y - middle_part_line_length };
+        },
+
+        Direction::Left => {
+            middle_point = Position { x: apex.x - middle_line_length, y: apex.y };
+            top_point = Position { x: middle_point.x, y: middle_point.y + middle_part_line_length };
+            bottom_point = Position { x: middle_point.x, y: middle_point.y - middle_part_line_length };
+        },
+
+        Direction::Down => {
+            middle_point = Position { x: apex.x, y: apex.y + middle_line_length };
+            top_point = Position { x: middle_point.x + middle_part_line_length, y: middle_point.y};
+            bottom_point = Position { x: middle_point.x - middle_part_line_length, y: middle_point.y };
+        },
+
+        Direction::Up => {
+            middle_point = Position { x: apex.x, y: apex.y - middle_line_length };    
+            top_point = Position { x: middle_point.x + middle_part_line_length, y: middle_point.y};
+            bottom_point = Position { x: middle_point.x - middle_part_line_length, y: middle_point.y };
+        },
+    }
+
+    (top_point, bottom_point, apex)
+}
+
+pub fn get_heuristic_score(a: &Position, b: &Position, value: f32) -> f32 {
+    (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / value
+}
+
+
+pub fn round_position_to_full_numbers(position: Position, value: f32, is_middle_towrds_up_x_axis: bool, is_middle_towrds_up_y_axis: bool) -> Position {
+    let decimal_round_position = Position { x: position.x.round(), y: position.y.round() };
+
+    let rounded_x = if is_middle_towrds_up_x_axis {
+        (decimal_round_position.x / value).round() * value
+    } else {
+        if (decimal_round_position.x % value) <= (value / 2.0).round() {
+            (decimal_round_position.x / value).floor() * value
+        } else {
+            (decimal_round_position.x / value).ceil() * value
+        }
+    };
+
+    let rounded_y = if is_middle_towrds_up_y_axis {
+        (decimal_round_position.y / value).round() * value
+    } else {
+        if (decimal_round_position.y % value) <= (value / 2.0).round() {
+            (decimal_round_position.y / value).floor() * value
+        } else {
+            (decimal_round_position.y / value).ceil() * value
+        }
+    };
+
+    Position { x: rounded_x, y: rounded_y }
+}
+
+pub fn get_estimated_position(position: &Position, steps: u32, direction: Direction, value: f32) -> Position {
+    let distance = steps as f32 * value;
+
+    match direction {
+        Direction::Left => {
+            Position {
+                x: position.x - distance,
+                ..*position
+            }
+        },
+
+        Direction::Right => {
+            Position {
+                x: position.x + distance,
+                ..*position
+            }
+        },
+
+        Direction::Up => {
+            Position {
+                y: position.y - distance,
+                ..*position
+            }
+        },
+
+        Direction::Down => {
+            Position {
+                y: position.y + distance,
+                ..*position
+            }
+        }
+    }
+}
+
+pub fn is_position_in_border(border_start: &Position, border_end: &Position, position: &Position) -> (bool, bool) {
+    (
+        position.x >= border_start.x && position.x <= border_end.x,
+        position.y >= border_start.y && position.y <= border_end.y
+    )
+}
+
+pub fn calculate_calc_position(start_position: Position, size: Size, value: f32) -> EndStartPositions {
+    let start = round_position_to_full_numbers(start_position, value, true, true);
+    let end = round_position_to_full_numbers(start + size, value, true, true);
+
+    (start, end)
 }

@@ -3,11 +3,12 @@ extern crate detective_game;
 
 use std::time::{Duration, Instant};
 
+use detective_game::game::player::PlayerInteraction;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
-use detective_game::game::{camera::Camera, character::Direction, enemy::{Enemy, EnemyType}, level::{GameObject, ObjectLevel, ObjectLevelType}, player::Player};
+use detective_game::game::{character::Direction, player::Player};
 use detective_game::renderer::{render::{Render, Size}, vertice::Position};
-use simulator::Simulator;
+use simulator::{SimulationStatus, Simulator, SimulatorType};
 
 pub mod simulator;
 
@@ -34,14 +35,9 @@ fn main() {
     let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
-    let simulator = Simulator::from(
-        vec![
-            ObjectLevel::new(ObjectLevelType::Wall, Position { x: 90.0, y: 90.0 }, Size { width: 200.0, height: 30.0 }, false, None, None),
-            // ObjectLevel::new(ObjectLevelType::Camera, Position { x: 170.0, y: 95.0 }, Size { width: 30.0, height: 30.0 }, true, None, None)
-        ]
-    );
-    let mut camera = Camera::new_without_repeat(Position { x: 170.0, y: 95.0 }, true, None, None);
-    let mut enemy =  Enemy::new(EnemyType::Regular, Position { x: 400.0, y: 10.0 }, "5d/0 4r/2000 4l/0 5u/2000", false);
+    let mut simulator = Simulator::new();
+
+    simulator.load_simulation(SimulatorType::EnemyLogic).expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
 
@@ -63,6 +59,8 @@ fn main() {
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::Key(key, _, action, _) => {
+                    player.set_interaction(Some(PlayerInteraction::new(key, action)));
+
                     match key {
                         Key::Escape => {
                             match action {
@@ -76,7 +74,9 @@ fn main() {
                         Key::W => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Up, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Up);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -85,7 +85,9 @@ fn main() {
                         Key::S => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Down, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Down);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -94,7 +96,9 @@ fn main() {
                         Key::A => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Left, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Left);
+                                    }
                                 },
                                 _ => ()
                             }
@@ -103,12 +107,14 @@ fn main() {
                         Key::D => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    player.move_player(Direction::Right, None);
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.move_player(Direction::Right);
+                                    }
                                 },
                                 _ => ()
                             }
                         },
-                        
+
                         _ => ()
                     }
                 },
@@ -133,14 +139,11 @@ fn main() {
 
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
-            camera.draw(&mut render).expect("Unable to draw camera");
-            
-            enemy.draw(&mut render).expect("Unable to draw enemy");
-            enemy.move_enemy(None);
-
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();
+
+            player.set_interaction(None);
         }
     }
 }
