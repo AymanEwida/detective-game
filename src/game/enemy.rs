@@ -1,9 +1,9 @@
 use core::fmt;
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
-use crate::{library::utils::{absolute_f32, calc_equidistant_points, convert_path, get_estimated_position, get_heuristic_score, round_position_to_full_numbers, PathVec}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, PathVec}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, door::Door, hide_place::HidePlace, level::GameObject, player::{Player, PlayerStatus}, wall::Wall};
+use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::Door, hide_place::HidePlace, level::{EndStartPositions, GameObject}, player::{Player, PlayerStatus}, wall::Wall};
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -60,6 +60,8 @@ pub struct Enemy<'a> {
     start_position: Position,
     position: Position,
     prev_position: Option<Position>,
+    calc_start_position: EndStartPositions,
+    calc_position: EndStartPositions,
     size: Size,
     image: &'a str,
     flip: bool,
@@ -91,7 +93,9 @@ impl<'a> Enemy<'a> {
         let moves_path = convert_path(path);
         let first_direction = moves_path[0].1;
 
-        let start_position = round_position_to_full_numbers(start_position, 10.0, true, true);
+        let size = DEFAULT_CHARACTER_SIZE;
+
+        let calc_start_position = calculate_calc_position(start_position, size, DEFAULT_MOVEMENT_VALUE);
 
         match enemy_type {
             EnemyType::Regular => {
@@ -99,10 +103,12 @@ impl<'a> Enemy<'a> {
                     start_position,
                     position: start_position,
                     prev_position: None,
-                    size: Size { width: 50.0, height: 60.0 },
+                    calc_start_position,
+                    calc_position: calc_start_position,
+                    size,
                     image: "assets/game/regular-enemy.png",
                     flip,
-                    movement_value: 10.0,
+                    movement_value: DEFAULT_MOVEMENT_VALUE,
                     last_move_time: Instant::now(),
                     move_interval: DEFAULT_MOVE_INTERVAL,
                     original_moves_path: path,
@@ -121,7 +127,7 @@ impl<'a> Enemy<'a> {
                     current_search_idx: 0,
                     estimated_search_position: None,
                     is_colliding: false,
-                    collide_info: (0, None, 10.0),
+                    collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
                     want_to_teleport: false,
                 }
             }
@@ -150,10 +156,15 @@ impl<'a> GameObject<'a> for Enemy<'a> {
 
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_calc_position();
     }
 
     fn get_size(&self) -> Size {
         self.size
+    }
+
+    fn get_calc_position(&self) -> EndStartPositions {
+        self.calc_position
     }
 }
 
@@ -170,10 +181,11 @@ impl<'a> Enemy<'a> {
 
     pub fn _set_start_position(&mut self, _new_start_position: Position) {
         self.start_position = _new_start_position;
+        self.calc_start_position = calculate_calc_position(self.start_position, self.size, self.movement_value);
     }
 
     pub fn _set_prev_position(&mut self) {
-        self.prev_position = Some(self.position)
+        self.prev_position = Some(self.position);
     }
 
     pub fn set_is_colliding(&mut self, new_value: bool) {
@@ -188,6 +200,14 @@ impl<'a> Enemy<'a> {
         self.want_to_teleport = new_value;
     }
 
+    pub fn get_calc_start_position(&self) -> EndStartPositions {
+        self.calc_start_position
+    }
+    
+    fn set_calc_position(&mut self) {
+        self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
+    }
+
     fn move_enemy_in_path(&mut self, move_interval: Option<Duration>) {
         if self.last_move_time.elapsed() >= self.move_interval {
             if let Some((moves_number, direction, wait_time)) = self.current_moves_path.first() {
@@ -196,6 +216,7 @@ impl<'a> Enemy<'a> {
 
                     self.prev_position = Some(self.position);
                     self.move_character(*direction, self.movement_value);
+                    self.set_calc_position();
 
                     self.current_moves_path[0].0 -= 1;
                     self.moves_count += 1;
@@ -227,6 +248,7 @@ impl<'a> Enemy<'a> {
     pub fn move_to_prev_position(&mut self) {
         if let Some(prev_position) = self.prev_position {
             self.position = prev_position;
+            self.set_calc_position();
         }
     }
 
@@ -247,30 +269,29 @@ impl<'a> Enemy<'a> {
                 let mut is_walkable = true;
 
                 for wall in walls {
-                    let wall_poistion = round_position_to_full_numbers(wall.get_position(), self.movement_value, true, true);
+                    let (wall_start_position, wall_end_position) = wall.get_calc_position();
                     
-                    if (wall_poistion.x >= window_start_position.x && wall_poistion.x <= window_end_position.x) && (wall_poistion.y >= window_start_position.y && wall_poistion.y <= window_end_position.y) {
-                        let wall_size = wall.get_size();
-                        let wall_max_position = round_position_to_full_numbers(wall_poistion + wall_size, self.movement_value, true, true);
+                    let check_wall_positions = is_position_in_border(&window_start_position, &window_end_position, &wall_start_position);
 
-                        if (current_position.x >= wall_poistion.x && current_position.y >= wall_poistion.y) && (current_position.x < wall_max_position.x && current_position.y < wall_max_position.y) {
+                    if check_wall_positions.0 && check_wall_positions.1 {
+                        if (current_position.x >= wall_start_position.x && current_position.y >= wall_start_position.y) && (current_position.x < wall_end_position.x && current_position.y < wall_end_position.y) {
                             is_walkable = false;
 
                             break;
-                        } else if (current_position.y >= wall_poistion.y && current_position.y < wall_max_position.y) && current_position.x < wall_poistion.x {
-                            if wall_poistion.x - current_position.x < self.size.width {
+                        } else if (current_position.y >= wall_start_position.y && current_position.y < wall_end_position.y) && current_position.x < wall_start_position.x {
+                            if wall_start_position.x - current_position.x < self.size.width {
                                 is_walkable = false;
 
                                 break;
                             }
-                        } else if (current_position.x >= wall_poistion.x && current_position.x < wall_max_position.x) && current_position.y < wall_poistion.y {
-                            if wall_poistion.y - current_position.y < self.size.height {
+                        } else if (current_position.x >= wall_start_position.x && current_position.x < wall_end_position.x) && current_position.y < wall_start_position.y {
+                            if wall_start_position.y - current_position.y < self.size.height {
                                 is_walkable = false;
 
                                 break;
                             }
-                        } else if current_position.x < wall_poistion.x && current_position.y < wall_poistion.y {
-                            if wall_poistion.x - current_position.x < self.size.width && wall_poistion.y - current_position.y < self.size.height {
+                        } else if current_position.x < wall_start_position.x && current_position.y < wall_start_position.y {
+                            if wall_start_position.x - current_position.x < self.size.width && wall_start_position.y - current_position.y < self.size.height {
                                 is_walkable = false;
 
                                 break;
@@ -289,7 +310,9 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: &Vec<Vec<bool>>) -> Option<PathVec> {
-        if self.position == target_position {
+        let (enemy_start, ..) = self.get_calc_position();
+
+        if enemy_start == target_position {
             return None;
         }
 
@@ -298,11 +321,11 @@ impl<'a> Enemy<'a> {
         let mut position_score = HashMap::new();
 
         movements.push(PossibilityNode {
-            position: self.position,
+            position: enemy_start,
             priority_score: 0
         });
-        came_from.insert(self.position, None);
-        position_score.insert(self.position, 0);
+        came_from.insert(enemy_start, None);
+        position_score.insert(enemy_start, 0);
 
         while let Some(current_movement) = movements.pop() {
             let current_position = current_movement.position;
@@ -323,7 +346,7 @@ impl<'a> Enemy<'a> {
                 let mut last_direction = None;
                 let mut count = 0;
 
-                current = self.position;
+                current = enemy_start;
 
                 for i in 1..path.len() {
                     let current_position = path[i];
@@ -404,7 +427,7 @@ impl<'a> Enemy<'a> {
                             self.move_character(dir, self.collide_info.2);
 
                             if dir == Direction::Left && self.collide_info.2 == 20.0 {
-                                self.collide_info.2 = 10.0;
+                                self.collide_info.2 = DEFAULT_MOVEMENT_VALUE;
 
                                 self.collide_info.1 = Some(Direction::Right);
                             } else {
@@ -428,7 +451,7 @@ impl<'a> Enemy<'a> {
                             self.move_character(dir, self.collide_info.2);
 
                             if dir == Direction::Right && self.collide_info.2 == 20.0 {
-                                self.collide_info.2 = 10.0;
+                                self.collide_info.2 = DEFAULT_MOVEMENT_VALUE;
 
                                 self.collide_info.1 = Some(Direction::Left);
                             } else {
@@ -452,7 +475,7 @@ impl<'a> Enemy<'a> {
                             self.move_character(dir, self.collide_info.2);
 
                             if dir == Direction::Up && self.collide_info.2 == 20.0 {
-                                self.collide_info.2 = 10.0;
+                                self.collide_info.2 = DEFAULT_MOVEMENT_VALUE;
 
                                 self.collide_info.1 = Some(Direction::Down);
                             } else {
@@ -476,7 +499,7 @@ impl<'a> Enemy<'a> {
                             self.move_character(dir, self.collide_info.2);
 
                             if dir == Direction::Down && self.collide_info.2 == 20.0 {
-                                self.collide_info.2 = 10.0;
+                                self.collide_info.2 = DEFAULT_MOVEMENT_VALUE;
 
                                 self.collide_info.1 = Some(Direction::Up);
                             } else {
@@ -488,14 +511,16 @@ impl<'a> Enemy<'a> {
 
                 self.collide_info.2 += self.movement_value;
 
-                if (self.collide_info.2 / 10.0) % 2.0 == 0.0 {
+                if (self.collide_info.2 / DEFAULT_MOVEMENT_VALUE) % 2.0 == 0.0 {
                     self.collide_info.2 = 20.0;
                 } else {
-                    self.collide_info.2 = 10.0;
+                    self.collide_info.2 = DEFAULT_MOVEMENT_VALUE;
                 }
 
                 self.collide_info.0 = 0;
                 self.is_colliding = false;
+                
+                self.calc_position = calculate_calc_position(self.position, self.size, self.collide_info.2);
             }
         } 
     }
@@ -518,6 +543,9 @@ impl<'a> Enemy<'a> {
             grid = &self.movement_grid.as_ref().unwrap().1;
         }
 
+        let start_position = self.get_calc_start_position().0;
+        let (enemy_start, ..) = self.get_calc_position();
+
         match self.mode {
             EnemyMode::Regular => {
                 self.already_detected_player = false;
@@ -527,9 +555,9 @@ impl<'a> Enemy<'a> {
                         self.move_interval = DEFAULT_MOVE_INTERVAL;
                     }
 
-                    if self.position != self.start_position {
+                    if enemy_start != start_position {
                         self.current_moves_path = self.find_optimal_path(
-                            self.start_position,
+                            start_position,
                             grid_start_position,
                             grid
                         ).unwrap_or(Vec::new());
@@ -547,8 +575,8 @@ impl<'a> Enemy<'a> {
 
             EnemyMode::Detecting => {
                 if let Some(detect_player_position) = self.detect_player_position {
-                    if self.position == detect_player_position && !self.is_detecting_player(player, walls, doors) {
-                        self.start_searching_position = Some(self.position);
+                    if enemy_start == detect_player_position && !self.is_detecting_player(player, walls, doors) {
+                        self.start_searching_position = Some(enemy_start);
                         self.detect_player_position = None;
                     } else {
                         if self.prev_mode != EnemyMode::Detecting && self.move_interval != DEFAULT_MOVE_INTERVAL {
@@ -591,12 +619,12 @@ impl<'a> Enemy<'a> {
                             let current_hide_place_position = round_position_to_full_numbers(near_hide_places_positions[self.current_search_idx], self.movement_value, false, true);
         
                             let reach_hide_place = || {
-                                (self.position == current_hide_place_position)
+                                (enemy_start == current_hide_place_position)
                                 || (
                                     (
-                                        self.position.y == current_hide_place_position.y && (self.position.x + self.movement_value) == current_hide_place_position.x
+                                        enemy_start.y == current_hide_place_position.y && (enemy_start.x + self.movement_value) == current_hide_place_position.x
                                     ) || (
-                                        self.position.x == current_hide_place_position.x && (self.position.y + self.movement_value) == current_hide_place_position.y
+                                        enemy_start.x == current_hide_place_position.x && (enemy_start.y + self.movement_value) == current_hide_place_position.y
                                     )
                                 )
                             };
@@ -611,7 +639,9 @@ impl<'a> Enemy<'a> {
 
                                     self.already_detected_player = true;
                                     self.mode = EnemyMode::Detecting;
-                                    self.detect_player_position = Some(player.get_position());
+                                    self.detect_player_position = Some(
+                                        round_position_to_full_numbers(player.get_position(), self.movement_value, true, true)
+                                    );
                                 }
 
                                 if self.last_move_time.elapsed() >= Duration::from_millis(2000) {
@@ -628,14 +658,14 @@ impl<'a> Enemy<'a> {
                                     let (steps, direction, wait_interval) = default_search_path[self.current_search_idx];
 
                                     if self.estimated_search_position.is_none() {
-                                        self.estimated_search_position = Some(get_estimated_position(&self.position, steps, direction, self.movement_value));
+                                        self.estimated_search_position = Some(get_estimated_position(&enemy_start, steps, direction, self.movement_value));
                                     }
 
                                     assert!(self.estimated_search_position != None, "estimated search position must exist");
 
                                     let estimated_search_position = self.estimated_search_position.unwrap();
 
-                                    if !self.is_colliding && self.position != estimated_search_position {
+                                    if !self.is_colliding && enemy_start != estimated_search_position {
                                         self.current_moves_path = vec![(steps, direction, wait_interval)];
                                         self.move_enemy_in_path(None);
                                     } else {
@@ -671,7 +701,9 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn get_near_hide_places_positions(&self, start_position: Option<Position>, hide_places: &[HidePlace<'a>]) -> Vec<Position> {
-        let start_position = start_position.unwrap_or(self.position);
+        let (enemy_start, ..) = self.get_calc_position();
+
+        let start_position = start_position.unwrap_or(enemy_start);
 
         let mut near_hide_places_positions = Vec::new();
 
@@ -728,37 +760,34 @@ impl<'a> Enemy<'a> {
             return false;
         }
 
-        let player_start = round_position_to_full_numbers(player.get_position(), self.movement_value, true, true);
-        let player_size = player.get_size();
-        let player_end = round_position_to_full_numbers(Position { x: player_start.x + player_size.width, y: player_start.y + player_size.height }, self.movement_value, true, true);
+        let (player_start, player_end) = player.get_calc_position();
 
-        let enemy_end = Position { x: self.position.x + self.size.width, y: self.position.y + self.size.height };
+        let (enemy_start, enemy_end) = self.get_calc_position();
 
-        if ((player_start.x >= self.position.x && player_start.x <= enemy_end.x) ||
-            (player_end.x >= self.position.x && player_end.x <= enemy_end.x)) &&
-            ((player_start.y >= self.position.y && player_start.y < enemy_end.y) || 
-            (player_end.y > self.position.y && player_end.y <= enemy_end.y)) {
+        if ((player_start.x >= enemy_start.x && player_start.x <= enemy_end.x) ||
+            (player_end.x >= enemy_start.x && player_end.x <= enemy_end.x)) &&
+            ((player_start.y >= enemy_start.y && player_start.y < enemy_end.y) || 
+            (player_end.y > enemy_start.y && player_end.y <= enemy_end.y)) {
             return true;
         }
 
         for wall in walls {
-            let wall_start = round_position_to_full_numbers(wall.get_position(), self.movement_value, true, true);
-            let wall_end = round_position_to_full_numbers(wall_start + wall.get_size(), self.movement_value, true, true);
+            let (wall_start, wall_end) = wall.get_calc_position();
 
             let is_between_x_axis = (
-                (player_end.y <= wall_start.y && self.position.y >= wall_end.y)
+                (player_end.y <= wall_start.y && enemy_start.y >= wall_end.y)
                 || (enemy_end.y <= wall_start.y && player_start.y >= wall_end.y)
             ) && (
                 (player_start.x >= wall_start.x && enemy_end.x <= wall_end.x)
-                || (player_end.x <= wall_end.x && self.position.x >= wall_start.x)
+                || (player_end.x <= wall_end.x && enemy_start.x >= wall_start.x)
             );
 
             let is_between_y_axis = (
-                (player_end.x <= wall_start.x && self.position.x >= wall_end.x)
+                (player_end.x <= wall_start.x && enemy_start.x >= wall_end.x)
                 || (enemy_end.x <= wall_start.x && player_start.x >= wall_end.x)
             ) && (
                 (player_start.y >= wall_start.y && enemy_end.y <= wall_end.y)
-                || (player_end.y <= wall_end.y && self.position.y >= wall_start.y)
+                || (player_end.y <= wall_end.y && enemy_start.y >= wall_start.y)
             );
 
             if is_between_x_axis || is_between_y_axis {
@@ -799,17 +828,17 @@ impl<'a> Enemy<'a> {
         };
 
         if is_seeing {
-            let distance = (absolute_f32(player_start.x - self.position.x), absolute_f32(player_start.y - self.position.y));
+            let distance = (absolute_f32(player_start.x - enemy_start.x), absolute_f32(player_start.y - enemy_start.y));
             let dirction: (Direction, Direction);
 
-            if player_start.x < self.position.x {
-                if player_start.y < self.position.y {
+            if player_start.x < enemy_start.x {
+                if player_start.y < enemy_start.y {
                     dirction = (Direction::Right, Direction::Down);
                 } else {
                     dirction = (Direction::Right, Direction::Up);
                 }
             } else {
-                if player_start.y < self.position.y {
+                if player_start.y < enemy_start.y {
                     dirction = (Direction::Left, Direction::Down);
                 } else {
                     dirction = (Direction::Left, Direction::Up);
@@ -866,8 +895,7 @@ impl<'a> Enemy<'a> {
             };
 
             for wall in walls {
-                let wall_start = round_position_to_full_numbers(wall.get_position(), self.movement_value, true, true);
-                let wall_end = round_position_to_full_numbers(wall_start + wall.get_size(), self.movement_value, true, true);
+                let (wall_start, wall_end) = wall.get_calc_position();
 
                 for (start_check_position, end_check_position) in check_positions.iter() {
                     if !player_body_check_positions.0 && is_in_object(start_check_position, &wall_start, &wall_end) {
@@ -881,8 +909,7 @@ impl<'a> Enemy<'a> {
             }
             
             for door in doors {
-                let door_start = round_position_to_full_numbers(door.get_position(), self.movement_value, true, true);
-                let door_end = round_position_to_full_numbers(door_start + door.get_size(), self.movement_value, true, true);
+                let (door_start, door_end) = door.get_calc_position();
 
                 for (start_check_position, end_check_position) in check_positions.iter() {
                     if is_in_object(start_check_position, &door_start, &door_end) {

@@ -10,26 +10,14 @@ pub const DEFAULT_SIZE_FOR_COLLECTABLE: Size = Size { width: 40.0, height: 40.0 
 pub const DEFAULT_SIZE_FOR_TELEPORT_DOOR: Size = Size { width: DEFAULT_SIZE + 20.0, height: 70.0 };
 pub const DEFAULT_SIZE_FOR_EXIT_DOOR: Size = Size { width: 70.0, height: 60.0 };
 
+pub type EndStartPositions = (Position, Position);
+
 pub trait GameObject<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()>;
     fn get_position(&self) -> Position;
     fn set_position(&mut self, new_position: Position);
     fn get_size(&self) -> Size;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ObjectLevelType {
-    Wall,
-    RegularDoor,
-    LockedDoor,
-    CodedDoor,
-    TeleportDoor,
-    HidePlace,
-    Coin,
-    CodePaper,
-    ExitDoor,
-    Camera,
-    Key,
+    fn get_calc_position(&self) -> EndStartPositions;
 }
 
 #[derive(Debug, PartialEq)]
@@ -174,7 +162,6 @@ impl<'a> GameLevel<'a> {
             teleport_door.draw(render)?;
         }
 
-        // find a way to delete collectable when collected
         for door_collectable in self.door_collectables.iter_mut() {
             if !door_collectable.is_collected() && player.collide(door_collectable) {
                 player.add_door_collectable(door_collectable.get_id(), door_collectable.get_type());

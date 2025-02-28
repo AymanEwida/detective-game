@@ -6,3 +6,5 @@ pub const TWICE_PI: f32 = 2.0 * std::f32::consts::PI;
 pub const HALF_PI: f32 = std::f32::consts::PI / 2.0;
 
 pub const GAME_ASSETS_DIR: &'static str = "assets/game/";
+
+pub const DEFAULT_MOVEMENT_VALUE: f32 = 10.0;

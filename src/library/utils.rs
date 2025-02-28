@@ -2,7 +2,7 @@ use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
 use rand::Rng;
 
-use crate::{game::character::Direction, renderer::{render::Size, vertice::Position}};
+use crate::{game::{character::Direction, level::EndStartPositions}, renderer::{render::Size, vertice::Position}};
 
 use super::constants::GAME_ASSETS_DIR;
 
@@ -288,4 +288,18 @@ pub fn get_estimated_position(position: &Position, steps: u32, direction: Direct
             }
         }
     }
+}
+
+pub fn is_position_in_border(border_start: &Position, border_end: &Position, position: &Position) -> (bool, bool) {
+    (
+        position.x >= border_start.x && position.x <= border_end.x,
+        position.y >= border_start.y && position.y <= border_end.y
+    )
+}
+
+pub fn calculate_calc_position(start_position: Position, size: Size, value: f32) -> EndStartPositions {
+    let start = round_position_to_full_numbers(start_position, value, true, true);
+    let end = round_position_to_full_numbers(start + size, value, true, true);
+
+    (start, end)
 }

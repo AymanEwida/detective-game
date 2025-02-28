@@ -1,6 +1,6 @@
-use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::Character, level::{GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
+use super::{character::Character, level::{EndStartPositions, GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
 
 pub const DEFAULT_SIZE_FOR_TELEPORT_DOOR: Size = Size { width: DEFAULT_SIZE + 20.0, height: 70.0 };
 pub const DEFAULT_SIZE_FOR_EXIT_DOOR: Size = Size { width: 70.0, height: 60.0 };
@@ -19,6 +19,7 @@ pub struct Door<'a> {
     id: usize,
     door_type: DoorType,
     position: Position,
+    calc_position: EndStartPositions,
     size: Size,
     original_image: &'a str,
     image: &'a str,
@@ -42,10 +43,15 @@ impl<'a> GameObject<'a> for Door<'a> {
 
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_calc_position();
     }
 
     fn get_size(&self) -> Size {
         self.size        
+    }
+
+    fn get_calc_position(&self) -> EndStartPositions {
+        self.calc_position
     }
 }
 
@@ -74,6 +80,7 @@ impl Door<'_> {
             id,
             door_type,
             position, 
+            calc_position: calculate_calc_position(position, size, DEFAULT_MOVEMENT_VALUE),
             size, 
             original_image: door_image_path,
             image: door_image_path,
@@ -88,6 +95,10 @@ impl Door<'_> {
 }
 
 impl Door<'_> {
+    fn set_calc_position(&mut self) {
+        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+    } 
+
     pub fn get_door_type(&self) -> &DoorType {
         &self.door_type
     }
@@ -131,6 +142,7 @@ impl Door<'_> {
 pub struct TeleportDoor<'a> {
     id: usize,
     position: Position,
+    calc_position: EndStartPositions,
     size: Size,
     image: &'a str,
     scale: Option<f32>,
@@ -152,10 +164,15 @@ impl<'a> GameObject<'a> for TeleportDoor<'a> {
 
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_calc_position();
     }
 
     fn get_size(&self) -> Size {
         self.size        
+    }
+
+    fn get_calc_position(&self) -> EndStartPositions {
+        self.calc_position
     }
 }
 
@@ -165,11 +182,13 @@ impl<'a> LevelObject<'a> for TeleportDoor<'a> {
     } 
 }
 
+// i think we do not need connectivity
 impl TeleportDoor<'_> {
     pub fn new(id: usize, position: Position, connected_to: usize, character_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
         Self {
             id,
             position, 
+            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_TELEPORT_DOOR, DEFAULT_MOVEMENT_VALUE),
             size: DEFAULT_SIZE_FOR_TELEPORT_DOOR, 
             image: "assets/game/teleport-door.webp",
             scale,
@@ -181,6 +200,10 @@ impl TeleportDoor<'_> {
 }
 
 impl<'a> TeleportDoor<'a> {
+    fn set_calc_position(&mut self) {
+        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+    } 
+
     pub fn get_id(&self) -> usize {
         self.id
     }
@@ -219,6 +242,7 @@ impl<'a> TeleportDoor<'a> {
 #[derive(Debug, PartialEq)]
 pub struct ExitDoor<'a> {
     position: Position,
+    calc_position: EndStartPositions,
     size: Size,
     image: &'a str,
     scale: Option<f32>,
@@ -237,10 +261,15 @@ impl<'a> GameObject<'a> for ExitDoor<'a> {
 
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_calc_position();
     }
 
     fn get_size(&self) -> Size {
         self.size        
+    }
+
+    fn get_calc_position(&self) -> EndStartPositions {
+        self.calc_position
     }
 }
 
@@ -254,9 +283,16 @@ impl ExitDoor<'_> {
     pub fn new(position: Position, scale: Option<f32>) -> Self {
         Self {
             position, 
+            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_EXIT_DOOR, DEFAULT_MOVEMENT_VALUE),
             size: DEFAULT_SIZE_FOR_EXIT_DOOR, 
             image: "assets/game/exit-door.png",
             scale,
         }
+    }
+}
+
+impl ExitDoor<'_> {
+    fn set_calc_position(&mut self) {
+        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
     }
 }

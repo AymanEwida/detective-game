@@ -1,8 +1,8 @@
 use glfw::{Action, Key};
 
-use crate::{library::utils::round_position_to_full_numbers, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, round_position_to_full_numbers}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction}, hide_place::HidePlace, level::GameObject, level_object::ObjectType, wall::Wall};
+use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, hide_place::HidePlace, level::{EndStartPositions, GameObject}, level_object::ObjectType, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -55,6 +55,7 @@ pub struct DoorCollectableInventory {
 pub struct Player<'a> {
     position: Position,
     prev_position: Option<Position>,
+    calc_position: EndStartPositions,
     size: Size,
     image: &'a str,
     flip: bool,
@@ -67,13 +68,16 @@ pub struct Player<'a> {
 
 impl Player<'_> {
     pub fn new(start_position: Position, flip: bool) -> Self {
+        let size = DEFAULT_CHARACTER_SIZE;
+
         Self {
             position: start_position, 
             prev_position: None,
-            size: Size { width: 50.0, height: 60.0 },
+            calc_position: calculate_calc_position(start_position, size, DEFAULT_MOVEMENT_VALUE),
+            size,
             image: "assets/game/detective.png",
             flip,
-            movement_value: 10.0,
+            movement_value: DEFAULT_MOVEMENT_VALUE,
             status: PlayerStatus::NotHidden,
             interaction: None,
             door_collectable_inventory: Vec::new(),
@@ -101,10 +105,15 @@ impl<'a> GameObject<'a> for Player<'a> {
 
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_calc_position();
     }
 
     fn get_size(&self) -> Size {
         self.size
+    }
+
+    fn get_calc_position(&self) -> EndStartPositions {
+        self.calc_position
     }
 }
 
@@ -155,17 +164,23 @@ impl<'a> Player<'a> {
         self.movement_value
     }
 
+    fn set_calc_position(&mut self) {
+        self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
+    }
+
     pub fn move_player(&mut self, direction: Direction) {
         if self.status != PlayerStatus::Hidden {
             self.prev_position = Some(self.get_position());
     
             self.move_character(direction, self.movement_value);
+            self.set_calc_position();
         }
     }
 
     pub fn move_to_prev_position(&mut self) {
         if let Some(prev_position) = self.prev_position {
             self.position = prev_position;
+            self.set_calc_position();
         }
     }
 
@@ -177,6 +192,7 @@ impl<'a> Player<'a> {
         self.flip = flip;
 
         self.position = new_position;
+        self.set_calc_position();
     }
 
     pub fn is_off_window(&self, window_size: Size) -> bool {
@@ -200,14 +216,17 @@ impl<'a> Player<'a> {
     }
 
     pub fn is_colliding_with_hide_place(&self, hide_place: &HidePlace) -> bool {
+        if (self.get_calc_position().0 == hide_place.get_calc_position().0) || (self.get_calc_position().1 == hide_place.get_calc_position().1) {
+            return true;
+        }
+        
         let start_hide_place_position = round_position_to_full_numbers(hide_place.get_position(), self.movement_value, true, false);
         let end_hide_place_position = round_position_to_full_numbers(start_hide_place_position + hide_place.get_size(), self.movement_value, true, false);
         let start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
         let end_player_position = self.position + self.size;
 
         let is_collide = | movement_val: f32 | {
-            self.collide(hide_place) 
-            || (start_player_position.y == start_hide_place_position.y
+            (start_player_position.y == start_hide_place_position.y
                 && (
                     (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + movement_val))
                     || (end_player_position.x >= (end_hide_place_position.x - movement_val) && end_player_position.x <= end_hide_place_position.x)

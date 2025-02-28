@@ -322,7 +322,6 @@ fn test_absolute_f32() {
 }
 
 #[test]
-#[ignore]
 fn test_get_level_challenges() -> Result<(), std::io::Error> {
     let input = 1;
     let actual = get_level_challenges(input)?;
@@ -532,6 +531,107 @@ fn test_get_estimated_position_down() {
     let input_value = 10.0;
     let actual = get_estimated_position(&input_position, input_steps, Direction::Down, input_value);
     let expected= Position { x: 20.0, y: 80.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_is_position_in_border_both_true() {
+    let input_border_start_position = Position { x: 0.0, y: 0.0 };
+    let input_border_end_position = Position { x: 60.0, y: 80.0 };
+
+    let input_position = Position { x: 0.0, y: 0.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (true, true);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: 60.0, y: 80.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (true, true);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: 20.0, y: 50.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (true, true);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_is_position_in_border_x_true() {
+    let input_border_start_position = Position { x: 0.0, y: 0.0 };
+    let input_border_end_position = Position { x: 60.0, y: 80.0 };
+
+    let input_position = Position { x: 0.0, y: -10.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (true, false);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: 60.0, y: 90.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (true, false);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: 20.0, y: 90.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (true, false);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_is_position_in_border_y_true() {
+    let input_border_start_position = Position { x: 0.0, y: 0.0 };
+    let input_border_end_position = Position { x: 60.0, y: 80.0 };
+
+    let input_position = Position { x: -10.0, y: 0.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (false, true);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: 70.0, y: 80.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (false, true);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: -5.0, y: 50.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (false, true);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_is_position_in_border_both_false() {
+    let input_border_start_position = Position { x: 0.0, y: 0.0 };
+    let input_border_end_position = Position { x: 60.0, y: 80.0 };
+
+    let input_position = Position { x: -10.0, y: -20.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (false, false);
+
+    assert_eq!(actual, expected);
+
+    let input_position = Position { x: 70.0, y: 100.0 };
+
+    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
+    let expected= (false, false);
 
     assert_eq!(actual, expected);
 }
