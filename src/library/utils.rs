@@ -303,3 +303,11 @@ pub fn calculate_calc_position(start_position: Position, size: Size, value: f32)
 
     (start, end)
 }
+
+pub fn check_point_in_triangle(point: &Position, first: &Position, second: &Position, apex: &Position) -> bool {
+    let first_to_second = (point.x - first.x) * (second.y - first.y) - (point.y - first.y) * (second.x - first.x);
+    let second_to_apex = (point.x - second.x) * (apex.y - second.y) - (point.y - second.y) * (apex.x - second.x);
+    let apex_to_first = (point.x - apex.x) * (first.y - apex.y) - (point.y - apex.y) * (first.x - apex.x);
+
+    (first_to_second.signum() == second_to_apex.signum()) && (first_to_second.signum() == apex_to_first.signum()) && (second_to_apex.signum() == apex_to_first.signum())
+}

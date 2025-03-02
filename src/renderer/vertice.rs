@@ -98,13 +98,16 @@ impl Position {
         }
     }
     
-    pub fn rotate(&self, angle_in_radians: f32) -> Self {
-        let x = self.x * angle_in_radians.cos() - self.y * angle_in_radians.sin();
-        let y = self.x * angle_in_radians.sin() + self.y * angle_in_radians.cos();
+    pub fn rotate(&self, rotation_center: Position, angle_in_radians: f32) -> Self {
+        let translated_x = self.x - rotation_center.x;
+        let translated_y = self.y - rotation_center.y;
+
+        let rotated_x = translated_x * angle_in_radians.cos() - translated_y * angle_in_radians.sin();
+        let rotated_y = translated_x * angle_in_radians.sin() + translated_y * angle_in_radians.cos();
 
         Self {
-            x,
-            y
+            x: rotated_x + rotation_center.x,
+            y: rotated_y + rotation_center.y
         }
     }
 

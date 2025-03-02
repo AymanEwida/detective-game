@@ -24,6 +24,7 @@ impl std::error::Error for SimulationError {}
 pub enum SimulatorType {
     EnemyLogic,
     PlayerInteractionWithHidePlace,
+    CameraLogic,
     Other
 }
 
@@ -112,6 +113,14 @@ impl<'a> Simulator<'a> {
 
         for camera in self.cameras.iter_mut() {
             camera.draw(render)?;
+
+            self.notoriety_level = camera.detect_player(
+                self.notoriety_level,
+                player,
+                &self.walls,
+                &self.doors,
+                &self.enemies
+            );
         }
 
         for enemy in self.enemies.iter_mut() {
@@ -187,6 +196,29 @@ impl<'a> Simulator<'a> {
 
             SimulatorType::PlayerInteractionWithHidePlace => {
                 self.hide_places.push(HidePlace::new(Position { x: 300.0, y: 400.0 }, None));
+            },
+
+            SimulatorType::CameraLogic => {
+                // self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
+
+                self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                self.doors.push(
+                    Door::new(0, DoorType::Regular, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.doors.push(
+                    Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                );
+                
+                self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, false, None, None));
+                self.cameras.push(Camera::new_with_repeat(Position { x: 370.0, y: 175.0 }, false, None, None, Some(5000)));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
             },
 
             SimulatorType::Other => () 

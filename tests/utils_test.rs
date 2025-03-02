@@ -635,3 +635,29 @@ fn test_is_position_in_border_both_false() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_check_point_in_triangle_in() {
+    let input_point = Position { x: 20.0, y: 30.0 };
+    let input_first = Position { x: 50.0, y: 60.0 };
+    let input_second = Position { x: 10.0, y: 60.0 };
+    let input_apex = Position { x: 15.0, y: 10.0 };
+
+    let actual = check_point_in_triangle(&input_point, &input_first, &input_second, &input_apex);
+    let expected=  true;
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_check_point_in_triangle_out() {
+    let input_point = Position { x: 100.0, y: 20.0 };
+    let input_first = Position { x: 50.0, y: 60.0 };
+    let input_second = Position { x: 10.0, y: 60.0 };
+    let input_apex = Position { x: 15.0, y: 10.0 };
+
+    let actual = check_point_in_triangle(&input_point, &input_first, &input_second, &input_apex);
+    let expected=  false;
+
+    assert_eq!(actual, expected);
+}

@@ -5,6 +5,8 @@ use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, c
 
 use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::Door, hide_place::HidePlace, level::{EndStartPositions, GameObject}, player::{Player, PlayerStatus}, wall::Wall};
 
+pub type DetectTraingle = (Position, Position, Position);
+
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,7 +74,7 @@ pub struct Enemy<'a> {
     original_moves_path: &'a str,
     moves_count: u32,
     moving_towards: Direction,
-    detect_traingle: (Position, Position, Position),
+    detect_traingle: DetectTraingle,
     detect_player_position: Option<Position>,
     mode: EnemyMode,
     prev_mode: EnemyMode,
@@ -216,7 +218,6 @@ impl<'a> Enemy<'a> {
 
                     self.prev_position = Some(self.position);
                     self.move_character(*direction, self.movement_value);
-                    self.set_calc_position();
 
                     self.current_moves_path[0].0 -= 1;
                     self.moves_count += 1;
@@ -797,6 +798,10 @@ impl<'a> Enemy<'a> {
 
         let (first_point, second_point, apex) = self.detect_traingle;
 
+        let first_point = round_position_to_full_numbers(first_point, self.movement_value, true, true);
+        let second_point = round_position_to_full_numbers(second_point, self.movement_value, true, true);
+        let apex = round_position_to_full_numbers(apex, self.movement_value, true, true);
+
         let is_seeing = match self.moving_towards {
             Direction::Left => {
                 ((player_start.x >= first_point.x && player_start.x < apex.x) ||
@@ -952,6 +957,11 @@ impl<'a> Enemy<'a> {
         }
 
         current_notoriety_level
+    }
+
+    pub fn attach_camera(&mut self, detected_player_position: Position) {
+        self.mode = EnemyMode::Detecting;
+        self.detect_player_position = Some(round_position_to_full_numbers(detected_player_position, self.movement_value, true, true));
     }
 
     pub fn collide_with_player(&self, player: &Player<'a>) -> bool {

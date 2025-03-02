@@ -173,7 +173,6 @@ impl<'a> Player<'a> {
             self.prev_position = Some(self.get_position());
     
             self.move_character(direction, self.movement_value);
-            self.set_calc_position();
         }
     }
 
