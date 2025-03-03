@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, get_moves_number, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::Direction, door::Door, enemy::{DetectTraingle, Enemy}, level::GameObject, level_object::ObjectType, player::{Player, PlayerStatus}, wall::Wall};
+use super::{character::Direction, enemy::{DetectTraingle, Enemy}, level::GameObject, level_object::ObjectType, player::{Player, PlayerStatus}};
 
 pub const DEFAULT_SIZE_FOR_CAMERA: Size = Size { width: 30.0, height: 30.0 };
 pub const DEFAULT_REPEAT_INTERVAL: Duration = Duration::from_millis(3000);
@@ -139,7 +139,11 @@ impl<'a> Camera<'a> {
         ObjectType::Camera
     }
 
-    fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
+    pub fn get_already_detected_player(&self) -> bool {
+        self.already_detected_player
+    }
+
+    fn is_detecting_player(&self, player: &Player<'a>) -> bool {
         if player.get_status() == &PlayerStatus::Hidden {
             return false;
         }
@@ -168,37 +172,63 @@ impl<'a> Camera<'a> {
         check_point_in_triangle(&Position { x: player_start.x, y: player_end.y }, &first_point, &second_point, &apex)
     }
 
-    // TODO: find a way to get the nearest enemy and update it feilds
-    fn get_nearest_enemy(&self, enemies: &'a mut [Enemy<'a>]) -> &mut Enemy<'a> {
-        let first = &mut enemies[0];
+    fn get_nearest_enemy(&self, detect_player_position: &Position, enemies: &[Enemy<'a>]) -> usize {
+        assert!(enemies.len() > 0, "enemies must contain at least one enemy");
 
-        first
+        let mut found_enemy = &enemies[0];
+
+        let movement_grid = found_enemy.get_grid();
+        assert!(movement_grid != &None, "movement_grid can not be none");
+        let (grid_start_position, grid) = movement_grid.as_ref().unwrap();
+
+        let mut moves_num = -1;
+
+        for enemy in enemies.iter() {
+            let moves_path = enemy.find_optimal_path(*detect_player_position, *grid_start_position, &grid).unwrap();
+            let current_moves_path_num = get_moves_number(moves_path) as i32;
+            
+            if current_moves_path_num <= 7 {
+                return enemy.get_id();
+            }
+
+            if moves_num == -1 || ((current_moves_path_num) < moves_num) {
+                moves_num = current_moves_path_num;
+
+                found_enemy = enemy;
+            }
+        }
+
+        found_enemy.get_id()
     }
 
-    pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>], enemies: &[Enemy<'a>]) -> u64 {
-        let is_detecting = self.is_detecting_player(player, walls, doors);
+    pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, enemies: &[Enemy<'a>]) -> (u64, Option<usize>, Option<Position>) {
+        if self.already_detected_player && player.get_status() != &PlayerStatus::Detectit {
+            self.already_detected_player = false;
+        }
+
+        let is_detecting = self.is_detecting_player(player);
 
         if is_detecting {
             let player_start = player.get_position();
 
             player.set_status(PlayerStatus::Detectit);
+            player.set_is_detected_by_enemy(false);
 
             if !self.already_detected_player {
                 self.already_detected_player = true;
 
-                // let nearest_enemy = self.get_nearest_enemy(enemies);
-                // nearest_enemy.attach_camera(player_start); 
+                let nearest_enemy_id = self.get_nearest_enemy(&player_start, enemies);
 
                 if current_notoriety_level >= 3 {
-                    return 3;
+                    return (3, Some(nearest_enemy_id), Some(player_start));
                 }
     
-                return current_notoriety_level + 1;
+                return (current_notoriety_level + 1, Some(nearest_enemy_id), Some(player_start));
             }
 
-            return current_notoriety_level;
+            return (current_notoriety_level, None, None);
         }
 
-        current_notoriety_level
+        (current_notoriety_level, None, None)
     }
 }

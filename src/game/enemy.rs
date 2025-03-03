@@ -57,8 +57,12 @@ impl fmt::Display for EnemyMode {
     }
 }
 
+#[allow(non_upper_case_globals)]
+static mut enemies_count: usize = 0;
+
 #[derive(Debug)]
 pub struct Enemy<'a> {
+    id: usize,
     start_position: Position,
     position: Position,
     prev_position: Option<Position>,
@@ -92,6 +96,10 @@ pub struct Enemy<'a> {
 
 impl<'a> Enemy<'a> {
     pub fn new(enemy_type: EnemyType, start_position: Position, path: &'a str, flip: bool) -> Self {
+        unsafe {
+            enemies_count += 1;
+        }
+
         let moves_path = convert_path(path);
         let first_direction = moves_path[0].1;
 
@@ -102,6 +110,7 @@ impl<'a> Enemy<'a> {
         match enemy_type {
             EnemyType::Regular => {
                 Self {
+                    id: unsafe { enemies_count },
                     start_position,
                     position: start_position,
                     prev_position: None,
@@ -177,6 +186,10 @@ impl<'a> Character<'a> for Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
     pub fn get_start_position(&self) -> Position {
         self.start_position
     }
@@ -526,6 +539,10 @@ impl<'a> Enemy<'a> {
         } 
     }
 
+    pub fn get_grid(&self) -> &Option<(Position, Vec<Vec<bool>>)> {
+        &self.movement_grid
+    }
+
     pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
         self.move_enemy_when_colliding();
 
@@ -594,6 +611,7 @@ impl<'a> Enemy<'a> {
                 } else {
                     if player.get_status() == &PlayerStatus::Detectit {
                         player.set_status(PlayerStatus::NotHidden);
+                        player.set_is_detected_by_enemy(false);
                     }
 
                     self.mode = EnemyMode::Searching;
@@ -637,6 +655,7 @@ impl<'a> Enemy<'a> {
                                 if self.collide(player) {
                                     player.throw_form_hide_place(walls, &self.moving_towards);
                                     player.set_status(PlayerStatus::Detectit);
+                                    player.set_is_detected_by_enemy(true);
 
                                     self.already_detected_player = true;
                                     self.mode = EnemyMode::Detecting;
@@ -942,6 +961,8 @@ impl<'a> Enemy<'a> {
             let player_start = player.get_position();
 
             player.set_status(PlayerStatus::Detectit);
+            player.set_is_detected_by_enemy(true);
+
             self.mode = EnemyMode::Detecting;
             self.detect_player_position = Some(round_position_to_full_numbers(player_start, self.movement_value, true, true));
     

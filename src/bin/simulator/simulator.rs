@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
@@ -40,6 +40,7 @@ pub struct Simulator<'a> {
     doors: Vec<Door<'a>>,
     hide_places: Vec<HidePlace<'a>>,
     enemies: Vec<Enemy<'a>>,
+    attached_enemies_ids: Vec<(usize, Position)>,
     cameras: Vec<Camera<'a>>,
     status: SimulationStatus,
     notoriety_level: u64, 
@@ -52,6 +53,7 @@ impl Simulator<'_> {
             doors: Vec::new(),
             hide_places: Vec::new(),
             enemies: Vec::new(),
+            attached_enemies_ids: Vec::new(),
             cameras: Vec::new(),
             status: SimulationStatus::NotDetermine,
             notoriety_level: 0,
@@ -98,7 +100,7 @@ impl<'a> Simulator<'a> {
                 if let Some(player_interaction) = player.get_interaction() {
                     let player_status = player.get_status();
 
-                    if player_status != &PlayerStatus::Detectit && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                    if (!player.get_is_detected_by_enemy() || player_status != &PlayerStatus::Detectit) && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
                         if player.get_status() == &PlayerStatus::Hidden {
                             player.set_status(PlayerStatus::NotHidden);
                         } else {
@@ -114,16 +116,32 @@ impl<'a> Simulator<'a> {
         for camera in self.cameras.iter_mut() {
             camera.draw(render)?;
 
-            self.notoriety_level = camera.detect_player(
+            let (
+                new_notoriety_level,
+                enemy_id,
+                detected_player_position
+            ) = camera.detect_player(
                 self.notoriety_level,
                 player,
-                &self.walls,
-                &self.doors,
                 &self.enemies
             );
+            self.notoriety_level = new_notoriety_level;
+
+            if let Some(enemy_id) = enemy_id {
+                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap()));
+            }
         }
 
         for enemy in self.enemies.iter_mut() {
+            let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
+            if idx != -1 {
+                let (.., detected_player_position) = self.attached_enemies_ids[idx as usize];
+
+                enemy.attach_camera(detected_player_position);
+
+                self.attached_enemies_ids.remove(idx as usize);
+            }
+
             let mut is_enemy_colliding_with_a_wall = false;
 
             for wall in self.walls.iter() {
@@ -199,7 +217,8 @@ impl<'a> Simulator<'a> {
             },
 
             SimulatorType::CameraLogic => {
-                // self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
+                // self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 500.0, y: 20.0 }, "4r/2500 4l/2500", false));
 
                 self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
                 self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
@@ -219,6 +238,7 @@ impl<'a> Simulator<'a> {
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, false, None, None));
                 self.cameras.push(Camera::new_with_repeat(Position { x: 370.0, y: 175.0 }, false, None, None, Some(5000)));
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 250.0, y: 210.0 }, false, None, Some(80.0)));
             },
 
             SimulatorType::Other => () 

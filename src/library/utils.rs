@@ -87,6 +87,16 @@ pub fn convert_path(path: &str) -> PathVec {
     }).collect()
 }
 
+pub fn get_moves_number(moves_path: PathVec) -> u32 {
+    let mut sum = 0;
+
+    for (moves_number, ..) in moves_path.iter() {
+        sum += *moves_number;
+    }
+
+    sum
+}
+
 pub fn sum_direction_length_from_path(path: &str, direction: Direction, speed: f32) -> f32 {
     let direction = match direction {
         Direction::Left => 'l',
@@ -310,4 +320,18 @@ pub fn check_point_in_triangle(point: &Position, first: &Position, second: &Posi
     let apex_to_first = (point.x - apex.x) * (first.y - apex.y) - (point.y - apex.y) * (first.x - apex.x);
 
     (first_to_second.signum() == second_to_apex.signum()) && (first_to_second.signum() == apex_to_first.signum()) && (second_to_apex.signum() == apex_to_first.signum())
+}
+
+pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position)>, search_id: usize) -> i32 {
+    let mut found_idx = -1;
+
+    for (idx, (attached_enemy_id, ..)) in attached_enemies.iter().enumerate() {
+        let attached_enemy_id = *attached_enemy_id;
+
+        if attached_enemy_id == search_id {
+            found_idx = idx as i32;
+        }
+    }
+
+    found_idx
 }

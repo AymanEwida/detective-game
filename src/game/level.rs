@@ -198,7 +198,7 @@ impl<'a> GameLevel<'a> {
                 if let Some(player_interaction) = player.get_interaction() {
                     let player_status = player.get_status();
 
-                    if player_status != &PlayerStatus::Detectit && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                    if (!player.get_is_detected_by_enemy() || player_status != &PlayerStatus::Detectit) && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
                         if player.get_status() == &PlayerStatus::Hidden {
                             player.set_status(PlayerStatus::NotHidden);
                         } else {
