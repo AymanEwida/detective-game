@@ -1,6 +1,6 @@
 use glfw::{Action, Key};
 
-use crate::{game::{enemy::EnemyType, level_object::LevelObject, player::PlayerStatus}, library::utils::get_level_challenges, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{game::{enemy::EnemyType, level_object::LevelObject, player::PlayerStatus}, library::utils::{get_attached_enemy_index, get_level_challenges}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{camera::Camera, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::Player, wall::Wall};
 
@@ -34,6 +34,7 @@ pub struct GameLevel<'a> {
     background_image: &'a str,
     current_level: u8,
     enemies: Vec<Enemy<'a>>,
+    attached_enemies_ids: Vec<(usize, Position)>,
     walls: Vec<Wall<'a>>,
     doors: Vec<Door<'a>>,
     door_collectables: Vec<DoorCollectable<'a>>,
@@ -59,6 +60,7 @@ impl Default for GameLevel<'_> {
             background_image: "assets/game/background.jpg",
             current_level: 0,
             enemies,
+            attached_enemies_ids: Vec::new(),
             walls: Vec::new(),
             doors: Vec::new(),
             door_collectables: Vec::new(),
@@ -213,9 +215,35 @@ impl<'a> GameLevel<'a> {
 
         for camera in self.cameras.iter_mut() {
             camera.draw(render)?;
+
+            let (
+                new_notoriety_level,
+                enemy_id,
+                detected_player_position
+            ) = camera.detect_player(
+                self.notoriety_level,
+                player,
+                &self.walls,
+                &self.doors,
+                &self.enemies
+            );
+            self.notoriety_level = new_notoriety_level;
+
+            if let Some(enemy_id) = enemy_id {
+                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap()));
+            }
         }
 
         for enemy in self.enemies.iter_mut() {
+            let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
+            if idx != -1 {
+                let (.., detected_player_position) = self.attached_enemies_ids[idx as usize];
+
+                enemy.attach_camera(detected_player_position);
+
+                self.attached_enemies_ids.remove(idx as usize);
+            }
+
             let mut is_enemy_colliding_with_a_wall = false;
 
             for wall in self.walls.iter() {
@@ -322,7 +350,6 @@ impl<'a> GameLevel<'a> {
         self.coins.push(coin);
     }
 
-    // TODO: See if Camera need to impl GameObject
     fn insert_camera(&mut self, mut camera: Camera<'a>) {
         let start_position = self.get_boder_start_position();
 
@@ -664,7 +691,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 70.0, y: 235.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 130.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 35.0, y: 0.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: -20.0, y: 80.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: -30.0, y: 80.0 }, true, None, Some(80.0)));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 210.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 145.0, y: 135.0 }, None));
@@ -1333,8 +1360,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1364.0, y: 0.0 }, "32r/6500 32l/4500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 0.0 }, "27r/5000 27l/3000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 485.0, y: 0.0 }, "28r/5500 28l/3500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 313.0, y: 60.0 }, "3r/0 6u/0 4r/6000 4l/0 6d/0 3l/5000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 152.0, y: 0.0 }, "3r/0 6d/0 4r/5500 4l/0 6u/0 3l/4500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 315.0, y: 60.0 }, "3r/0 6u/0 4r/6000 4l/0 6d/0 3l/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 155.0, y: 0.0 }, "3r/0 6d/0 4r/5500 4l/0 6u/0 3l/4500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 698.0, y: 291.0 }, "2l/0 16d/0 4r/0 6d/3500 6u/0 4l/0 16u/0 2r/5500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 488.0, y: 615.0 }, "20r/6000 20l/4000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 478.0, y: 510.0 }, "8r/0 3u/3000 3l/0 2u/0 17l/0 2d/3500 2u/0 12r/0 5d/3000", false));

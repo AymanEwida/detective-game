@@ -123,6 +123,8 @@ impl<'a> Simulator<'a> {
             ) = camera.detect_player(
                 self.notoriety_level,
                 player,
+                &self.walls,
+                &self.doors,
                 &self.enemies
             );
             self.notoriety_level = new_notoriety_level;
@@ -238,7 +240,6 @@ impl<'a> Simulator<'a> {
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, false, None, None));
                 self.cameras.push(Camera::new_with_repeat(Position { x: 370.0, y: 175.0 }, false, None, None, Some(5000)));
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
-                // self.cameras.push(Camera::new_without_repeat(Position { x: 250.0, y: 210.0 }, false, None, Some(80.0)));
             },
 
             SimulatorType::Other => () 
@@ -253,6 +254,7 @@ impl<'a> Simulator<'a> {
         self.hide_places.clear();
         self.enemies.clear();
         self.cameras.clear();
+        self.attached_enemies_ids.clear();
     }
 
     pub fn get_status(&self) -> &SimulationStatus {

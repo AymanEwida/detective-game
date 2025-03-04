@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, get_moves_number, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, get_moves_number, round_position_to_full_numbers, simple_object_detect_check}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::Direction, enemy::{DetectTraingle, Enemy}, level::GameObject, level_object::ObjectType, player::{Player, PlayerStatus}};
+use super::{character::Direction, door::Door, enemy::{DetectTraingle, Enemy}, level::GameObject, level_object::ObjectType, player::{Player, PlayerStatus}, wall::Wall};
 
 pub const DEFAULT_SIZE_FOR_CAMERA: Size = Size { width: 30.0, height: 30.0 };
 pub const DEFAULT_REPEAT_INTERVAL: Duration = Duration::from_millis(3000);
@@ -40,9 +40,22 @@ fn calc_detect_traingle(position: &Position, flip: bool, rotate: Option<f32>) ->
         
         apex = Position { x: calc_position.x, y: calc_position.y };
 
+        let y_offset = absolute_f32(position.y - apex.y);        
+        if y_offset >= 25.0 {
+            let sing = if position.y > apex.y { 1.0 } else { -1.0 }; 
+
+            apex.y += y_offset * sing;
+        }
+
+        let x_offset = absolute_f32(position.x - apex.x);        
+        if x_offset >= 25.0 {
+            let sing = if position.x > apex.x { 1.0 } else { -1.0 }; 
+
+            apex.x += x_offset * sing;
+        }
+
         angle -= rotate_deg;
     }
-
 
     let mut detect_traingle = calc_equidistant_points(apex, 10.0, 150.0, direction);
 
@@ -106,7 +119,7 @@ impl<'a> Camera<'a> {
 
             self.position = Position { x: self.position.x + (filp_factor * 12.0), y: self.position.y };
 
-            self.detect_traingle = calc_detect_traingle(&self.position, self.flip, self.rotate);
+            self.set_detect_traingle();
 
             self.looking_to = if self.flip { Direction::Right } else { Direction::Left };
             self.last_move_time = Instant::now();
@@ -129,6 +142,11 @@ impl<'a> Camera<'a> {
 
     pub fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
+        self.set_detect_traingle();
+    }
+
+    fn set_detect_traingle(&mut self) {
+        self.detect_traingle = calc_detect_traingle(&self.position, self.flip, self.rotate);
     }
 
     pub fn get_size(&self) -> Size {
@@ -143,7 +161,7 @@ impl<'a> Camera<'a> {
         self.already_detected_player
     }
 
-    fn is_detecting_player(&self, player: &Player<'a>) -> bool {
+    fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
         if player.get_status() == &PlayerStatus::Hidden {
             return false;
         }
@@ -158,6 +176,11 @@ impl<'a> Camera<'a> {
             ((player_start.y >= camera_start.y && player_start.y < camera_end.y) || 
             (player_end.y > camera_start.y && player_end.y <= camera_end.y)) {
             return true;
+        }
+
+        if simple_object_detect_check(player.get_calc_position(), (camera_start, camera_end), walls) 
+            || simple_object_detect_check(player.get_calc_position(), (camera_start, camera_end), doors) {
+            return false;
         }
 
         let (first_point, second_point, apex) = self.detect_traingle;
@@ -184,7 +207,13 @@ impl<'a> Camera<'a> {
         let mut moves_num = -1;
 
         for enemy in enemies.iter() {
-            let moves_path = enemy.find_optimal_path(*detect_player_position, *grid_start_position, &grid).unwrap();
+            let moves_path = enemy.find_optimal_path(*detect_player_position, *grid_start_position, &grid);
+            if moves_path.is_none() {
+                continue;
+            }
+
+            let moves_path = moves_path.unwrap();
+
             let current_moves_path_num = get_moves_number(moves_path) as i32;
             
             if current_moves_path_num <= 7 {
@@ -201,12 +230,12 @@ impl<'a> Camera<'a> {
         found_enemy.get_id()
     }
 
-    pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, enemies: &[Enemy<'a>]) -> (u64, Option<usize>, Option<Position>) {
+    pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>], enemies: &[Enemy<'a>]) -> (u64, Option<usize>, Option<Position>) {
         if self.already_detected_player && player.get_status() != &PlayerStatus::Detectit {
             self.already_detected_player = false;
         }
 
-        let is_detecting = self.is_detecting_player(player);
+        let is_detecting = self.is_detecting_player(player, walls, doors);
 
         if is_detecting {
             let player_start = player.get_position();
