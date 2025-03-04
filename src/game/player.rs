@@ -64,6 +64,7 @@ pub struct Player<'a> {
     interaction: Option<PlayerInteraction>,
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     coins: u32,
+    is_detected_by_enemy: bool,
 }
 
 impl Player<'_> {
@@ -82,6 +83,7 @@ impl Player<'_> {
             interaction: None,
             door_collectable_inventory: Vec::new(),
             coins: 0,
+            is_detected_by_enemy: false,
         }
     }
 }
@@ -164,6 +166,14 @@ impl<'a> Player<'a> {
         self.movement_value
     }
 
+    pub fn get_is_detected_by_enemy(&self) -> bool {
+        self.is_detected_by_enemy
+    }
+
+    pub fn set_is_detected_by_enemy(&mut self, new_val: bool) {
+        self.is_detected_by_enemy = new_val;
+    }
+
     fn set_calc_position(&mut self) {
         self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
     }
@@ -173,7 +183,6 @@ impl<'a> Player<'a> {
             self.prev_position = Some(self.get_position());
     
             self.move_character(direction, self.movement_value);
-            self.set_calc_position();
         }
     }
 

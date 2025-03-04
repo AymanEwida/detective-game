@@ -1,9 +1,11 @@
 use core::fmt;
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, PathVec}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::Door, hide_place::HidePlace, level::{EndStartPositions, GameObject}, player::{Player, PlayerStatus}, wall::Wall};
+
+pub type DetectTraingle = (Position, Position, Position);
 
 pub const DEFAULT_MOVE_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -55,8 +57,12 @@ impl fmt::Display for EnemyMode {
     }
 }
 
+#[allow(non_upper_case_globals)]
+static mut enemies_count: usize = 0;
+
 #[derive(Debug)]
 pub struct Enemy<'a> {
+    id: usize,
     start_position: Position,
     position: Position,
     prev_position: Option<Position>,
@@ -72,7 +78,7 @@ pub struct Enemy<'a> {
     original_moves_path: &'a str,
     moves_count: u32,
     moving_towards: Direction,
-    detect_traingle: (Position, Position, Position),
+    detect_traingle: DetectTraingle,
     detect_player_position: Option<Position>,
     mode: EnemyMode,
     prev_mode: EnemyMode,
@@ -90,6 +96,10 @@ pub struct Enemy<'a> {
 
 impl<'a> Enemy<'a> {
     pub fn new(enemy_type: EnemyType, start_position: Position, path: &'a str, flip: bool) -> Self {
+        unsafe {
+            enemies_count += 1;
+        }
+
         let moves_path = convert_path(path);
         let first_direction = moves_path[0].1;
 
@@ -100,6 +110,7 @@ impl<'a> Enemy<'a> {
         match enemy_type {
             EnemyType::Regular => {
                 Self {
+                    id: unsafe { enemies_count },
                     start_position,
                     position: start_position,
                     prev_position: None,
@@ -175,6 +186,10 @@ impl<'a> Character<'a> for Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
     pub fn get_start_position(&self) -> Position {
         self.start_position
     }
@@ -216,7 +231,6 @@ impl<'a> Enemy<'a> {
 
                     self.prev_position = Some(self.position);
                     self.move_character(*direction, self.movement_value);
-                    self.set_calc_position();
 
                     self.current_moves_path[0].0 -= 1;
                     self.moves_count += 1;
@@ -525,6 +539,10 @@ impl<'a> Enemy<'a> {
         } 
     }
 
+    pub fn get_grid(&self) -> &Option<(Position, Vec<Vec<bool>>)> {
+        &self.movement_grid
+    }
+
     pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
         self.move_enemy_when_colliding();
 
@@ -593,6 +611,7 @@ impl<'a> Enemy<'a> {
                 } else {
                     if player.get_status() == &PlayerStatus::Detectit {
                         player.set_status(PlayerStatus::NotHidden);
+                        player.set_is_detected_by_enemy(false);
                     }
 
                     self.mode = EnemyMode::Searching;
@@ -636,6 +655,7 @@ impl<'a> Enemy<'a> {
                                 if self.collide(player) {
                                     player.throw_form_hide_place(walls, &self.moving_towards);
                                     player.set_status(PlayerStatus::Detectit);
+                                    player.set_is_detected_by_enemy(true);
 
                                     self.already_detected_player = true;
                                     self.mode = EnemyMode::Detecting;
@@ -770,32 +790,16 @@ impl<'a> Enemy<'a> {
             (player_end.y > enemy_start.y && player_end.y <= enemy_end.y)) {
             return true;
         }
-
-        for wall in walls {
-            let (wall_start, wall_end) = wall.get_calc_position();
-
-            let is_between_x_axis = (
-                (player_end.y <= wall_start.y && enemy_start.y >= wall_end.y)
-                || (enemy_end.y <= wall_start.y && player_start.y >= wall_end.y)
-            ) && (
-                (player_start.x >= wall_start.x && enemy_end.x <= wall_end.x)
-                || (player_end.x <= wall_end.x && enemy_start.x >= wall_start.x)
-            );
-
-            let is_between_y_axis = (
-                (player_end.x <= wall_start.x && enemy_start.x >= wall_end.x)
-                || (enemy_end.x <= wall_start.x && player_start.x >= wall_end.x)
-            ) && (
-                (player_start.y >= wall_start.y && enemy_end.y <= wall_end.y)
-                || (player_end.y <= wall_end.y && enemy_start.y >= wall_start.y)
-            );
-
-            if is_between_x_axis || is_between_y_axis {
-                return false;
-            }
+        
+        if simple_object_detect_check(player.get_calc_position(), self.get_calc_position(), walls) {
+            return false;
         }
 
         let (first_point, second_point, apex) = self.detect_traingle;
+
+        let first_point = round_position_to_full_numbers(first_point, self.movement_value, true, true);
+        let second_point = round_position_to_full_numbers(second_point, self.movement_value, true, true);
+        let apex = round_position_to_full_numbers(apex, self.movement_value, true, true);
 
         let is_seeing = match self.moving_towards {
             Direction::Left => {
@@ -827,104 +831,8 @@ impl<'a> Enemy<'a> {
             },
         };
 
-        if is_seeing {
-            let distance = (absolute_f32(player_start.x - enemy_start.x), absolute_f32(player_start.y - enemy_start.y));
-            let dirction: (Direction, Direction);
-
-            if player_start.x < enemy_start.x {
-                if player_start.y < enemy_start.y {
-                    dirction = (Direction::Right, Direction::Down);
-                } else {
-                    dirction = (Direction::Right, Direction::Up);
-                }
-            } else {
-                if player_start.y < enemy_start.y {
-                    dirction = (Direction::Left, Direction::Down);
-                } else {
-                    dirction = (Direction::Left, Direction::Up);
-                }
-            }
-
-            if distance.0 == 0.0 && distance.1 == 0.0 {
-                return true;
-            }
-
-            let mut check_positions = vec![];
-
-            let mut x_count = 0.0;
-
-            while x_count <= distance.0 {
-                let x_pos: (f32, f32);
-                if dirction.0 == Direction::Right {
-                    x_pos = (player_start.x + x_count, player_end.x + x_count);
-                } else {
-                    x_pos = (player_start.x - x_count, player_end.x + x_count);
-                }
-
-                let mut y_count = 0.0;
-
-                while y_count <= distance.1 {
-                    let y_pos: (f32, f32);
-                    if dirction.1 == Direction::Down {
-                        y_pos = (player_start.y + y_count, player_end.y + y_count);
-
-                        check_positions.push((Position { x: x_pos.0, y: y_pos.1 }, Position { x: x_pos.1, y: y_pos.1 }));
-                    } else {
-                        y_pos = (player_start.y - y_count, player_end.y - y_count);
-
-                        check_positions.push((Position { x: x_pos.0, y: y_pos.0 }, Position { x: x_pos.1, y: y_pos.0 }));
-                    }
-                    
-                    if dirction.0 == Direction::Right {
-                        check_positions.push((Position { x: x_pos.1, y: y_pos.0 }, Position { x: x_pos.1, y: y_pos.1 }));
-                    } else {
-                        check_positions.push((Position { x: x_pos.0, y: y_pos.0 }, Position { x: x_pos.0, y: y_pos.1 }));
-                    }
-
-                    y_count += player.get_movement_value();
-                }
-
-                x_count += player.get_movement_value();
-            }
-            
-            let mut player_body_check_positions = (false, false);
-
-            let is_in_object = | position: &Position, obj_start: &Position, obj_end: &Position | {
-                (position.x >= obj_start.x && position.x <= obj_end.x)
-                    && (position.y >= obj_start.y && position.y <= obj_end.y)
-            };
-
-            for wall in walls {
-                let (wall_start, wall_end) = wall.get_calc_position();
-
-                for (start_check_position, end_check_position) in check_positions.iter() {
-                    if !player_body_check_positions.0 && is_in_object(start_check_position, &wall_start, &wall_end) {
-                        player_body_check_positions.0 = true;
-                    }
-
-                    if !player_body_check_positions.1 && is_in_object(end_check_position, &wall_start, &wall_end) {
-                        player_body_check_positions.1 = true;
-                    }
-                }
-            }
-            
-            for door in doors {
-                let (door_start, door_end) = door.get_calc_position();
-
-                for (start_check_position, end_check_position) in check_positions.iter() {
-                    if is_in_object(start_check_position, &door_start, &door_end) {
-                        player_body_check_positions.0 = door.is_closed();
-                    }
-
-                    if is_in_object(end_check_position, &door_start, &door_end) {
-                        player_body_check_positions.1 = door.is_closed();
-                    }
-                }
-            }
-
-            if player_body_check_positions.0 && player_body_check_positions.1 {
-                return false;
-            }
+        if is_seeing && bfs_object_detect_check(player.get_calc_position(), self.get_calc_position(), walls, doors, player.get_movement_value()) {
+            return false;
         }
 
         is_seeing
@@ -937,6 +845,8 @@ impl<'a> Enemy<'a> {
             let player_start = player.get_position();
 
             player.set_status(PlayerStatus::Detectit);
+            player.set_is_detected_by_enemy(true);
+
             self.mode = EnemyMode::Detecting;
             self.detect_player_position = Some(round_position_to_full_numbers(player_start, self.movement_value, true, true));
     
@@ -952,6 +862,11 @@ impl<'a> Enemy<'a> {
         }
 
         current_notoriety_level
+    }
+
+    pub fn attach_camera(&mut self, detected_player_position: Position) {
+        self.mode = EnemyMode::Detecting;
+        self.detect_player_position = Some(round_position_to_full_numbers(detected_player_position, self.movement_value, true, true));
     }
 
     pub fn collide_with_player(&self, player: &Player<'a>) -> bool {

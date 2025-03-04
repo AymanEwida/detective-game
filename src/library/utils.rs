@@ -2,7 +2,7 @@ use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
 use rand::Rng;
 
-use crate::{game::{character::Direction, level::EndStartPositions}, renderer::{render::Size, vertice::Position}};
+use crate::{game::{character::Direction, door::Door, level::{EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, renderer::{render::Size, vertice::Position}};
 
 use super::constants::GAME_ASSETS_DIR;
 
@@ -85,6 +85,16 @@ pub fn convert_path(path: &str) -> PathVec {
 
         (move_number, move_direction, wait_time)
     }).collect()
+}
+
+pub fn get_moves_number(moves_path: PathVec) -> u32 {
+    let mut sum = 0;
+
+    for (moves_number, ..) in moves_path.iter() {
+        sum += *moves_number;
+    }
+
+    sum
 }
 
 pub fn sum_direction_length_from_path(path: &str, direction: Direction, speed: f32) -> f32 {
@@ -303,3 +313,161 @@ pub fn calculate_calc_position(start_position: Position, size: Size, value: f32)
 
     (start, end)
 }
+
+pub fn check_point_in_triangle(point: &Position, first: &Position, second: &Position, apex: &Position) -> bool {
+    let first_to_second = (point.x - first.x) * (second.y - first.y) - (point.y - first.y) * (second.x - first.x);
+    let second_to_apex = (point.x - second.x) * (apex.y - second.y) - (point.y - second.y) * (apex.x - second.x);
+    let apex_to_first = (point.x - apex.x) * (first.y - apex.y) - (point.y - apex.y) * (first.x - apex.x);
+
+    (first_to_second.signum() == second_to_apex.signum()) && (first_to_second.signum() == apex_to_first.signum()) && (second_to_apex.signum() == apex_to_first.signum())
+}
+
+pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position)>, search_id: usize) -> i32 {
+    let mut found_idx = -1;
+
+    for (idx, (attached_enemy_id, ..)) in attached_enemies.iter().enumerate() {
+        let attached_enemy_id = *attached_enemy_id;
+
+        if attached_enemy_id == search_id {
+            found_idx = idx as i32;
+        }
+    }
+
+    found_idx
+}
+
+pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, objects: &[impl LevelObject<'a>]) -> bool {
+    let (player_start, player_end) = player_calc_position; 
+    let (other_start, other_end) = other_calc_position; 
+
+    for object in objects {
+        let (object_start, object_end) = object.get_calc_position();
+
+        let is_between_x_axis = (
+            (player_end.y <= object_start.y && other_start.y >= object_end.y)
+            || (other_end.y <= object_start.y && player_start.y >= object_end.y)
+        ) && (
+            (player_start.x >= object_start.x && other_end.x <= object_end.x)
+            || (player_end.x <= object_end.x && other_start.x >= object_start.x)
+        );
+
+        let is_between_y_axis = (
+            (player_end.x <= object_start.x && other_start.x >= object_end.x)
+            || (other_end.x <= object_start.x && player_start.x >= object_end.x)
+        ) && (
+            (player_start.y >= object_start.y && other_end.y <= object_end.y)
+            || (player_end.y <= object_end.y && other_start.y >= object_start.y)
+        );
+
+        if is_between_x_axis || is_between_y_axis {
+            return true;
+        }
+    }
+
+    false
+}
+
+pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, walls: &[Wall<'a>], doors: &[Door<'a>], value: f32) -> bool {
+    let (player_start, player_end) = player_calc_position; 
+    let (other_start, ..) = other_calc_position; 
+
+    let distance = (absolute_f32(player_start.x - other_start.x), absolute_f32(player_start.y - other_start.y));
+    let dirction: (Direction, Direction);
+
+    if player_start.x < other_start.x {
+        if player_start.y < other_start.y {
+            dirction = (Direction::Right, Direction::Down);
+        } else {
+            dirction = (Direction::Right, Direction::Up);
+        }
+    } else {
+        if player_start.y < other_start.y {
+            dirction = (Direction::Left, Direction::Down);
+        } else {
+            dirction = (Direction::Left, Direction::Up);
+        }
+    }
+
+    if distance.0 == 0.0 && distance.1 == 0.0 {
+        return true;
+    }
+
+    let mut check_positions = vec![];
+
+    let mut x_count = 0.0;
+
+    while x_count <= distance.0 {
+        let x_pos: (f32, f32);
+        if dirction.0 == Direction::Right {
+            x_pos = (player_start.x + x_count, player_end.x + x_count);
+        } else {
+            x_pos = (player_start.x - x_count, player_end.x + x_count);
+        }
+
+        let mut y_count = 0.0;
+
+        while y_count <= distance.1 {
+            let y_pos: (f32, f32);
+            if dirction.1 == Direction::Down {
+                y_pos = (player_start.y + y_count, player_end.y + y_count);
+
+                check_positions.push((Position { x: x_pos.0, y: y_pos.1 }, Position { x: x_pos.1, y: y_pos.1 }));
+            } else {
+                y_pos = (player_start.y - y_count, player_end.y - y_count);
+
+                check_positions.push((Position { x: x_pos.0, y: y_pos.0 }, Position { x: x_pos.1, y: y_pos.0 }));
+            }
+            
+            if dirction.0 == Direction::Right {
+                check_positions.push((Position { x: x_pos.1, y: y_pos.0 }, Position { x: x_pos.1, y: y_pos.1 }));
+            } else {
+                check_positions.push((Position { x: x_pos.0, y: y_pos.0 }, Position { x: x_pos.0, y: y_pos.1 }));
+            }
+
+            y_count += value;
+        }
+
+        x_count += value;
+    }
+    
+    let mut player_body_check_positions = (false, false);
+
+    let is_in_object = | position: &Position, obj_start: &Position, obj_end: &Position | {
+        (position.x >= obj_start.x && position.x <= obj_end.x)
+            && (position.y >= obj_start.y && position.y <= obj_end.y)
+    };
+
+    for wall in walls {
+        let (wall_start, wall_end) = wall.get_calc_position();
+
+        for (start_check_position, end_check_position) in check_positions.iter() {
+            if !player_body_check_positions.0 && is_in_object(start_check_position, &wall_start, &wall_end) {
+                player_body_check_positions.0 = true;
+            }
+
+            if !player_body_check_positions.1 && is_in_object(end_check_position, &wall_start, &wall_end) {
+                player_body_check_positions.1 = true;
+            }
+        }
+    }
+    
+    for door in doors {
+        let (door_start, door_end) = door.get_calc_position();
+
+        for (start_check_position, end_check_position) in check_positions.iter() {
+            if is_in_object(start_check_position, &door_start, &door_end) {
+                player_body_check_positions.0 = door.is_closed();
+            }
+
+            if is_in_object(end_check_position, &door_start, &door_end) {
+                player_body_check_positions.1 = door.is_closed();
+            }
+        }
+    }
+
+    if player_body_check_positions.0 && player_body_check_positions.1 {
+        return true;
+    }
+    
+    false
+} 
