@@ -140,14 +140,12 @@ impl Door<'_> {
 
 #[derive(Debug)]
 pub struct TeleportDoor<'a> {
-    id: usize,
     position: Position,
     calc_position: EndStartPositions,
     size: Size,
     image: &'a str,
     scale: Option<f32>,
     rotate: Option<f32>,
-    connected_to: usize,
     character_move_position: Position,
 }
 
@@ -182,18 +180,15 @@ impl<'a> LevelObject<'a> for TeleportDoor<'a> {
     } 
 }
 
-// i think we do not need connectivity
 impl TeleportDoor<'_> {
-    pub fn new(id: usize, position: Position, connected_to: usize, character_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
+    pub fn new(position: Position, character_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
         Self {
-            id,
             position, 
             calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_TELEPORT_DOOR, DEFAULT_MOVEMENT_VALUE),
             size: DEFAULT_SIZE_FOR_TELEPORT_DOOR, 
             image: "assets/game/teleport-door.webp",
             scale,
             rotate,
-            connected_to,
             character_move_position,
         }
     }
@@ -204,38 +199,12 @@ impl<'a> TeleportDoor<'a> {
         self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
     } 
 
-    pub fn get_id(&self) -> usize {
-        self.id
-    }
-
-    pub fn get_connected_door_id(&self) -> usize {
-        self.connected_to
-    }
-
     pub fn get_character_move_position(&self) -> Position {
         self.character_move_position
     }
 
-    pub fn teleport(&self, character: &mut impl Character<'a>, teleport_doors: &[TeleportDoor]) {
-        let mut teleport_door_idx: i32 = -1;
-
-        for i in 0..teleport_doors.len() {
-            let teleport_door = &teleport_doors[i];
-
-            if teleport_door.id == self.connected_to {
-                teleport_door_idx = i as i32;
-
-                break;
-            } 
-        }
-
-        if teleport_door_idx != -1 {
-            let teleport_door = &teleport_doors[teleport_door_idx as usize];
-
-            character.set_position(teleport_door.get_position());
-        } else {
-            character.set_position(self.character_move_position);
-        }
+    pub fn teleport(&self, character: &mut impl Character<'a>) {
+        character.set_position(self.character_move_position);
     }
 }
 

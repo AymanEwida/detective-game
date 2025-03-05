@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, door::{Door, DoorType}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, level_object::LevelObject, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
@@ -25,6 +25,7 @@ pub enum SimulatorType {
     EnemyLogic,
     PlayerInteractionWithHidePlace,
     CameraLogic,
+    DoorLogic,
     Other
 }
 
@@ -38,6 +39,8 @@ pub enum SimulationStatus {
 pub struct Simulator<'a> {
     walls: Vec<Wall<'a>>,
     doors: Vec<Door<'a>>,
+    teleport_doors: Vec<TeleportDoor<'a>>,
+    door_collectables: Vec<DoorCollectable<'a>>,
     hide_places: Vec<HidePlace<'a>>,
     enemies: Vec<Enemy<'a>>,
     attached_enemies_ids: Vec<(usize, Position)>,
@@ -51,6 +54,8 @@ impl Simulator<'_> {
         Self {
             walls: Vec::new(),
             doors: Vec::new(),
+            teleport_doors: Vec::new(),
+            door_collectables: Vec::new(),
             hide_places: Vec::new(),
             enemies: Vec::new(),
             attached_enemies_ids: Vec::new(),
@@ -81,11 +86,35 @@ impl<'a> Simulator<'a> {
             let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | enemy.collide(door)).collect();
 
             match door.get_door_type() {
-                &DoorType::Regular | &DoorType::Coded | &DoorType::Locked => {
+                &DoorType::Regular => {
                     if player.collide(door) || collided_enemies.len() > 0 {
                         door.open();
                     } else {
                         door.close();
+                    }
+                },
+
+                &DoorType::Coded | &DoorType::Locked => {
+                    if collided_enemies.len() > 0 {
+                        door.open();
+                    } else {
+                        door.close();
+                    }
+
+                    if door.is_locked() {
+                        if player.collide(door) {
+                            if player.can_open_door(door) {
+                                door.unlock();
+                            } else {
+                                player.move_to_prev_position();
+                            }
+                        }
+                    } else {
+                        if player.collide(door) {
+                            door.open();
+                        } else {
+                            door.close();
+                        }
                     }
                 },
 
@@ -95,8 +124,42 @@ impl<'a> Simulator<'a> {
             door.draw(render)?;
         }
 
+        for teleport_door in self.teleport_doors.iter() {
+            let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.get_want_to_teleport() && enemy.collide(teleport_door)).collect();
+            
+            if want_to_teleport_enemies.len() > 0 {
+                for enemy in want_to_teleport_enemies {
+                    teleport_door.teleport(enemy);
+                    enemy.set_want_to_teleport(false);
+                }
+            }           
+
+            if player.is_colliding_with_object(teleport_door) {
+                if let Some(player_interaction) = player.get_interaction() {
+                    if !player.get_is_teleported() && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                        teleport_door.teleport(player);
+                        player.set_is_teleported(true);
+                    }
+                }
+            } else if player.get_is_teleported() {
+                player.set_is_teleported(false);
+            }
+
+            teleport_door.draw(render)?;
+        }
+
+        for door_collectable in self.door_collectables.iter_mut() {
+            if !door_collectable.is_collected() && player.collide(door_collectable) {
+                player.add_door_collectable(door_collectable.get_id(), door_collectable.opens(), door_collectable.get_type());
+
+                door_collectable.set_is_collected(true);
+            }
+
+            door_collectable.draw(render)?;
+        }
+
         for hide_place in self.hide_places.iter() {
-            if player.is_colliding_with_hide_place(hide_place) {
+            if player.is_colliding_with_object(hide_place) {
                 if let Some(player_interaction) = player.get_interaction() {
                     let player_status = player.get_status();
 
@@ -242,6 +305,31 @@ impl<'a> Simulator<'a> {
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
             },
 
+            SimulatorType::DoorLogic => {
+                // self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
+
+                self.door_collectables.push(DoorCollectable::new(1, DoorCollectableType::Key, Position { x: 400.0, y: 20.0 }, vec![1], None));
+                self.door_collectables.push(DoorCollectable::new(2, DoorCollectableType::CodePaper, Position { x: 20.0, y: 400.0 }, vec![2], None));
+
+                self.teleport_doors.push(TeleportDoor::new(Position { x: 200.0, y: 100.0 }, Position { x: 360.0, y: 260.0 }, None, None));
+
+                self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                self.doors.push(
+                    Door::new(1, DoorType::Locked, Position { x: 243.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 15.0, height: 60.0 }, true, Some(1), None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.doors.push(
+                    Door::new(2, DoorType::Coded, Position { x: 430.0, y: 320.0 }, Size { width: 85.0, height: DEFAULT_SIZE }, true, Some(2), None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                );
+                self.teleport_doors.push(TeleportDoor::new(Position { x: 360.0, y: 255.0 }, Position { x: 200.0, y: 100.0 }, None, None));
+                
+                self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+            }
+
             SimulatorType::Other => () 
         }
 
@@ -250,6 +338,8 @@ impl<'a> Simulator<'a> {
 
     pub fn clear_all(&mut self) {
         self.doors.clear();
+        self.teleport_doors.clear();
+        self.door_collectables.clear();
         self.walls.clear();
         self.hide_places.clear();
         self.enemies.clear();

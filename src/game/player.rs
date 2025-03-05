@@ -2,7 +2,7 @@ use glfw::{Action, Key};
 
 use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, round_position_to_full_numbers}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, hide_place::HidePlace, level::{EndStartPositions, GameObject}, level_object::ObjectType, wall::Wall};
+use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -48,6 +48,7 @@ impl PlayerInteraction {
 #[derive(Debug)]
 pub struct DoorCollectableInventory {
     id: usize,
+    opens: Vec<usize>,
     collectable_type: ObjectType,
 }
 
@@ -65,6 +66,7 @@ pub struct Player<'a> {
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     coins: u32,
     is_detected_by_enemy: bool,
+    is_teleported: bool,
 }
 
 impl Player<'_> {
@@ -84,6 +86,7 @@ impl Player<'_> {
             door_collectable_inventory: Vec::new(),
             coins: 0,
             is_detected_by_enemy: false,
+            is_teleported: false,
         }
     }
 }
@@ -150,8 +153,22 @@ impl<'a> Player<'a> {
         &self.door_collectable_inventory
     }
 
-    pub fn add_door_collectable(&mut self, door_collectable_id: usize, door_collectble_type: ObjectType) {
-        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, collectable_type: door_collectble_type });
+    pub fn add_door_collectable(&mut self, door_collectable_id: usize, opens: &Vec<usize>, door_collectble_type: ObjectType) {
+        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, opens: opens.clone(), collectable_type: door_collectble_type });
+    }
+    
+    pub fn can_open_door(&self, door: &Door<'a>) -> bool {
+        if door.get_door_type() == &DoorType::Regular {
+            return true;
+        }
+
+        for door_collectable in self.door_collectable_inventory.iter() {
+            if door_collectable.id == door.get_opens_by_id().unwrap() || door_collectable.opens.contains(&door.get_id()) {
+                return true;
+            }
+        }
+
+        false
     }
 
     pub fn get_coins(&self) -> u32 {
@@ -172,6 +189,14 @@ impl<'a> Player<'a> {
 
     pub fn set_is_detected_by_enemy(&mut self, new_val: bool) {
         self.is_detected_by_enemy = new_val;
+    }
+    
+    pub fn get_is_teleported(&self) -> bool {
+        self.is_teleported
+    }
+
+    pub fn set_is_teleported(&mut self, new_val: bool) {
+        self.is_teleported = new_val;
     }
 
     fn set_calc_position(&mut self) {
@@ -224,25 +249,36 @@ impl<'a> Player<'a> {
         self.position.y < start_position.y
     }
 
-    pub fn is_colliding_with_hide_place(&self, hide_place: &HidePlace) -> bool {
-        if (self.get_calc_position().0 == hide_place.get_calc_position().0) || (self.get_calc_position().1 == hide_place.get_calc_position().1) {
+    pub fn is_colliding_with_object(&self, object: &impl LevelObject<'a>) -> bool {
+        if (self.get_calc_position().0 == object.get_calc_position().0) || (self.get_calc_position().1 == object.get_calc_position().1) {
             return true;
         }
-        
-        let start_hide_place_position = round_position_to_full_numbers(hide_place.get_position(), self.movement_value, true, false);
-        let end_hide_place_position = round_position_to_full_numbers(start_hide_place_position + hide_place.get_size(), self.movement_value, true, false);
-        let start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
-        let end_player_position = self.position + self.size;
+
+        let start_object_position;
+        let end_object_position;
+        let start_player_position;
+        let end_player_position;
+
+        if object.get_type() == ObjectType::HidePlace {
+            start_object_position = round_position_to_full_numbers(object.get_position(), self.movement_value, true, false);
+            end_object_position = round_position_to_full_numbers(start_object_position + object.get_size(), self.movement_value, true, false);
+            start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
+            end_player_position = self.position + self.size;
+        } else {
+            (start_object_position, end_object_position) = object.get_calc_position();
+            (start_player_position, end_player_position) = self.get_calc_position(); 
+        }
 
         let is_collide = | movement_val: f32 | {
-            (start_player_position.y == start_hide_place_position.y
+            (start_player_position.y == start_object_position.y
                 && (
-                    (start_player_position.x >= start_hide_place_position.x && start_player_position.x <= (start_hide_place_position.x + movement_val))
-                    || (end_player_position.x >= (end_hide_place_position.x - movement_val) && end_player_position.x <= end_hide_place_position.x)
-                )) || (start_player_position.x == start_hide_place_position.x
+                    (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
+                    || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x)
+                ))
+            || (start_player_position.x == start_object_position.x
                 && (
-                    (start_player_position.y >= start_hide_place_position.y && start_player_position.y <= (start_hide_place_position.y + movement_val))
-                    || (end_player_position.y >= (end_hide_place_position.y - movement_val) && end_player_position.y <= end_hide_place_position.y)
+                    (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
+                    || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y)
                 )
             )
         };
