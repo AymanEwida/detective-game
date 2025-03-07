@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, level_object::LevelObject, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
@@ -150,7 +150,7 @@ impl<'a> Simulator<'a> {
 
         for door_collectable in self.door_collectables.iter_mut() {
             if !door_collectable.is_collected() && player.collide(door_collectable) {
-                player.add_door_collectable(door_collectable.get_id(), door_collectable.opens(), door_collectable.get_type());
+                player.add_door_collectable(door_collectable.get_id(), door_collectable.opens());
 
                 door_collectable.set_is_collected(true);
             }

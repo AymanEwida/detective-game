@@ -49,7 +49,6 @@ impl PlayerInteraction {
 pub struct DoorCollectableInventory {
     id: usize,
     opens: Vec<usize>,
-    collectable_type: ObjectType,
 }
 
 #[derive(Debug)]
@@ -153,8 +152,8 @@ impl<'a> Player<'a> {
         &self.door_collectable_inventory
     }
 
-    pub fn add_door_collectable(&mut self, door_collectable_id: usize, opens: &Vec<usize>, door_collectble_type: ObjectType) {
-        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, opens: opens.clone(), collectable_type: door_collectble_type });
+    pub fn add_door_collectable(&mut self, door_collectable_id: usize, opens: &Vec<usize>) {
+        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, opens: opens.clone() });
     }
     
     pub fn can_open_door(&self, door: &Door<'a>) -> bool {
