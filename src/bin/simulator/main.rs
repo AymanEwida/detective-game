@@ -37,7 +37,7 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
-    simulator.load_simulation(SimulatorType::DoorLogic).expect("Unable to load simulation");
+    simulator.load_simulation(SimulatorType::EnemyLogic).expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
 

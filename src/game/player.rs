@@ -51,6 +51,57 @@ pub struct DoorCollectableInventory {
     opens: Vec<usize>,
 }
 
+#[derive(Debug, Clone)]
+pub enum InventoryItemType {
+    Weapon,
+    TrickCan,
+}
+
+pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size { width: 40.0, height: 40.0 };
+
+#[derive(Debug, Clone)]
+pub struct InventoryItem<'a> {
+    item_type: InventoryItemType,
+    amount: u32, 
+    ammo: Option<usize>,
+    image: &'a str,
+    name: String,
+}
+
+impl<'a> InventoryItem<'a> {
+    pub fn new(item_type: InventoryItemType, amount: u32, ammo: Option<usize>, image: &'a str, name: String) -> Self {
+        Self {
+            item_type,
+            amount,
+            ammo,
+            image,
+            name
+        }
+    }
+}
+
+impl<'a> InventoryItem<'a> {
+    pub fn get_item_type(&self) -> &InventoryItemType {
+        &self.item_type
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn get_amount(&self) -> u32 {
+        self.amount
+    }
+
+    pub fn get_ammo(&self) -> Option<usize> {
+        self.ammo
+    }
+
+    pub fn get_image(&self) -> &'a str {
+        self.image
+    }
+}
+
 #[derive(Debug)]
 pub struct Player<'a> {
     position: Position,
@@ -63,6 +114,8 @@ pub struct Player<'a> {
     status: PlayerStatus,
     interaction: Option<PlayerInteraction>,
     door_collectable_inventory: Vec<DoorCollectableInventory>,
+    inventory: Vec<InventoryItem<'a>>,
+    holding: Option<usize>,
     coins: u32,
     is_detected_by_enemy: bool,
     is_teleported: bool,
@@ -83,6 +136,11 @@ impl Player<'_> {
             status: PlayerStatus::NotHidden,
             interaction: None,
             door_collectable_inventory: Vec::new(),
+            inventory: vec![
+                InventoryItem::new(InventoryItemType::TrickCan, 25, None, "assets/game/trick-can.png", String::from("Trick Can")),
+                InventoryItem::new(InventoryItemType::Weapon, 1, Some(15), "assets/game/camera-gun.webp", String::from("Camera Gun"))
+            ],
+            holding: None,
             coins: 0,
             is_detected_by_enemy: false,
             is_teleported: false,
@@ -200,6 +258,60 @@ impl<'a> Player<'a> {
 
     fn set_calc_position(&mut self) {
         self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
+    }
+
+    pub fn get_holding_item(&self) -> Option<InventoryItem<'a>> {
+        if let Some(holding) = self.holding {
+            Some(self.inventory[holding].clone())
+        } else {
+            None
+        }
+    }
+
+    fn get_next_holding_item_index(&self) -> usize {
+        if let Some(holding) = self.holding {
+            (holding + 1) % self.inventory.len()
+        } else {
+            0
+        }
+    }
+
+    fn get_prev_holding_item_index(&self) -> usize {
+        if let Some(holding) = self.holding {
+            if holding == 0 {
+                return self.inventory.len() - 1;   
+            }
+
+            (holding - 1) % self.inventory.len()
+        } else {
+            0
+        }
+    }
+
+    pub fn switch_items(&mut self) {
+        if let Some(interaction) = &self.interaction {
+            match interaction.key() {
+                &Key::I => {
+                    if interaction.action() == &Action::Repeat {
+                        self.holding = None;
+                    }
+                },
+
+                &Key::K => {
+                    if interaction.action() == &Action::Press {
+                        self.holding = Some(self.get_next_holding_item_index());
+                    }
+                },
+
+                &Key::J => {
+                    if interaction.action() == &Action::Press {
+                        self.holding = Some(self.get_prev_holding_item_index());
+                    }
+                }
+
+                _ => ()
+            }
+        }
     }
 
     pub fn move_player(&mut self, direction: Direction) {

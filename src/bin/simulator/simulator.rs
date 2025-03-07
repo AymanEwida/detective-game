@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
@@ -26,6 +26,7 @@ pub enum SimulatorType {
     PlayerInteractionWithHidePlace,
     CameraLogic,
     DoorLogic,
+    PlayerLogic,
     Other
 }
 
@@ -72,6 +73,23 @@ impl<'a> Simulator<'a> {
         
         render.display_text(&format!("status: {}", player.get_status()), Position { x: 400.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
         render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 10.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
+        
+        // Should be in a function
+        let holding = player.get_holding_item();
+
+        let holding_info: (Option<&str>, String);
+        if let Some(item) = holding {
+            holding_info = (Some(item.get_image()), item.get_name());
+        } else {
+            holding_info = (None, String::from("nothing"));
+        }
+
+        if let Some(image_path) = holding_info.0 {
+            render.load_image(image_path, Position { x: 150.0, y: 650.0 }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
+        }
+
+        render.display_text(&format!("holding: {}", holding_info.1), Position { x: 200.0, y: 650.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
+        // Should be in a function
 
         for wall in self.walls.iter() {
             if player.collide(wall) {
@@ -248,6 +266,7 @@ impl<'a> Simulator<'a> {
         }
 
         player.draw(render)?;
+        player.switch_items();
 
         Ok(())
     }
@@ -328,6 +347,10 @@ impl<'a> Simulator<'a> {
                 self.teleport_doors.push(TeleportDoor::new(Position { x: 360.0, y: 255.0 }, Position { x: 200.0, y: 100.0 }, None, None));
                 
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+            },
+
+            SimulatorType::PlayerLogic => {
+
             }
 
             SimulatorType::Other => () 
