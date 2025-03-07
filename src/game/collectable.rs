@@ -92,6 +92,10 @@ impl DoorCollectable<'_> {
         self.id
     }
 
+    pub fn opens(&self) -> &Vec<usize> {
+        &self.opens
+    }
+
     pub fn is_collected(&self) -> bool {
         self.is_collected
     }
