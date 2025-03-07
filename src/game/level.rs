@@ -313,7 +313,6 @@ impl<'a> GameLevel<'a> {
         }
 
         player.draw(render)?;
-        print!("position: {:?}\n", player.get_position());
 
         Ok(())
     }
@@ -1110,7 +1109,6 @@ impl<'a> GameLevel<'a> {
                 self.insert_exit_door(ExitDoor::new(Position { x: 0.0, y: 620.0 }, None));
             },
 
-            // TODO: fix level 5 
             4 => {
                 player.move_to(Position { x: 90.0, y: 790.0 }, true);
 
@@ -1636,7 +1634,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 580.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 60.0, y: 580.0 }, Size { width: 222.0, height: DEFAULT_SIZE }, None, None));
 
-                self.insert_hide_place(HidePlace::new(Position { x: 65.0, y: 515.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 60.0, y: 515.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 440.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 75.0, y: 370.0 }, None));
 
