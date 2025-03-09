@@ -350,8 +350,6 @@ impl<'a> Render<'a> {
     pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
 
-        assert!(num_segments > 0, "num_segments must be a positive number");
-        
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
 

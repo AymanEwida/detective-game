@@ -1,9 +1,10 @@
 extern crate glfw;
 extern crate detective_game;
 
+use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-use detective_game::game::player::PlayerInteraction;
+use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::game::{character::Direction, player::Player};
@@ -28,6 +29,8 @@ fn main() {
 
     window.make_current();
     window.set_key_polling(true);
+    window.set_mouse_button_polling(true);
+    window.set_cursor_pos_polling(true);
     gl::load_with(|s| window.get_proc_address(s) as *const _);
 
     let (window_width, window_height) = window.get_framebuffer_size();
@@ -44,7 +47,11 @@ fn main() {
     window.set_framebuffer_size_callback(| window, new_width, new_height | {
         window.set_size(new_width, new_height);
     });
-    
+
+    let mut cursor_position = Position { x: 0.0, y: 0.0 };
+
+    let mut pressed_buttons = HashSet::new(); 
+
     while !window.should_close() {
         
         let (window_width, window_height) = window.get_framebuffer_size();
@@ -58,6 +65,26 @@ fn main() {
         
         for (_, event) in flush_messages(&events) {
             match event {
+                WindowEvent::CursorPos(x, y) => {
+                    cursor_position = Position { x: x as f32, y: y as f32 };
+                }
+
+                WindowEvent::MouseButton(mouse_button, action, _) => {
+                    player.set_mouse_interaction(Some(PlayerMouseInteraction::new(mouse_button, action, cursor_position)));
+
+                    match action {
+                        Action::Press => {
+                            pressed_buttons.insert(mouse_button);
+                        },
+
+                        Action::Release => {
+                            pressed_buttons.remove(&mouse_button);
+                        },
+
+                        _ => (),
+                    }
+                },
+
                 WindowEvent::Key(key, _, action, _) => {
                     player.set_interaction(Some(PlayerInteraction::new(key, action)));
 
@@ -118,13 +145,17 @@ fn main() {
                         _ => ()
                     }
                 },
-        
+
                 WindowEvent::Close => {
                     window.set_should_close(true);
                 },
                 
                 _ => ()
             }
+        }
+
+        for pressed_button in pressed_buttons.iter() {
+            player.set_mouse_interaction(Some(PlayerMouseInteraction::new(*pressed_button, Action::Press, cursor_position)));
         }
 
         let now = Instant::now();
@@ -144,6 +175,7 @@ fn main() {
             window.swap_buffers();
 
             player.set_interaction(None);
+            player.set_mouse_interaction(None);
         }
     }
 }

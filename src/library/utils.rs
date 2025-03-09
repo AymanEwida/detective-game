@@ -336,28 +336,34 @@ pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position)>, searc
     found_idx
 }
 
-pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, objects: &[impl LevelObject<'a>]) -> bool {
+pub fn object_in_between_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, object: &impl LevelObject<'a>) -> (bool, bool) {
     let (player_start, player_end) = player_calc_position; 
     let (other_start, other_end) = other_calc_position; 
 
+    let (object_start, object_end) = object.get_calc_position();
+
+    let is_between_x_axis = (
+        (player_end.y <= object_start.y && other_start.y >= object_end.y)
+        || (other_end.y <= object_start.y && player_start.y >= object_end.y)
+    ) && (
+        (player_start.x >= object_start.x && other_end.x <= object_end.x)
+        || (player_end.x <= object_end.x && other_start.x >= object_start.x)
+    );
+
+    let is_between_y_axis = (
+        (player_end.x <= object_start.x && other_start.x >= object_end.x)
+        || (other_end.x <= object_start.x && player_start.x >= object_end.x)
+    ) && (
+        (player_start.y >= object_start.y && other_end.y <= object_end.y)
+        || (player_end.y <= object_end.y && other_start.y >= object_start.y)
+    );
+
+    (is_between_x_axis, is_between_y_axis)
+}
+
+pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, objects: &[impl LevelObject<'a>]) -> bool {
     for object in objects {
-        let (object_start, object_end) = object.get_calc_position();
-
-        let is_between_x_axis = (
-            (player_end.y <= object_start.y && other_start.y >= object_end.y)
-            || (other_end.y <= object_start.y && player_start.y >= object_end.y)
-        ) && (
-            (player_start.x >= object_start.x && other_end.x <= object_end.x)
-            || (player_end.x <= object_end.x && other_start.x >= object_start.x)
-        );
-
-        let is_between_y_axis = (
-            (player_end.x <= object_start.x && other_start.x >= object_end.x)
-            || (other_end.x <= object_start.x && player_start.x >= object_end.x)
-        ) && (
-            (player_start.y >= object_start.y && other_end.y <= object_end.y)
-            || (player_end.y <= object_end.y && other_start.y >= object_start.y)
-        );
+        let (is_between_x_axis, is_between_y_axis) = object_in_between_check(player_calc_position, other_calc_position, object);
 
         if is_between_x_axis || is_between_y_axis {
             return true;

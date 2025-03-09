@@ -2,7 +2,7 @@ use glfw::{Action, Key};
 
 use crate::{game::{enemy::EnemyType, player::PlayerStatus}, library::utils::{get_attached_enemy_index, get_level_challenges}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{camera::Camera, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::Player, wall::Wall};
+use super::{camera::Camera, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall};
 
 pub const DEFAULT_SIZE: f32 = 30.0;
 pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
@@ -74,6 +74,26 @@ impl Default for GameLevel<'_> {
             status: LevelStatus::NotDetermine,
         }
     }
+}
+
+pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<InventoryItem<'a>>, render: &mut Render<'a>) -> Result<()> {
+    if let Some(item) = holding_item {
+        render.display_text(&format!("holding: {}", item.get_name()), start_position, 1.0, None, Color::White)?; 
+
+        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + 55.0 }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
+
+        render.display_text(&format!("| {}", item.get_amount()), Position { x: start_position.x + 150.0, y: start_position.y + 50.0 }, 1.0, None, Color::White)?;
+
+        if let Some(ammo) = item.get_ammo() {
+            render.display_text(&format!("| {}", ammo), Position { x: start_position.x + 230.0, y: start_position.y + 50.0 }, 1.0, None, Color::White)?;
+
+            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 310.0, y: start_position.y + 50.0 }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
+        }
+    } else {
+        render.display_text("holding: nothing", start_position, 1.0, None, Color::White)?; 
+    }
+
+    Ok(())
 }
 
 impl<'a> GameLevel<'a> {

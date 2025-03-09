@@ -1,6 +1,6 @@
-use glfw::{Action, Key};
+use glfw::{Action, Key, MouseButton};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, round_position_to_full_numbers}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_control_point, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
@@ -42,6 +42,37 @@ impl PlayerInteraction {
 
     pub fn action(&self) -> &Action {
         &self.action
+    }
+}
+
+#[derive(Debug)]
+pub struct PlayerMouseInteraction {
+    mouse_button: MouseButton,
+    action: Action,
+    cursor_position: Position, 
+}
+
+impl PlayerMouseInteraction {
+    pub fn new(mouse_button: MouseButton, action: Action, cursor_position: Position) -> Self {
+        Self {
+            mouse_button,
+            action,
+            cursor_position
+        }
+    }
+}
+
+impl PlayerMouseInteraction {
+    pub fn get_mouse_button(&self) -> &MouseButton {
+        &self.mouse_button
+    }
+
+    pub fn get_action(&self) -> &Action {
+        &self.action
+    }
+
+    pub fn get_cursor_position(&self) -> Position {
+        self.cursor_position
     }
 }
 
@@ -113,6 +144,7 @@ pub struct Player<'a> {
     movement_value: f32,
     status: PlayerStatus,
     interaction: Option<PlayerInteraction>,
+    mouse_interaction: Option<PlayerMouseInteraction>,
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     inventory: Vec<InventoryItem<'a>>,
     holding: Option<usize>,
@@ -135,6 +167,7 @@ impl Player<'_> {
             movement_value: DEFAULT_MOVEMENT_VALUE,
             status: PlayerStatus::NotHidden,
             interaction: None,
+            mouse_interaction: None,
             door_collectable_inventory: Vec::new(),
             inventory: vec![
                 InventoryItem::new(InventoryItemType::TrickCan, 25, None, "assets/game/trick-can.png", String::from("Trick Can")),
@@ -202,8 +235,16 @@ impl<'a> Player<'a> {
         &self.interaction
     }
 
+    pub fn get_mouse_interaction(&self) -> &Option<PlayerMouseInteraction> {
+        &self.mouse_interaction
+    }
+
     pub fn set_interaction(&mut self, new_value: Option<PlayerInteraction>) {
         self.interaction = new_value;
+    }
+
+    pub fn set_mouse_interaction(&mut self, new_value: Option<PlayerMouseInteraction>) {
+        self.mouse_interaction = new_value;
     }
     
     pub fn get_door_collectable_inventory(&self) -> &[DoorCollectableInventory] {
@@ -310,6 +351,145 @@ impl<'a> Player<'a> {
                 }
 
                 _ => ()
+            }
+        }
+    }
+
+    pub fn shoot(&mut self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) {
+        let holding_item = self.get_holding_item();
+
+        if let Some(item) = holding_item {
+            if let Some(mouse_interaction) = self.get_mouse_interaction() {
+                let window_end = window_start + window_size;
+
+                match item.get_item_type() {
+                    InventoryItemType::TrickCan => {
+                        match mouse_interaction.get_mouse_button() {
+                            &MouseButton::Button1 => {
+                                let start_position = if self.flip {
+                                    Position { x: self.position.x + self.size.width, y: self.position.y + 15.0 }
+                                } else {
+                                    Position { x: self.position.x, y: self.position.y + 15.0 }
+                                };
+
+                                let mut end_position = mouse_interaction.get_cursor_position();
+
+                                let length = length_of_line(&start_position, &end_position);
+
+                                match mouse_interaction.get_action() {
+                                    &Action::Press => {
+                                        if length > 250.0 {
+                                            if end_position.x > start_position.x {
+                                                if end_position.y > start_position.y {
+                                                    end_position = start_position + 175.0;
+                                                } else {
+                                                    end_position = Position { x: start_position.x + 175.0, y: start_position.y - 175.0 };
+                                                }
+                                            } else {
+                                                if end_position.y > start_position.y {
+                                                    end_position = Position { x: start_position.x - 175.0, y: start_position.y + 175.0 };
+                                                } else {
+                                                    end_position = start_position - 175.0
+                                                }
+                                            }
+                                        }
+
+                                        let change_end_position = move | (object_start, object_end): EndStartPositions, (other_start, other_end): EndStartPositions | {
+                                            let mut x_offset = 0.0;
+                                            let mut x_sing = 1.0;
+                                            if other_end.x <= object_start.x {
+                                                x_offset = absolute_f32(object_start.x - end_position.x);
+                                                x_sing = -1.0;
+                                            } else if other_start.x >= object_end.x {
+                                                x_offset = absolute_f32(object_end.x - end_position.x);
+                                                x_sing = 1.0;
+                                            }
+
+                                            let mut y_offset = 0.0;
+                                            let mut y_sing = 1.0;
+                                            if other_end.y <= object_start.y {
+                                                y_offset = absolute_f32(object_start.y - end_position.y);
+                                                y_sing = -1.0;
+                                            } else if other_start.y >= object_end.y {
+                                                y_offset = absolute_f32(object_end.y - end_position.y);
+                                                y_sing = 1.0;
+                                            }
+
+                                            Position { x: end_position.x + (x_sing * x_offset), y: end_position.y + (y_sing * y_offset) }
+                                        };
+
+                                        let window_check = is_position_in_border(&window_start, &window_end, &end_position);
+
+                                        if window_check.0 && window_check.1 {
+                                            end_position = change_end_position((window_start, window_end), (end_position, end_position));
+                                        }
+
+                                        for wall in walls {
+                                            let (wall_start, wall_end)  = wall.get_calc_position();
+                                            
+                                            let (x_check, y_check) = is_position_in_border(&wall_start, &wall_end, &end_position);
+
+                                            let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), wall);
+
+                                            if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
+                                                end_position = change_end_position(wall.get_calc_position(), self.get_calc_position());
+                                            }
+                                        }
+
+                                        for door in doors {
+                                            if door.is_closed() {
+                                                let (door_start, door_end)  = door.get_calc_position();
+                                                
+                                                let (x_check, y_check) = is_position_in_border(&door_start, &door_end, &end_position);
+
+                                                let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), door);
+
+                                                if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
+                                                    end_position = change_end_position(door.get_calc_position(), self.get_calc_position());
+                                                }
+                                            }
+                                        }
+
+                                        render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
+                                    },
+
+                                    // TODO: add a queue to draw Cans and Ammo when sohooted based on elapsed time
+                                    &Action::Release => {
+                                        let length = length as usize;
+                                        let control_point = calc_control_point(&start_position, &end_position);
+
+                                        let mut positions_path = Vec::with_capacity(length);
+
+                                        for num in 0..=length {
+                                            let t = num as f32 / length as f32;
+
+                                            let x = (1.0 - t).powi(2) * start_position.x + 2.0 * (1.0 - t) * t * control_point.x + t.powi(2) * end_position.x;
+                                            let y = (1.0 - t).powi(2) * start_position.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * end_position.y;
+
+                                            positions_path.push(
+                                                Position {
+                                                    x,
+                                                    y
+                                                }
+                                            );
+                                        }
+
+                                        print!("positions_path: {:?}\n", positions_path);
+                                        print!("size: {:?}", positions_path.len());
+                                    },
+
+                                    _ => ()
+                                }
+                            },
+
+                            _ => ()
+                        }
+                    },
+
+                    InventoryItemType::Weapon => {
+
+                    },
+                }
             }
         }
     }
