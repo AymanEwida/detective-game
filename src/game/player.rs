@@ -378,22 +378,6 @@ impl<'a> Player<'a> {
 
                                 match mouse_interaction.get_action() {
                                     &Action::Press => {
-                                        if length > 250.0 {
-                                            if end_position.x > start_position.x {
-                                                if end_position.y > start_position.y {
-                                                    end_position = start_position + 175.0;
-                                                } else {
-                                                    end_position = Position { x: start_position.x + 175.0, y: start_position.y - 175.0 };
-                                                }
-                                            } else {
-                                                if end_position.y > start_position.y {
-                                                    end_position = Position { x: start_position.x - 175.0, y: start_position.y + 175.0 };
-                                                } else {
-                                                    end_position = start_position - 175.0
-                                                }
-                                            }
-                                        }
-
                                         let change_end_position = move | (object_start, object_end): EndStartPositions, (other_start, other_end): EndStartPositions | {
                                             let mut x_offset = 0.0;
                                             let mut x_sing = 1.0;
@@ -418,10 +402,28 @@ impl<'a> Player<'a> {
                                             Position { x: end_position.x + (x_sing * x_offset), y: end_position.y + (y_sing * y_offset) }
                                         };
 
+                                        if length > 250.0 {
+                                            let direction = (end_position - start_position).normalize(&window_start);
+
+                                            end_position = start_position + (direction * 250.0);
+                                        }
+
                                         let window_check = is_position_in_border(&window_start, &window_end, &end_position);
 
-                                        if window_check.0 && window_check.1 {
-                                            end_position = change_end_position((window_start, window_end), (end_position, end_position));
+                                        if !window_check.0 {
+                                            if end_position.x < window_start.x {
+                                                end_position.x = window_start.x;
+                                            } else {
+                                                end_position.x = window_end.x;
+                                            }
+                                        }
+
+                                        if !window_check.1 {
+                                            if end_position.y < window_start.y {
+                                                end_position.y = window_start.y;
+                                            } else {
+                                                end_position.y = window_end.y;
+                                            }
                                         }
 
                                         for wall in walls {
@@ -474,8 +476,8 @@ impl<'a> Player<'a> {
                                             );
                                         }
 
-                                        print!("positions_path: {:?}\n", positions_path);
-                                        print!("size: {:?}", positions_path.len());
+                                        // print!("positions_path: {:?}\n", positions_path);
+                                        // print!("size: {:?}", positions_path.len());
                                     },
 
                                     _ => ()

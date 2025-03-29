@@ -21,7 +21,13 @@ pub fn calc_mid_point(start: &Position, end: &Position) -> Position {
 
 pub fn calc_control_point(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
-    let control_y = start.y.abs() + end.y.abs();
+    // let control_y = start.y.abs() + end.y.abs();
+    
+    let mut control_y = (start.y + end.y).abs();
+
+    if start.y == end.y {
+        control_y = &control_y / 2.0;
+    }
 
     Position { x: control_x, y: control_y }
 }
