@@ -1,8 +1,8 @@
 use glfw::{Action, Key, MouseButton};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_control_point, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
+use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, throwable_object::{PathType, ThrowableObject}, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -355,7 +355,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn shoot(&mut self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) {
+    pub fn shoot(&self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ThrowableObject<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
@@ -455,29 +455,8 @@ impl<'a> Player<'a> {
                                         render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
                                     },
 
-                                    // TODO: add a queue to draw Cans and Ammo when sohooted based on elapsed time
                                     &Action::Release => {
-                                        let length = length as usize;
-                                        let control_point = calc_control_point(&start_position, &end_position);
-
-                                        let mut positions_path = Vec::with_capacity(length);
-
-                                        for num in 0..=length {
-                                            let t = num as f32 / length as f32;
-
-                                            let x = (1.0 - t).powi(2) * start_position.x + 2.0 * (1.0 - t) * t * control_point.x + t.powi(2) * end_position.x;
-                                            let y = (1.0 - t).powi(2) * start_position.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * end_position.y;
-
-                                            positions_path.push(
-                                                Position {
-                                                    x,
-                                                    y
-                                                }
-                                            );
-                                        }
-
-                                        // print!("positions_path: {:?}\n", positions_path);
-                                        // print!("size: {:?}", positions_path.len());
+                                        return Some(ThrowableObject::new(start_position, end_position, PathType::Curved, "assets/game/trick-can.png"));
                                     },
 
                                     _ => ()
@@ -494,6 +473,8 @@ impl<'a> Player<'a> {
                 }
             }
         }
+
+        None
     }
 
     pub fn move_player(&mut self, direction: Direction) {

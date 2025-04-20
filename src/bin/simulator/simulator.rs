@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, throwable_object::ThrowableObject, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
@@ -46,6 +46,7 @@ pub struct Simulator<'a> {
     enemies: Vec<Enemy<'a>>,
     attached_enemies_ids: Vec<(usize, Position)>,
     cameras: Vec<Camera<'a>>,
+    throwable_objects: Vec<ThrowableObject<'a>>,
     status: SimulationStatus,
     notoriety_level: u64, 
 }
@@ -61,6 +62,7 @@ impl Simulator<'_> {
             enemies: Vec::new(),
             attached_enemies_ids: Vec::new(),
             cameras: Vec::new(),
+            throwable_objects: Vec::new(),
             status: SimulationStatus::NotDetermine,
             notoriety_level: 0,
         }
@@ -252,7 +254,19 @@ impl<'a> Simulator<'a> {
             );
         }
 
-        player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
+        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
+        if let Some(object) = shooted_object {
+            self.throwable_objects.push(object);
+        }
+
+        for throwable_object in self.throwable_objects.iter_mut() {
+            if !throwable_object.get_is_finished() {
+                throwable_object.draw(render)?;
+
+                throwable_object.calc_next_position();
+            }
+        }
+
         player.draw(render)?;
         player.switch_items();
 
