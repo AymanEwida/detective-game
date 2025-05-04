@@ -1,4 +1,4 @@
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_control_point, calculate_calc_position, length_of_line}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_control_point_game_coordinate_system, calculate_calc_position, length_of_line}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{level::{EndStartPositions, GameObject}, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
 
@@ -16,6 +16,7 @@ pub struct ThrowableObject<'a> {
     size: Size,
     calc_position: EndStartPositions,
     length: usize,
+    control_point: Position,
     iter_num: usize,
     is_finished: bool,
 }
@@ -31,6 +32,7 @@ impl<'a> ThrowableObject<'a> {
             size: DEFAULT_SIZE_FOR_INVENTORY_ITEM,
             calc_position: calculate_calc_position(start_position, DEFAULT_SIZE_FOR_INVENTORY_ITEM, DEFAULT_MOVEMENT_VALUE),
             length: length_of_line(&start_position, &end_position) as usize,
+            control_point: calc_control_point_game_coordinate_system(&start_position, &end_position),
             iter_num: 0,
             is_finished: start_position == end_position,
         }
@@ -72,20 +74,17 @@ impl ThrowableObject<'_> {
         self.calc_position = calculate_calc_position(self.current_position, self.size, DEFAULT_MOVEMENT_VALUE);
     }
 
-    // TODO: math is off it goes the opposite way
     pub fn calc_next_position(&mut self) {
         match self.path_type {
             PathType::Curved => {
-                let control_point = calc_control_point(&self.start_position, &self.end_position);
-
                 let t = self.iter_num as f32 / self.length as f32;
 
-                let x = (1.0 - t).powi(2) * self.start_position.x + 2.0 * (1.0 - t) * t * control_point.x + t.powi(2) * self.end_position.x;
-                let y = (1.0 - t).powi(2) * self.start_position.y + 2.0 * (1.0 - t) * t * control_point.y + t.powi(2) * self.end_position.y;
+                let x = (1.0 - t).powi(2) * self.start_position.x + 2.0 * (1.0 - t) * t * self.control_point.x + t.powi(2) * self.end_position.x;
+                let y = (1.0 - t).powi(2) * self.start_position.y + 2.0 * (1.0 - t) * t * self.control_point.y + t.powi(2) * self.end_position.y;
 
                 self.current_position = Position { x, y };
 
-                self.iter_num += 1;
+                self.iter_num += 3;
             },
 
             PathType::StraightLine => {}
@@ -93,8 +92,14 @@ impl ThrowableObject<'_> {
 
         self.set_calc_position();
 
-        if self.current_position == self.end_position {
-            self.is_finished = true;
+        if self.start_position >= self.current_position {
+            if self.iter_num >= self.length {
+                self.is_finished = true;
+            }
+        } else {
+            if self.iter_num >= self.length || self.current_position >= self.end_position {
+                self.is_finished = true;
+            }
         }
     }
 }

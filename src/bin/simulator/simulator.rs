@@ -290,7 +290,7 @@ impl<'a> Simulator<'a> {
                 self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
                 self.doors.push(
                     Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
-                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
                 );
                 
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
