@@ -1,5 +1,6 @@
-use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, throwable_object::ThrowableObject, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, throwable_object::ThrowableObject, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
+use queues::{IsQueue, Queue};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
 
@@ -46,11 +47,13 @@ pub struct Simulator<'a> {
     enemies: Vec<Enemy<'a>>,
     attached_enemies_ids: Vec<(usize, Position)>,
     cameras: Vec<Camera<'a>>,
-    throwable_objects: Vec<ThrowableObject<'a>>,
+    throwable_objects: Queue<ThrowableObject<'a>>,
+    detecting_ranges: Vec<DetectRange>,
     status: SimulationStatus,
     notoriety_level: u64, 
 }
 
+// TODO: add detecting_ranges for enemies as queue
 impl Simulator<'_> {
     pub fn new() -> Self {
         Self {
@@ -62,7 +65,8 @@ impl Simulator<'_> {
             enemies: Vec::new(),
             attached_enemies_ids: Vec::new(),
             cameras: Vec::new(),
-            throwable_objects: Vec::new(),
+            throwable_objects: Queue::new(),
+            detecting_ranges: Vec::new(),
             status: SimulationStatus::NotDetermine,
             notoriety_level: 0,
         }
@@ -256,14 +260,54 @@ impl<'a> Simulator<'a> {
 
         let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
         if let Some(object) = shooted_object {
-            self.throwable_objects.push(object);
+            self.throwable_objects.add(object).unwrap();
         }
 
-        for throwable_object in self.throwable_objects.iter_mut() {
-            if !throwable_object.get_is_finished() {
-                throwable_object.draw(render)?;
+        for _ in 0..self.throwable_objects.size() {
+            let mut throwable_object = self.throwable_objects.remove().unwrap(); 
 
+            if !throwable_object.get_is_finished() {
+                let mut is_object_colliding = false;
+
+                for wall in self.walls.iter() {
+                    if throwable_object.collide(wall) {
+                        is_object_colliding = true;
+
+                        break;
+                    }
+                }
+
+                for door in self.doors.iter() {
+                    if throwable_object.collide(door) && door.is_closed() {
+                        is_object_colliding = true;
+
+                        break;
+                    }
+                }
+
+                for enemy in self.enemies.iter_mut() {
+                    if (throwable_object.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.get_mode() == &EnemyMode::Searching) {
+                        is_object_colliding = true;
+
+                        enemy.search(throwable_object.get_start_position());
+                    }
+                }
+                
+                if is_object_colliding {
+                    throwable_object.set_is_finished(true);
+                }
+            }
+
+            throwable_object.draw(render)?;
+
+            if !throwable_object.get_is_finished() {
                 throwable_object.calc_next_position();
+            } else {
+                self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), throwable_object.get_calc_position().0));
+            }
+
+            if !throwable_object.get_done() {
+                self.throwable_objects.add(throwable_object).unwrap();
             }
         }
 

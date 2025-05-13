@@ -9,3 +9,4 @@ pub mod door;
 pub mod collectable;
 pub mod hide_place;
 pub mod throwable_object;
+pub mod detect_range;

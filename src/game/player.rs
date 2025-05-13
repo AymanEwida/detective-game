@@ -151,6 +151,7 @@ pub struct Player<'a> {
     coins: u32,
     is_detected_by_enemy: bool,
     is_teleported: bool,
+    can_detecting_radius: f32,
 }
 
 impl Player<'_> {
@@ -177,6 +178,7 @@ impl Player<'_> {
             coins: 0,
             is_detected_by_enemy: false,
             is_teleported: false,
+            can_detecting_radius: 100.0,
         }
     }
 }
@@ -295,6 +297,14 @@ impl<'a> Player<'a> {
 
     pub fn set_is_teleported(&mut self, new_val: bool) {
         self.is_teleported = new_val;
+    }
+
+    pub fn get_can_detecting_radius(&self) -> f32 {
+        self.can_detecting_radius
+    }
+
+    pub fn set_can_detecting_radius(&mut self, new_radius: f32) {
+        self.can_detecting_radius = new_radius;
     }
 
     fn set_calc_position(&mut self) {
@@ -456,7 +466,7 @@ impl<'a> Player<'a> {
                                     },
 
                                     &Action::Release => {
-                                        return Some(ThrowableObject::new(start_position, end_position, PathType::Curved, "assets/game/trick-can.png"));
+                                        return Some(ThrowableObject::new(start_position, end_position, PathType::Curved, "assets/game/trick-can.png", self.can_detecting_radius));
                                     },
 
                                     _ => ()

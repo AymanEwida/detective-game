@@ -775,6 +775,11 @@ impl<'a> Enemy<'a> {
         vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
     } 
 
+    pub fn search(&mut self, target_search_position: Position) {
+        self.mode = EnemyMode::Searching;
+        self.start_searching_position = Some(target_search_position);
+    }
+
     pub fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
         if player.get_status() == &PlayerStatus::Hidden {
             return false;
