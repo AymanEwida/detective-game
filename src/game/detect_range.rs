@@ -27,7 +27,8 @@ impl DetectRange {
     }
 
     pub fn is_in_range<'a>(&self, object: &impl GameObject<'a>) -> bool {
-        length_of_line(&object.get_calc_position().0, &self.center_position) <= self.radius
+        length_of_line(&object.get_calc_position().0, &self.center_position) <= self.radius ||
+        length_of_line(&object.get_calc_position().1, &self.center_position) <= self.radius
     }
 }
 

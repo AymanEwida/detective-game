@@ -11,7 +11,7 @@ pub enum PathType {
 }
 
 #[derive(Debug, Clone)]
-pub struct ThrowableObject<'a> {
+pub struct Can<'a> {
     start_position: Position,
     current_position: Position,
     end_position: Position,
@@ -29,7 +29,7 @@ pub struct ThrowableObject<'a> {
     hit_duration_interval: Duration,
 }
 
-impl<'a> ThrowableObject<'a> {
+impl<'a> Can<'a> {
     pub fn new(start_position: Position, end_position: Position, path_type: PathType, image: &'a str, detect_radius: f32) -> Self {
         Self {
             start_position,
@@ -51,13 +51,13 @@ impl<'a> ThrowableObject<'a> {
     }
 }
 
-impl<'a> ThrowableObject<'a> {
+impl<'a> Can<'a> {
     pub fn draw(&mut self, render: &mut Render<'a>) -> Result<()> {
         if !self.is_finished {
             render.load_image(self.image, self.current_position, self.size, false, None, None, None, None)?;
         } else {
             if self.last_hit_time.elapsed() <= self.hit_duration_interval {
-                render.load_image("assets/game/can-hit-effect.png", self.current_position, self.size, false, None, None, None, None)?;
+                render.load_image("assets/game/can-hit-effect.png", self.current_position - self.size.width / 2.0, self.size, false, None, None, None, None)?;
                 render.draw_geometric_object(self.current_position, self.detect_radius, Color::RGBA(0, 0, 255, 50), None, None, None, None);
             } else {
                 self.done = true;
@@ -86,13 +86,14 @@ impl<'a> ThrowableObject<'a> {
     }
 }
 
-impl<'a> ThrowableObject<'a> {
+impl<'a> Can<'a> {
     pub fn get_is_finished(&self) -> bool {
         self.is_finished
     }
 
     pub fn set_is_finished(&mut self, new_is_finished: bool) {
         self.is_finished = new_is_finished;
+        self.last_hit_time = Instant::now();
     }
 
     pub fn get_start_position(&self) -> Position {
@@ -112,20 +113,14 @@ impl<'a> ThrowableObject<'a> {
     }
 
     pub fn calc_next_position(&mut self) {
-        match self.path_type {
-            PathType::Curved => {
-                let t = self.iter_num as f32 / self.length as f32;
+        let t = self.iter_num as f32 / self.length as f32;
 
-                let x = (1.0 - t).powi(2) * self.start_position.x + 2.0 * (1.0 - t) * t * self.control_point.x + t.powi(2) * self.end_position.x;
-                let y = (1.0 - t).powi(2) * self.start_position.y + 2.0 * (1.0 - t) * t * self.control_point.y + t.powi(2) * self.end_position.y;
+        let x = (1.0 - t).powi(2) * self.start_position.x + 2.0 * (1.0 - t) * t * self.control_point.x + t.powi(2) * self.end_position.x;
+        let y = (1.0 - t).powi(2) * self.start_position.y + 2.0 * (1.0 - t) * t * self.control_point.y + t.powi(2) * self.end_position.y;
 
-                self.current_position = Position { x, y };
+        self.current_position = Position { x, y };
 
-                self.iter_num += 3;
-            },
-
-            PathType::StraightLine => {}
-        }
+        self.iter_num += 3;
 
         self.set_calc_position();
 

@@ -8,5 +8,5 @@ pub mod wall;
 pub mod door;
 pub mod collectable;
 pub mod hide_place;
-pub mod throwable_object;
+pub mod can;
 pub mod detect_range;
