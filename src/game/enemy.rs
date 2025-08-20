@@ -606,6 +606,7 @@ impl<'a> Enemy<'a> {
                             grid_start_position,
                             grid
                         ).unwrap_or(Vec::new());
+
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
                 } else {
@@ -795,7 +796,7 @@ impl<'a> Enemy<'a> {
             (player_end.y > enemy_start.y && player_end.y <= enemy_end.y)) {
             return true;
         }
-        
+
         if simple_object_detect_check(player.get_calc_position(), self.get_calc_position(), walls) {
             return false;
         }
@@ -906,11 +907,13 @@ impl<'a> Enemy<'a> {
     pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
         let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
 
-        self.position.x > (start_position.x + size.width) ||
-        (self.position.x + self.size.width) > (start_position.x + size.width) ||
-        self.position.x < start_position.x ||
-        self.position.y > (start_position.y + size.height) ||
-        (self.position.y + self.size.height) > (start_position.y + size.height) ||
-        self.position.y < start_position.y
+        let (start, end) = self.get_calc_position();
+
+        start.x > (start_position.x + size.width) ||
+        end.x > (start_position.x + size.width) ||
+        start.x < start_position.x ||
+        start.y > (start_position.y + size.height) ||
+        end.y > (start_position.y + size.height) ||
+        start.y < start_position.y
     }
 }

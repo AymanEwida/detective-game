@@ -2,7 +2,7 @@ use glfw::{Action, Key, MouseButton};
 
 use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, throwable_object::{PathType, ThrowableObject}, wall::Wall};
+use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, can::Can, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -365,7 +365,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn shoot(&self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ThrowableObject<'a>> {
+    pub fn shoot(&self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<Can<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
@@ -466,7 +466,7 @@ impl<'a> Player<'a> {
                                     },
 
                                     &Action::Release => {
-                                        return Some(ThrowableObject::new(start_position, end_position, PathType::Curved, "assets/game/trick-can.png", self.can_detecting_radius));
+                                        return Some(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius));
                                     },
 
                                     _ => ()

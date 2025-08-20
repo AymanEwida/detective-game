@@ -395,6 +395,7 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
     let (other_start, ..) = other_calc_position; 
 
     let distance = (absolute_f32(player_start.x - other_start.x), absolute_f32(player_start.y - other_start.y));
+    
     let dirction: (Direction, Direction);
 
     if player_start.x < other_start.x {
@@ -473,7 +474,7 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
             }
         }
     }
-    
+
     for door in doors {
         let (door_start, door_end) = door.get_calc_position();
 

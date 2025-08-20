@@ -5,17 +5,10 @@ use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_control_po
 use super::{level::{EndStartPositions, GameObject}, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
 
 #[derive(Debug, Clone)]
-pub enum PathType {
-   Curved,
-   StraightLine,
-}
-
-#[derive(Debug, Clone)]
 pub struct Can<'a> {
     start_position: Position,
     current_position: Position,
     end_position: Position,
-    path_type: PathType,
     image: &'a str,
     size: Size,
     calc_position: EndStartPositions,
@@ -30,12 +23,11 @@ pub struct Can<'a> {
 }
 
 impl<'a> Can<'a> {
-    pub fn new(start_position: Position, end_position: Position, path_type: PathType, image: &'a str, detect_radius: f32) -> Self {
+    pub fn new(start_position: Position, end_position: Position, image: &'a str, detect_radius: f32) -> Self {
         Self {
             start_position,
             current_position: start_position,
             end_position,
-            path_type,
             image,
             size: DEFAULT_SIZE_FOR_INVENTORY_ITEM,
             calc_position: calculate_calc_position(start_position, DEFAULT_SIZE_FOR_INVENTORY_ITEM, DEFAULT_MOVEMENT_VALUE),
