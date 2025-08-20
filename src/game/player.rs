@@ -2,7 +2,7 @@ use glfw::{Action, Key, MouseButton};
 
 use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, can::Can, wall::Wall};
+use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -131,6 +131,12 @@ impl<'a> InventoryItem<'a> {
     pub fn get_image(&self) -> &'a str {
         self.image
     }
+}
+
+#[derive(Debug)]
+pub enum ShootObject<'a> {
+    Can(Can<'a>),
+    Bullet(Bullet<'a>),
 }
 
 #[derive(Debug)]
@@ -365,27 +371,27 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn shoot(&self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<Can<'a>> {
+    pub fn shoot(&self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ShootObject<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
             if let Some(mouse_interaction) = self.get_mouse_interaction() {
                 let window_end = window_start + window_size;
 
+                let start_position = if self.flip {
+                    Position { x: self.position.x + self.size.width, y: self.position.y + 15.0 }
+                } else {
+                    Position { x: self.position.x, y: self.position.y + 15.0 }
+                };
+
+                let mut end_position = mouse_interaction.get_cursor_position();
+
+                let length = length_of_line(&start_position, &end_position);
+
                 match item.get_item_type() {
                     InventoryItemType::TrickCan => {
                         match mouse_interaction.get_mouse_button() {
                             &MouseButton::Button1 => {
-                                let start_position = if self.flip {
-                                    Position { x: self.position.x + self.size.width, y: self.position.y + 15.0 }
-                                } else {
-                                    Position { x: self.position.x, y: self.position.y + 15.0 }
-                                };
-
-                                let mut end_position = mouse_interaction.get_cursor_position();
-
-                                let length = length_of_line(&start_position, &end_position);
-
                                 match mouse_interaction.get_action() {
                                     &Action::Press => {
                                         let change_end_position = move | (object_start, object_end): EndStartPositions, (other_start, other_end): EndStartPositions | {
@@ -466,7 +472,7 @@ impl<'a> Player<'a> {
                                     },
 
                                     &Action::Release => {
-                                        return Some(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius));
+                                        return Some(ShootObject::Can(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
                                     },
 
                                     _ => ()
@@ -478,6 +484,29 @@ impl<'a> Player<'a> {
                     },
 
                     InventoryItemType::Weapon => {
+                        match mouse_interaction.get_mouse_button() {
+                            &MouseButton::Button1 => {
+                                match mouse_interaction.get_action() {
+                                    &Action::Press => {
+                                        if length > 150.0 {
+                                            let direction = (end_position - start_position).normalize(&window_start);
+
+                                            end_position = start_position + (direction * 150.0);
+                                        }
+
+                                        render.draw_line(start_position, end_position, Color::Green, None, None, None);
+                                    },
+
+                                    &Action::Release => {
+                                        return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
+                                    },
+
+                                    _ => ()
+                                }
+                            },
+
+                            _ => ()
+                        }
 
                     },
                 }

@@ -1,4 +1,4 @@
-use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, can::Can, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
@@ -48,6 +48,7 @@ pub struct Simulator<'a> {
     attached_enemies_ids: Vec<(usize, Position)>,
     cameras: Vec<Camera<'a>>,
     cans: Queue<Can<'a>>,
+    bullets: Queue<Bullet<'a>>,
     detecting_ranges: Vec<DetectRange>,
     status: SimulationStatus,
     notoriety_level: u64, 
@@ -65,6 +66,7 @@ impl Simulator<'_> {
             attached_enemies_ids: Vec::new(),
             cameras: Vec::new(),
             cans: Queue::new(),
+            bullets: Queue::new(),
             detecting_ranges: Vec::new(),
             status: SimulationStatus::NotDetermine,
             notoriety_level: 0,
@@ -207,8 +209,8 @@ impl<'a> Simulator<'a> {
             }
         }
 
-        for idx in 0..self.detecting_ranges.len() {
-            let detect_range = self.detecting_ranges.remove(idx);
+        for _ in 0..self.detecting_ranges.len() {
+            let detect_range = self.detecting_ranges.remove(0);
 
             for enemy in self.enemies.iter_mut() {
                 if detect_range.is_in_range(enemy) {
@@ -271,7 +273,62 @@ impl<'a> Simulator<'a> {
 
         let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
         if let Some(object) = shooted_object {
-            self.cans.add(object).unwrap();
+            match object {
+                ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
+                ShootObject::Bullet(bullet) => { self.bullets.add(bullet).unwrap(); },
+            }
+        }
+
+        for _ in 0..self.bullets.size() {
+            let mut bullet = self.bullets.remove().unwrap();
+
+            if !bullet.get_is_finished() {
+                let mut is_object_colliding = bullet.is_off_border(None, render.get_size());
+
+                if !is_object_colliding {
+                    for wall in self.walls.iter() {
+                        if bullet.collide(wall) {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+                
+                if !is_object_colliding {
+                    for door in self.doors.iter() {
+                        if bullet.collide(door) && door.is_closed() {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for enemy in self.enemies.iter_mut() {
+                        if bullet.collide(enemy) {
+                            if (enemy.get_mode() == &EnemyMode::Regular) || (enemy.get_mode() == &EnemyMode::Searching) {
+                                enemy.search(bullet.get_start_position());
+                            }
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
+                
+                if is_object_colliding {
+                    bullet.set_is_finished(true);
+                }
+            }
+
+            bullet.draw(render)?;
+
+            if !bullet.get_is_finished() {
+                bullet.calc_next_position();
+
+                self.bullets.add(bullet).unwrap();
+            }
         }
 
         for _ in 0..self.cans.size() {
