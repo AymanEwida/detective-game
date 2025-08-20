@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use glfw::{Action, Key, MouseButton};
 
 use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
@@ -154,6 +156,7 @@ pub struct Player<'a> {
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     inventory: Vec<InventoryItem<'a>>,
     holding: Option<usize>,
+    camera_destroy_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
     is_teleported: bool,
@@ -181,6 +184,7 @@ impl Player<'_> {
                 InventoryItem::new(InventoryItemType::Weapon, 1, Some(15), "assets/game/camera-gun.webp", String::from("Camera Gun"))
             ],
             holding: None,
+            camera_destroy_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
             is_teleported: false,
@@ -311,6 +315,14 @@ impl<'a> Player<'a> {
 
     pub fn set_can_detecting_radius(&mut self, new_radius: f32) {
         self.can_detecting_radius = new_radius;
+    }
+
+    pub fn get_camera_destroy_lifttime(&self) -> Duration {
+        self.camera_destroy_lifttime
+    }
+
+    pub fn set_camera_destroy_lifttime(&mut self, new_secs: u64) {
+        self.camera_destroy_lifttime = Duration::from_secs(new_secs);
     }
 
     fn set_calc_position(&mut self) {

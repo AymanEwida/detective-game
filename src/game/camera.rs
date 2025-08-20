@@ -7,6 +7,8 @@ use super::{character::Direction, door::Door, enemy::{DetectTraingle, Enemy}, le
 pub const DEFAULT_SIZE_FOR_CAMERA: Size = Size { width: 30.0, height: 30.0 };
 pub const DEFAULT_REPEAT_INTERVAL: Duration = Duration::from_millis(3000);
 
+
+// TODO: make camera destruction
 #[derive(Debug, Clone)]
 pub struct Camera<'a> {
     position: Position,
