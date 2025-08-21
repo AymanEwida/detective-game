@@ -156,7 +156,7 @@ pub struct Player<'a> {
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     inventory: Vec<InventoryItem<'a>>,
     holding: Option<usize>,
-    camera_destroy_lifttime: Duration,
+    camera_disturb_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
     is_teleported: bool,
@@ -184,7 +184,7 @@ impl Player<'_> {
                 InventoryItem::new(InventoryItemType::Weapon, 1, Some(15), "assets/game/camera-gun.webp", String::from("Camera Gun"))
             ],
             holding: None,
-            camera_destroy_lifttime: Duration::from_secs(10),
+            camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
             is_teleported: false,
@@ -317,12 +317,12 @@ impl<'a> Player<'a> {
         self.can_detecting_radius = new_radius;
     }
 
-    pub fn get_camera_destroy_lifttime(&self) -> Duration {
-        self.camera_destroy_lifttime
+    pub fn get_camera_disturb_lifttime(&self) -> Duration {
+        self.camera_disturb_lifttime
     }
 
-    pub fn set_camera_destroy_lifttime(&mut self, new_secs: u64) {
-        self.camera_destroy_lifttime = Duration::from_secs(new_secs);
+    pub fn set_camera_disturb_lifttime(&mut self, new_secs: u64) {
+        self.camera_disturb_lifttime = Duration::from_secs(new_secs);
     }
 
     fn set_calc_position(&mut self) {

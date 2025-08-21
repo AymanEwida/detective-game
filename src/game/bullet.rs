@@ -1,8 +1,8 @@
 use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
 
-use super::{level::GameObject, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
+use super::{camera::Camera, level::GameObject, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BulletType {
     CameraGunBullet,
     Other
@@ -100,6 +100,22 @@ impl<'a> Bullet<'a> {
         end_position.y > other_start_position.y
     }
 
+    pub fn collide_with_camera(&self, camera: &Camera<'a>) -> bool {
+        let (start_position, end_position) = (
+            self.current_position,
+            self.current_position + self.size
+        );
+        let (camera_start_position, camera_end_position) = (
+            camera.get_position(),
+            camera.get_position() + camera.get_size()
+        );
+    
+        start_position.x < camera_end_position.x &&
+        end_position.x > camera_start_position.x &&
+        start_position.y < camera_end_position.y &&
+        end_position.y > camera_start_position.y
+    }
+
     pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
         let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
 
@@ -110,5 +126,7 @@ impl<'a> Bullet<'a> {
         (self.current_position.y + self.size.height) > (start_position.y + size.height) ||
         self.current_position.y < start_position.y
     }
+
+    
 }
 

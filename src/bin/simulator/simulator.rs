@@ -1,4 +1,4 @@
-use detective_game::{game::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
@@ -316,6 +316,20 @@ impl<'a> Simulator<'a> {
                         }
                     }
                 }
+
+                if !is_object_colliding {
+                    for camera in self.cameras.iter_mut() {
+                        if bullet.collide_with_camera(camera) {
+                            if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
+                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
+                            } else if bullet.get_bullet_type() == &BulletType::Other {
+                                camera.destroy();
+                            } 
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
                 
                 if is_object_colliding {
                     bullet.set_is_finished(true);
@@ -468,7 +482,27 @@ impl<'a> Simulator<'a> {
             },
 
             SimulatorType::PlayerLogic => {
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 260.0 }, "6u/5500 6d/5500", false));
 
+                self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                self.doors.push(
+                    Door::new(0, DoorType::Regular, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.doors.push(
+                    Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                );
+                
+                self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, false, None, None));
+                self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, true, None, None));
+                // self.cameras.push(Camera::new_with_repeat(Position { x: 370.0, y: 175.0 }, false, None, None, Some(5000)));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
             }
 
             SimulatorType::Other => () 
