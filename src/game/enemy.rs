@@ -92,6 +92,8 @@ pub struct Enemy<'a> {
     is_colliding: bool,
     collide_info: (u32, Option<Direction>, f32),
     want_to_teleport: bool,
+    draw_detect_traingle: bool,
+    draw_move_path: bool,
 }
 
 impl<'a> Enemy<'a> {
@@ -140,6 +142,8 @@ impl<'a> Enemy<'a> {
                     is_colliding: false,
                     collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
                     want_to_teleport: false,
+                    draw_detect_traingle: false,
+                    draw_move_path: false
                 }
             }
         }
@@ -150,13 +154,17 @@ impl<'a> GameObject<'a> for Enemy<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         render.load_image(self.image, self.position, self.size, self.flip, None, None, None, None)?;
 
-        let (first_point, second_point, apex) = self.detect_traingle;
+        if self.draw_detect_traingle {
+            let (first_point, second_point, apex) = self.detect_traingle;
 
-        render.draw_line(apex, first_point, Color::Red, None, None, None);
-        render.draw_line(apex, second_point, Color::Red, None, None, None);
-        render.draw_line(first_point, second_point, Color::Red, None, None, None); 
+            render.draw_line(apex, first_point, Color::Red, None, None, None);
+            render.draw_line(apex, second_point, Color::Red, None, None, None);
+            render.draw_line(first_point, second_point, Color::Red, None, None, None); 
+        }
 
-        // TODO: add logic to draw enemy original path with draw_line func from render
+        if self.draw_move_path {
+            // TODO: add logic to draw enemy original path with draw_line func from render
+        }
 
         Ok(())
     }
@@ -213,6 +221,22 @@ impl<'a> Enemy<'a> {
 
     pub fn set_want_to_teleport(&mut self, new_value: bool) {
         self.want_to_teleport = new_value;
+    }
+
+    pub fn get_draw_detect_traingle(&self) -> bool {
+        self.draw_detect_traingle
+    }
+
+    pub fn set_draw_detect_traingle(&mut self, new_val: bool) {
+        self.draw_detect_traingle = new_val;
+    }
+
+    pub fn get_draw_move_path(&self) -> bool {
+        self.draw_move_path
+    }
+
+    pub fn set_draw_move_path(&mut self, new_val: bool) {
+        self.draw_move_path = new_val;
     }
 
     pub fn get_calc_start_position(&self) -> EndStartPositions {

@@ -123,8 +123,7 @@ impl Camera<'_> {
 impl<'a> Camera<'a> {
     pub fn draw(&mut self, render: &mut Render<'a>) -> Result<()> {
         if self.is_destroyed {
-            // TODO: get an destroyed camera image
-            render.load_image("assets/game/disturb_camera.png", self.position, self.size, self.flip, None, self.scale, None, self.rotate)?;
+            render.load_image("assets/game/destroy_camera.png", self.position, self.size, self.flip, None, self.scale, None, self.rotate)?;
 
             return Ok(());
         }

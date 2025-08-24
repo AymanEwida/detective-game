@@ -161,6 +161,9 @@ pub struct Player<'a> {
     is_detected_by_enemy: bool,
     is_teleported: bool,
     can_detecting_radius: f32,
+    ability_radius: f32,
+    is_using_ability: bool,
+    track_path_ability: bool,
 }
 
 impl Player<'_> {
@@ -189,12 +192,24 @@ impl Player<'_> {
             is_detected_by_enemy: false,
             is_teleported: false,
             can_detecting_radius: 100.0,
+            ability_radius: 150.0,
+            is_using_ability: false,
+            track_path_ability: false,
         }
     }
 }
 
 impl<'a> GameObject<'a> for Player<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
+        if self.get_is_using_ability() {
+            let center = Position {
+                x: self.get_position().x + self.get_size().width / 2.0,
+                y: self.get_position().y + self.get_size().height / 2.0,
+            };
+
+            render.draw_geometric_object(center, self.get_ability_radius(), Color::RGBA(0, 255, 0, 50), None, None, None, None);
+        }
+
         let opacity = if self.status == PlayerStatus::Hidden {
             Some(0.5)
         } else {
@@ -323,6 +338,30 @@ impl<'a> Player<'a> {
 
     pub fn set_camera_disturb_lifttime(&mut self, new_secs: u64) {
         self.camera_disturb_lifttime = Duration::from_secs(new_secs);
+    }
+
+    pub fn get_ability_radius(&self) -> f32 {
+        self.ability_radius
+    }
+
+    pub fn set_ability_radius(&mut self, new_radius: f32) {
+        self.ability_radius = new_radius;
+    }
+
+    pub fn get_is_using_ability(&self) -> bool {
+        self.is_using_ability
+    }
+
+    pub fn set_is_using_ability(&mut self, new_val: bool) {
+        self.is_using_ability = new_val;
+    }
+    
+    pub fn get_track_path_ability(&self) -> bool {
+        self.track_path_ability
+    }
+
+    pub fn set_track_path_ability(&mut self, new_val: bool) {
+        self.track_path_ability = new_val;
     }
 
     fn set_calc_position(&mut self) {

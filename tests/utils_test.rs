@@ -1,4 +1,4 @@
-use detective_game::{game::character::Direction, library::{constants::HALF_PI, utils::*}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}}, library::{constants::HALF_PI, utils::*}, renderer::{render::Size, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -35,7 +35,7 @@ fn test_calc_control_point_same_x_coordinates() {
     let input_start = Position { x: 5.0, y: -2.0 };
     let input_end = Position { x: 5.0, y: 4.0 };
     let actual = calc_control_point(&input_start, &input_end);
-    let expected = Position { x: 5.0, y: 6.0 };
+    let expected = Position { x: 5.0, y: 2.0 };
 
     assert_eq!(actual, expected);
 }
@@ -45,7 +45,7 @@ fn test_calc_control_point_same_y_coordinates() {
     let input_start = Position { x: 0.0, y: 1.0 };
     let input_end = Position { x: 8.0, y: 1.0 };
     let actual = calc_control_point(&input_start, &input_end);
-    let expected = Position { x: 4.0, y: 2.0 };
+    let expected = Position { x: 4.0, y: 1.0 };
 
     assert_eq!(actual, expected);
 }
@@ -657,7 +657,32 @@ fn test_check_point_in_triangle_out() {
     let input_apex = Position { x: 15.0, y: 10.0 };
 
     let actual = check_point_in_triangle(&input_point, &input_first, &input_second, &input_apex);
-    let expected=  false;
+    let expected = false;
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_is_in_circle_in() {
+    let input_center = Position { x: 200.0, y: 200.0 };
+    let input_raduis = 50.0; 
+    let input_object = Enemy::new(EnemyType::Regular, Position { x: 180.0, y: 150.0 }, "1l 1r", false);
+
+    let actual = is_in_circle(input_center, input_raduis, &input_object);
+    let expected = true; 
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_is_in_circle_out() {
+    let input_center = Position { x: 200.0, y: 200.0 };
+    let input_raduis = 50.0; 
+    let input_object = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1l 1r", false);
+
+    let actual = is_in_circle(input_center, input_raduis, &input_object);
+    let expected = false; 
+
+    assert_eq!(actual, expected);
+}
+

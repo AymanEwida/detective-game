@@ -1,4 +1,4 @@
-use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::{get_attached_enemy_index, is_in_circle}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
@@ -257,6 +257,26 @@ impl<'a> Simulator<'a> {
             }
 
             render.display_text(&format!("enemy mode: {}", enemy.get_mode()), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White)?;
+            
+            if player.get_is_using_ability() {
+                let center = Position {
+                    x: player.get_position().x + player.get_size().width / 2.0,
+                    y: player.get_position().y + player.get_size().height / 2.0,
+                };
+
+                let is_in = is_in_circle(center, player.get_ability_radius(), enemy);
+
+                enemy.set_draw_detect_traingle(is_in);
+                
+                if is_in && player.get_track_path_ability() {
+                    enemy.set_draw_move_path(true);
+                } else {
+                    enemy.set_draw_move_path(false);
+                }
+            } else {
+                enemy.set_draw_detect_traingle(false);
+                enemy.set_draw_move_path(false);
+            }
 
             enemy.draw(render)?;
             
@@ -284,6 +304,20 @@ impl<'a> Simulator<'a> {
 
             if !bullet.get_is_finished() {
                 let mut is_object_colliding = bullet.is_off_border(None, render.get_size());
+
+                if !is_object_colliding {
+                    for camera in self.cameras.iter_mut() {
+                        if bullet.collide_with_camera(camera) {
+                            if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
+                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
+                            } else if bullet.get_bullet_type() == &BulletType::Other {
+                                camera.destroy();
+                            } 
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
 
                 if !is_object_colliding {
                     for wall in self.walls.iter() {
@@ -317,19 +351,6 @@ impl<'a> Simulator<'a> {
                     }
                 }
 
-                if !is_object_colliding {
-                    for camera in self.cameras.iter_mut() {
-                        if bullet.collide_with_camera(camera) {
-                            if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
-                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
-                            } else if bullet.get_bullet_type() == &BulletType::Other {
-                                camera.destroy();
-                            } 
-
-                            is_object_colliding = true;
-                        }
-                    }
-                }
                 
                 if is_object_colliding {
                     bullet.set_is_finished(true);

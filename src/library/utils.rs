@@ -1,5 +1,6 @@
 use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
+use glam::bool;
 use rand::Rng;
 
 use crate::{game::{character::Direction, door::Door, level::{EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, renderer::{render::Size, vertice::Position}};
@@ -495,4 +496,10 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
     
     false
 } 
+
+pub fn is_in_circle<'a>(center: Position, radius: f32, object: &impl GameObject<'a>) -> bool {
+    let (start, end) = object.get_calc_position();
+
+    length_of_line(&start, &center) <= radius || length_of_line(&end, &center) <= radius
+}
 

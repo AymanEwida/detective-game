@@ -101,7 +101,7 @@ fn main() {
                         Key::W => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
                                         player.move_player(Direction::Up);
                                     }
                                 },
@@ -112,7 +112,7 @@ fn main() {
                         Key::S => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
                                         player.move_player(Direction::Down);
                                     }
                                 },
@@ -123,7 +123,7 @@ fn main() {
                         Key::A => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
                                         player.move_player(Direction::Left);
                                     }
                                 },
@@ -134,13 +134,29 @@ fn main() {
                         Key::D => {
                             match action {
                                 Action::Press | Action::Repeat => {
-                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
                                         player.move_player(Direction::Right);
                                     }
                                 },
                                 _ => ()
                             }
                         },
+
+                        Key::Q => {
+                            match action {
+                                Action::Repeat => {
+                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                        player.set_is_using_ability(true);
+                                    }
+                                },
+
+                                Action::Release => {
+                                    player.set_is_using_ability(false);
+                                },
+
+                                _ => ()
+                            }
+                        }
 
                         _ => ()
                     }
