@@ -76,6 +76,7 @@ pub struct Enemy<'a> {
     move_interval: Duration,
     current_moves_path: PathVec,
     original_moves_path: &'a str,
+    original_moves_path_vec: PathVec,
     moves_count: u32,
     moving_towards: Direction,
     detect_traingle: DetectTraingle,
@@ -125,6 +126,7 @@ impl<'a> Enemy<'a> {
                     last_move_time: Instant::now(),
                     move_interval: DEFAULT_MOVE_INTERVAL,
                     original_moves_path: path,
+                    original_moves_path_vec: moves_path.clone(),
                     current_moves_path: moves_path,
                     moves_count: 0,
                     moving_towards: first_direction,
@@ -163,7 +165,49 @@ impl<'a> GameObject<'a> for Enemy<'a> {
         }
 
         if self.draw_move_path {
-            // TODO: add logic to draw enemy original path with draw_line func from render
+            let half_size = self.size / 2.0;
+
+            let mut current_position = self.start_position + half_size;
+
+            for (steps, direction, ..) in self.original_moves_path_vec.iter() {
+                let steps = steps * 10;
+                
+                let end_position;
+
+                match direction {
+                    Direction::Up => {
+                        end_position = Position {
+                            y: current_position.y - (steps as f32),
+                            ..current_position
+                        };
+                    },
+
+                    Direction::Down => {
+                        end_position = Position {
+                            y: current_position.y + (steps as f32),
+                            ..current_position
+                        };
+                    },
+
+                    Direction::Left => {
+                        end_position = Position {
+                            x: current_position.x - (steps as f32),
+                            ..current_position
+                        };
+                    },
+
+                    Direction::Right => {
+                        end_position = Position {
+                            x: current_position.x + (steps as f32),
+                            ..current_position
+                        };
+                    },
+                }
+
+                render.draw_line(current_position, end_position, Color::White, None, None, None);
+
+                current_position = end_position;
+            }
         }
 
         Ok(())

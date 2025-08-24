@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, ptr};
+use std::{collections::HashMap, ops::Div, path::Path, ptr};
 
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
@@ -11,6 +11,19 @@ use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_wid
 pub struct Size<T=f32> {
     pub width: T,
     pub height: T
+}
+
+impl Div<f32> for Size {
+    type Output = Self;
+    
+    fn div(self, rhs: f32) -> Self::Output {
+        assert!(rhs != 0.0, "can not divide by zero!");
+
+        Self {
+            width: self.width / rhs,
+            height: self.width / rhs,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]

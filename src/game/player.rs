@@ -194,7 +194,7 @@ impl Player<'_> {
             can_detecting_radius: 100.0,
             ability_radius: 150.0,
             is_using_ability: false,
-            track_path_ability: false,
+            track_path_ability: true,
         }
     }
 }

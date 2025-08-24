@@ -267,7 +267,7 @@ impl<'a> Simulator<'a> {
                 let is_in = is_in_circle(center, player.get_ability_radius(), enemy);
 
                 enemy.set_draw_detect_traingle(is_in);
-                
+
                 if is_in && player.get_track_path_ability() {
                     enemy.set_draw_move_path(true);
                 } else {
