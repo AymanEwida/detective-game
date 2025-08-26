@@ -1,6 +1,6 @@
-use std::{hash::Hash, ops::{Add, Sub}};
+use std::{hash::Hash, ops::{Add, Mul, Sub}};
 
-use crate::library::utils::convert_coordinates;
+use crate::library::utils::{convert_coordinates, length_of_line};
 
 use super::{color::Color, render::Size};
 
@@ -87,6 +87,17 @@ impl Sub<Size> for Position {
     }
 }
 
+impl Mul<f32> for Position {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs
+        }
+    }
+}
+
 impl Position {
     pub fn get_position_from_size(&self, size: &Size) -> Self {
         let x = self.x + size.width;
@@ -122,6 +133,23 @@ impl Position {
             Self { x: self.x - value, y: self.y },
             Self { x: self.x + value, y: self.y },
         ]
+    }
+
+    pub fn lenght(&self, window_start: &Position) -> f32 {
+        length_of_line(self, window_start)
+    }
+
+    pub fn normalize(&self, window_start: &Position) -> Self {
+        let lenght = self.lenght(window_start);
+
+        if lenght > 0.0 {
+            Self {
+                x: self.x / lenght,
+                y: self.y / lenght
+            }
+        } else {
+            *self
+        }
     }
 }
 

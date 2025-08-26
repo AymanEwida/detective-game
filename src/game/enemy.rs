@@ -76,6 +76,7 @@ pub struct Enemy<'a> {
     move_interval: Duration,
     current_moves_path: PathVec,
     original_moves_path: &'a str,
+    original_moves_path_vec: PathVec,
     moves_count: u32,
     moving_towards: Direction,
     detect_traingle: DetectTraingle,
@@ -92,6 +93,8 @@ pub struct Enemy<'a> {
     is_colliding: bool,
     collide_info: (u32, Option<Direction>, f32),
     want_to_teleport: bool,
+    draw_detect_traingle: bool,
+    draw_move_path: bool,
 }
 
 impl<'a> Enemy<'a> {
@@ -123,6 +126,7 @@ impl<'a> Enemy<'a> {
                     last_move_time: Instant::now(),
                     move_interval: DEFAULT_MOVE_INTERVAL,
                     original_moves_path: path,
+                    original_moves_path_vec: moves_path.clone(),
                     current_moves_path: moves_path,
                     moves_count: 0,
                     moving_towards: first_direction,
@@ -140,6 +144,8 @@ impl<'a> Enemy<'a> {
                     is_colliding: false,
                     collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
                     want_to_teleport: false,
+                    draw_detect_traingle: false,
+                    draw_move_path: false
                 }
             }
         }
@@ -150,13 +156,59 @@ impl<'a> GameObject<'a> for Enemy<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         render.load_image(self.image, self.position, self.size, self.flip, None, None, None, None)?;
 
-        let (first_point, second_point, apex) = self.detect_traingle;
+        if self.draw_detect_traingle {
+            let (first_point, second_point, apex) = self.detect_traingle;
 
-        render.draw_line(apex, first_point, Color::Red, None, None, None);
-        render.draw_line(apex, second_point, Color::Red, None, None, None);
-        render.draw_line(first_point, second_point, Color::Red, None, None, None); 
+            render.draw_line(apex, first_point, Color::Red, None, None, None);
+            render.draw_line(apex, second_point, Color::Red, None, None, None);
+            render.draw_line(first_point, second_point, Color::Red, None, None, None); 
+        }
 
-        // TODO: add logic to draw enemy original path with draw_line func from render
+        if self.draw_move_path {
+            let half_size = self.size / 2.0;
+
+            let mut current_position = self.start_position + half_size;
+
+            for (steps, direction, ..) in self.original_moves_path_vec.iter() {
+                let steps = steps * 10;
+                
+                let end_position;
+
+                match direction {
+                    Direction::Up => {
+                        end_position = Position {
+                            y: current_position.y - (steps as f32),
+                            ..current_position
+                        };
+                    },
+
+                    Direction::Down => {
+                        end_position = Position {
+                            y: current_position.y + (steps as f32),
+                            ..current_position
+                        };
+                    },
+
+                    Direction::Left => {
+                        end_position = Position {
+                            x: current_position.x - (steps as f32),
+                            ..current_position
+                        };
+                    },
+
+                    Direction::Right => {
+                        end_position = Position {
+                            x: current_position.x + (steps as f32),
+                            ..current_position
+                        };
+                    },
+                }
+
+                render.draw_line(current_position, end_position, Color::White, None, None, None);
+
+                current_position = end_position;
+            }
+        }
 
         Ok(())
     }
@@ -213,6 +265,22 @@ impl<'a> Enemy<'a> {
 
     pub fn set_want_to_teleport(&mut self, new_value: bool) {
         self.want_to_teleport = new_value;
+    }
+
+    pub fn get_draw_detect_traingle(&self) -> bool {
+        self.draw_detect_traingle
+    }
+
+    pub fn set_draw_detect_traingle(&mut self, new_val: bool) {
+        self.draw_detect_traingle = new_val;
+    }
+
+    pub fn get_draw_move_path(&self) -> bool {
+        self.draw_move_path
+    }
+
+    pub fn set_draw_move_path(&mut self, new_val: bool) {
+        self.draw_move_path = new_val;
     }
 
     pub fn get_calc_start_position(&self) -> EndStartPositions {
@@ -606,6 +674,7 @@ impl<'a> Enemy<'a> {
                             grid_start_position,
                             grid
                         ).unwrap_or(Vec::new());
+
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
                 } else {
@@ -775,6 +844,11 @@ impl<'a> Enemy<'a> {
         vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
     } 
 
+    pub fn search(&mut self, target_search_position: Position) {
+        self.mode = EnemyMode::Searching;
+        self.start_searching_position = Some(target_search_position);
+    }
+
     pub fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
         if player.get_status() == &PlayerStatus::Hidden {
             return false;
@@ -790,7 +864,7 @@ impl<'a> Enemy<'a> {
             (player_end.y > enemy_start.y && player_end.y <= enemy_end.y)) {
             return true;
         }
-        
+
         if simple_object_detect_check(player.get_calc_position(), self.get_calc_position(), walls) {
             return false;
         }
@@ -901,11 +975,13 @@ impl<'a> Enemy<'a> {
     pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
         let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
 
-        self.position.x > (start_position.x + size.width) ||
-        (self.position.x + self.size.width) > (start_position.x + size.width) ||
-        self.position.x < start_position.x ||
-        self.position.y > (start_position.y + size.height) ||
-        (self.position.y + self.size.height) > (start_position.y + size.height) ||
-        self.position.y < start_position.y
+        let (start, end) = self.get_calc_position();
+
+        start.x > (start_position.x + size.width) ||
+        end.x > (start_position.x + size.width) ||
+        start.x < start_position.x ||
+        start.y > (start_position.y + size.height) ||
+        end.y > (start_position.y + size.height) ||
+        start.y < start_position.y
     }
 }

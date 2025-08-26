@@ -7,6 +7,7 @@ use super::{character::Direction, door::Door, enemy::{DetectTraingle, Enemy}, le
 pub const DEFAULT_SIZE_FOR_CAMERA: Size = Size { width: 30.0, height: 30.0 };
 pub const DEFAULT_REPEAT_INTERVAL: Duration = Duration::from_millis(3000);
 
+
 #[derive(Debug, Clone)]
 pub struct Camera<'a> {
     position: Position,
@@ -16,11 +17,14 @@ pub struct Camera<'a> {
     scale: Option<f32>,
     rotate: Option<f32>,
     repeat: bool,
-    last_move_time: Instant,
+    last_updated_time: Instant,
     repeat_interval: Option<Duration>,
     detect_traingle: DetectTraingle,
     looking_to: Direction,
     already_detected_player: bool,
+    is_disturbed: bool,
+    disturb_duration: Option<Duration>,
+    is_destroyed: bool,
 }
 
 fn calc_detect_traingle(position: &Position, flip: bool, rotate: Option<f32>) -> DetectTraingle {
@@ -78,11 +82,14 @@ impl Camera<'_> {
             scale,
             rotate,
             repeat: false,
-            last_move_time: Instant::now(),
+            last_updated_time: Instant::now(),
             repeat_interval: None,
             detect_traingle: calc_detect_traingle(&position, flip, rotate),
             looking_to,
             already_detected_player: false,
+            is_disturbed: false,
+            disturb_duration: None,
+            is_destroyed: false,
         }
     }
 
@@ -101,18 +108,41 @@ impl Camera<'_> {
             scale,
             rotate,
             repeat: true,
-            last_move_time: Instant::now(),
+            last_updated_time: Instant::now(),
             repeat_interval: Some(interval),
             detect_traingle: calc_detect_traingle(&position, flip, rotate),
             looking_to,
             already_detected_player: false,
+            is_disturbed: false,
+            disturb_duration: None,
+            is_destroyed: false,
         }
     }
 }
 
 impl<'a> Camera<'a> {
     pub fn draw(&mut self, render: &mut Render<'a>) -> Result<()> {
-        if self.repeat && self.last_move_time.elapsed() >= self.repeat_interval.unwrap() {
+        if self.is_destroyed {
+            render.load_image("assets/game/destroy_camera.png", self.position, Size { height: 45.0, width: 40.0 }, self.flip, None, self.scale, None, self.rotate)?;
+
+            return Ok(());
+        }
+
+        if self.is_disturbed {
+            assert!(self.disturb_duration != None, "disturb_duration can not be none");
+
+            if self.last_updated_time.elapsed() >= self.disturb_duration.unwrap() { 
+                self.is_disturbed = false;
+                self.disturb_duration = None;
+                self.last_updated_time = Instant::now();
+            } else {
+                render.load_image("assets/game/disturb_camera.png", self.position, Size { height: 45.0, width: 40.0 }, self.flip, Some(0.6), self.scale, None, self.rotate)?;
+
+                return Ok(());
+            }
+        }
+
+        if self.repeat && self.last_updated_time.elapsed() >= self.repeat_interval.unwrap() {
             self.flip = !self.flip;
 
             let filp_factor = if self.flip { 1.0 } else { -1.0 };
@@ -122,7 +152,7 @@ impl<'a> Camera<'a> {
             self.set_detect_traingle();
 
             self.looking_to = if self.flip { Direction::Right } else { Direction::Left };
-            self.last_move_time = Instant::now();
+            self.last_updated_time = Instant::now();
         }
 
         let (first_point, second_point, apex) = self.detect_traingle;
@@ -160,9 +190,33 @@ impl<'a> Camera<'a> {
     pub fn get_already_detected_player(&self) -> bool {
         self.already_detected_player
     }
+    
+    pub fn get_is_disturbed(&self) -> bool {
+        self.is_disturbed
+    }
+
+    pub fn set_is_disturbed(&mut self, new_val: bool, disturb_duration: Option<Duration>) {
+        self.is_disturbed = new_val;
+
+        if new_val {
+            assert!(disturb_duration != None, "disturb_duration can not be None");
+
+            self.disturb_duration = disturb_duration;
+        } else {
+            self.disturb_duration = None;
+        }
+    }
+
+     pub fn get_is_destroyed(&self) -> bool {
+        self.is_destroyed
+    }
+
+    pub fn destroy(&mut self) {
+        self.is_destroyed = true;
+    }
 
     fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
-        if player.get_status() == &PlayerStatus::Hidden {
+        if (player.get_status() == &PlayerStatus::Hidden) || (self.is_disturbed || self.is_destroyed) {
             return false;
         }
 

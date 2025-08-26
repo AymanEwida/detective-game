@@ -1,5 +1,6 @@
-use detective_game::{game::{camera::Camera, character::Character, collectable::{DoorCollectable, DoorCollectableType}, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyType}, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus}, wall::Wall}, library::utils::get_attached_enemy_index, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::{get_attached_enemy_index, is_in_circle}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
+use queues::{IsQueue, Queue};
 
 pub type SimulationResult<T> = std::result::Result<T, SimulationError>;
 
@@ -26,6 +27,7 @@ pub enum SimulatorType {
     PlayerInteractionWithHidePlace,
     CameraLogic,
     DoorLogic,
+    PlayerLogic,
     Other
 }
 
@@ -45,6 +47,9 @@ pub struct Simulator<'a> {
     enemies: Vec<Enemy<'a>>,
     attached_enemies_ids: Vec<(usize, Position)>,
     cameras: Vec<Camera<'a>>,
+    cans: Queue<Can<'a>>,
+    bullets: Queue<Bullet<'a>>,
+    detecting_ranges: Vec<DetectRange>,
     status: SimulationStatus,
     notoriety_level: u64, 
 }
@@ -60,6 +65,9 @@ impl Simulator<'_> {
             enemies: Vec::new(),
             attached_enemies_ids: Vec::new(),
             cameras: Vec::new(),
+            cans: Queue::new(),
+            bullets: Queue::new(),
+            detecting_ranges: Vec::new(),
             status: SimulationStatus::NotDetermine,
             notoriety_level: 0,
         }
@@ -72,6 +80,10 @@ impl<'a> Simulator<'a> {
         
         render.display_text(&format!("status: {}", player.get_status()), Position { x: 400.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
         render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 10.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
+        
+        let holding_item = player.get_holding_item();
+
+        display_holding_item(Position { x: 150.0, y:  650.0 }, holding_item, render)?;
 
         for wall in self.walls.iter() {
             if player.collide(wall) {
@@ -197,6 +209,18 @@ impl<'a> Simulator<'a> {
             }
         }
 
+        for _ in 0..self.detecting_ranges.len() {
+            let detect_range = self.detecting_ranges.remove(0);
+
+            for enemy in self.enemies.iter_mut() {
+                if detect_range.is_in_range(enemy) {
+                    enemy.search(detect_range.get_center_position());
+
+                    break;
+                }
+            }
+        }
+
         for enemy in self.enemies.iter_mut() {
             let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
             if idx != -1 {
@@ -233,6 +257,26 @@ impl<'a> Simulator<'a> {
             }
 
             render.display_text(&format!("enemy mode: {}", enemy.get_mode()), Position { x: 400.0, y: 560.0 }, 1.0, None, Color::White)?;
+            
+            if player.get_is_using_ability() {
+                let center = Position {
+                    x: player.get_position().x + player.get_size().width / 2.0,
+                    y: player.get_position().y + player.get_size().height / 2.0,
+                };
+
+                let is_in = is_in_circle(center, player.get_ability_radius(), enemy);
+
+                enemy.set_draw_detect_traingle(is_in);
+
+                if is_in && player.get_track_path_ability() {
+                    enemy.set_draw_move_path(true);
+                } else {
+                    enemy.set_draw_move_path(false);
+                }
+            } else {
+                enemy.set_draw_detect_traingle(false);
+                enemy.set_draw_move_path(false);
+            }
 
             enemy.draw(render)?;
             
@@ -247,7 +291,135 @@ impl<'a> Simulator<'a> {
             );
         }
 
+        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
+        if let Some(object) = shooted_object {
+            match object {
+                ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
+                ShootObject::Bullet(bullet) => { self.bullets.add(bullet).unwrap(); },
+            }
+        }
+
+        for _ in 0..self.bullets.size() {
+            let mut bullet = self.bullets.remove().unwrap();
+
+            if !bullet.get_is_finished() {
+                let mut is_object_colliding = bullet.is_off_border(None, render.get_size());
+
+                if !is_object_colliding {
+                    for camera in self.cameras.iter_mut() {
+                        if bullet.collide_with_camera(camera) {
+                            if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
+                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
+                            } else if bullet.get_bullet_type() == &BulletType::Other {
+                                camera.destroy();
+                            } 
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for wall in self.walls.iter() {
+                        if bullet.collide(wall) {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+                
+                if !is_object_colliding {
+                    for door in self.doors.iter() {
+                        if bullet.collide(door) && door.is_closed() {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for enemy in self.enemies.iter_mut() {
+                        if bullet.collide(enemy) {
+                            if (enemy.get_mode() == &EnemyMode::Regular) || (enemy.get_mode() == &EnemyMode::Searching) {
+                                enemy.search(bullet.get_start_position());
+                            }
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
+
+                
+                if is_object_colliding {
+                    bullet.set_is_finished(true);
+                }
+            }
+
+            bullet.draw(render)?;
+
+            if !bullet.get_is_finished() {
+                bullet.calc_next_position();
+
+                self.bullets.add(bullet).unwrap();
+            }
+        }
+
+        for _ in 0..self.cans.size() {
+            let mut can = self.cans.remove().unwrap(); 
+
+            if !can.get_is_finished() {
+                let mut is_object_colliding = false;
+
+                for wall in self.walls.iter() {
+                    if can.collide(wall) {
+                        is_object_colliding = true;
+
+                        break;
+                    }
+                }
+                
+                if !is_object_colliding {
+                    for door in self.doors.iter() {
+                        if can.collide(door) && door.is_closed() {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for enemy in self.enemies.iter_mut() {
+                        if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.get_mode() == &EnemyMode::Searching) {
+                            is_object_colliding = true;
+
+                            enemy.search(can.get_start_position());
+                        }
+                    }
+                }
+                
+                if is_object_colliding {
+                    can.set_is_finished(true);
+                }
+            }
+
+            can.draw(render)?;
+
+            if !can.get_is_finished() {
+                can.calc_next_position();
+            } else {
+                self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), can.get_calc_position().0));
+            }
+
+            if !can.get_done() {
+                self.cans.add(can).unwrap();
+            }
+        }
+
         player.draw(render)?;
+        player.switch_items();
 
         Ok(())
     }
@@ -269,7 +441,7 @@ impl<'a> Simulator<'a> {
                 self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
                 self.doors.push(
                     Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
-                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
                 );
                 
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
@@ -328,6 +500,30 @@ impl<'a> Simulator<'a> {
                 self.teleport_doors.push(TeleportDoor::new(Position { x: 360.0, y: 255.0 }, Position { x: 200.0, y: 100.0 }, None, None));
                 
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+            },
+
+            SimulatorType::PlayerLogic => {
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 600.0, y: 260.0 }, "6u/5500 6d/5500", false));
+
+                self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                self.doors.push(
+                    Door::new(0, DoorType::Regular, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.doors.push(
+                    Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type, error.to_string()) )?
+                );
+                
+                self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, false, None, None));
+                self.cameras.push(Camera::new_without_repeat(Position { x: 370.0, y: 175.0 }, true, None, None));
+                // self.cameras.push(Camera::new_with_repeat(Position { x: 370.0, y: 175.0 }, false, None, None, Some(5000)));
+                // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
             }
 
             SimulatorType::Other => () 

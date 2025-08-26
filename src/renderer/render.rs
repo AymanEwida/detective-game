@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, ptr};
+use std::{collections::HashMap, ops::Div, path::Path, ptr};
 
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
@@ -11,6 +11,19 @@ use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_wid
 pub struct Size<T=f32> {
     pub width: T,
     pub height: T
+}
+
+impl Div<f32> for Size {
+    type Output = Self;
+    
+    fn div(self, rhs: f32) -> Self::Output {
+        assert!(rhs != 0.0, "can not divide by zero!");
+
+        Self {
+            width: self.width / rhs,
+            height: self.width / rhs,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -350,8 +363,6 @@ impl<'a> Render<'a> {
     pub fn draw_curved_line(&mut self, start: Position, end: Position, color: Color, num_segments: Option<u32>, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
 
-        assert!(num_segments > 0, "num_segments must be a positive number");
-        
         let start = convert_coordinates(start, &self.size);
         let end = convert_coordinates(end, &self.size);
 

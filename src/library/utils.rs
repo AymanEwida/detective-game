@@ -1,5 +1,6 @@
 use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
+use glam::bool;
 use rand::Rng;
 
 use crate::{game::{character::Direction, door::Door, level::{EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, renderer::{render::Size, vertice::Position}};
@@ -21,7 +22,24 @@ pub fn calc_mid_point(start: &Position, end: &Position) -> Position {
 
 pub fn calc_control_point(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
-    let control_y = start.y.abs() + end.y.abs();
+    
+    let mut control_y = (start.y + end.y).abs();
+
+    if start.y == end.y {
+        control_y = &control_y / 2.0;
+    }
+
+    Position { x: control_x, y: control_y }
+}
+
+pub fn calc_control_point_game_coordinate_system(start: &Position, end: &Position) -> Position {
+    let control_x = (start.x + end.x) / 2.0;
+    
+    let mut control_y = (start.y + end.y) / 2.0;
+
+    if start.y != end.y {
+        control_y = control_y - 100.0;
+    }
 
     Position { x: control_x, y: control_y }
 }
@@ -336,28 +354,34 @@ pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position)>, searc
     found_idx
 }
 
-pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, objects: &[impl LevelObject<'a>]) -> bool {
+pub fn object_in_between_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, object: &impl LevelObject<'a>) -> (bool, bool) {
     let (player_start, player_end) = player_calc_position; 
     let (other_start, other_end) = other_calc_position; 
 
+    let (object_start, object_end) = object.get_calc_position();
+
+    let is_between_x_axis = (
+        (player_end.y <= object_start.y && other_start.y >= object_end.y)
+        || (other_end.y <= object_start.y && player_start.y >= object_end.y)
+    ) && (
+        (player_start.x >= object_start.x && other_end.x <= object_end.x)
+        || (player_end.x <= object_end.x && other_start.x >= object_start.x)
+    );
+
+    let is_between_y_axis = (
+        (player_end.x <= object_start.x && other_start.x >= object_end.x)
+        || (other_end.x <= object_start.x && player_start.x >= object_end.x)
+    ) && (
+        (player_start.y >= object_start.y && other_end.y <= object_end.y)
+        || (player_end.y <= object_end.y && other_start.y >= object_start.y)
+    );
+
+    (is_between_x_axis, is_between_y_axis)
+}
+
+pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, objects: &[impl LevelObject<'a>]) -> bool {
     for object in objects {
-        let (object_start, object_end) = object.get_calc_position();
-
-        let is_between_x_axis = (
-            (player_end.y <= object_start.y && other_start.y >= object_end.y)
-            || (other_end.y <= object_start.y && player_start.y >= object_end.y)
-        ) && (
-            (player_start.x >= object_start.x && other_end.x <= object_end.x)
-            || (player_end.x <= object_end.x && other_start.x >= object_start.x)
-        );
-
-        let is_between_y_axis = (
-            (player_end.x <= object_start.x && other_start.x >= object_end.x)
-            || (other_end.x <= object_start.x && player_start.x >= object_end.x)
-        ) && (
-            (player_start.y >= object_start.y && other_end.y <= object_end.y)
-            || (player_end.y <= object_end.y && other_start.y >= object_start.y)
-        );
+        let (is_between_x_axis, is_between_y_axis) = object_in_between_check(player_calc_position, other_calc_position, object);
 
         if is_between_x_axis || is_between_y_axis {
             return true;
@@ -372,6 +396,7 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
     let (other_start, ..) = other_calc_position; 
 
     let distance = (absolute_f32(player_start.x - other_start.x), absolute_f32(player_start.y - other_start.y));
+    
     let dirction: (Direction, Direction);
 
     if player_start.x < other_start.x {
@@ -450,7 +475,7 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
             }
         }
     }
-    
+
     for door in doors {
         let (door_start, door_end) = door.get_calc_position();
 
@@ -471,3 +496,10 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
     
     false
 } 
+
+pub fn is_in_circle<'a>(center: Position, radius: f32, object: &impl GameObject<'a>) -> bool {
+    let (start, end) = object.get_calc_position();
+
+    length_of_line(&start, &center) <= radius || length_of_line(&end, &center) <= radius
+}
+

@@ -114,7 +114,7 @@ impl Door<'_> {
     pub fn open(&mut self) {
         if !self.is_locked {
             self.is_closed = false;
-            self.image = "assets/game/regular-open-door.png";
+            self.image = "assets/game/regular-open-door.png"; 
         }
     }
 

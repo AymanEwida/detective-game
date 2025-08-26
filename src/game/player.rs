@@ -1,8 +1,10 @@
-use glfw::{Action, Key};
+use std::time::Duration;
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, round_position_to_full_numbers}}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+use glfw::{Action, Key, MouseButton};
 
-use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+
+use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -46,9 +48,127 @@ impl PlayerInteraction {
 }
 
 #[derive(Debug)]
+pub struct PlayerMouseInteraction {
+    mouse_button: MouseButton,
+    action: Action,
+    cursor_position: Position, 
+}
+
+impl PlayerMouseInteraction {
+    pub fn new(mouse_button: MouseButton, action: Action, cursor_position: Position) -> Self {
+        Self {
+            mouse_button,
+            action,
+            cursor_position
+        }
+    }
+}
+
+impl PlayerMouseInteraction {
+    pub fn get_mouse_button(&self) -> &MouseButton {
+        &self.mouse_button
+    }
+
+    pub fn get_action(&self) -> &Action {
+        &self.action
+    }
+
+    pub fn get_cursor_position(&self) -> Position {
+        self.cursor_position
+    }
+}
+
+#[derive(Debug)]
 pub struct DoorCollectableInventory {
     id: usize,
     opens: Vec<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub enum InventoryItemType {
+    Weapon,
+    TrickCan,
+}
+
+pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size { width: 40.0, height: 40.0 };
+
+#[derive(Debug, Clone)]
+pub struct InventoryItem<'a> {
+    item_type: InventoryItemType,
+    amount: u32, 
+    ammo: Option<usize>,
+    image: &'a str,
+    name: String,
+}
+
+impl<'a> InventoryItem<'a> {
+    pub fn new(item_type: InventoryItemType, amount: u32, ammo: Option<usize>, image: &'a str, name: String) -> Self {
+        Self {
+            item_type,
+            amount,
+            ammo,
+            image,
+            name
+        }
+    }
+}
+
+impl<'a> InventoryItem<'a> {
+    pub fn get_item_type(&self) -> &InventoryItemType {
+        &self.item_type
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn get_amount(&self) -> u32 {
+        self.amount
+    }
+
+    pub fn get_ammo(&self) -> Option<usize> {
+        self.ammo
+    }
+
+    pub fn get_image(&self) -> &'a str {
+        self.image
+    }
+
+    pub fn increase_amount(&mut self, num: u32) {
+        self.amount += num;
+    }
+
+    pub fn decrease_amount(&mut self, num: u32) {
+        if self.amount < num {
+            self.amount = 0;
+        } else {
+            self.amount -= num;
+        }
+    }
+
+    pub fn increase_ammo(&mut self, num: usize) {
+        if self.ammo.is_some() {
+            self.ammo = Some(self.ammo.unwrap() + num);
+        }
+    }
+
+    pub fn decrease_ammo(&mut self, num: usize) { 
+        if self.ammo.is_some() {
+            let ammo = self.ammo.unwrap();
+
+            if ammo < num {
+                self.ammo = Some(0);
+            } else {
+                self.ammo = Some(ammo - num);
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ShootObject<'a> {
+    Can(Can<'a>),
+    Bullet(Bullet<'a>),
 }
 
 #[derive(Debug)]
@@ -62,10 +182,18 @@ pub struct Player<'a> {
     movement_value: f32,
     status: PlayerStatus,
     interaction: Option<PlayerInteraction>,
+    mouse_interaction: Option<PlayerMouseInteraction>,
     door_collectable_inventory: Vec<DoorCollectableInventory>,
+    inventory: Vec<InventoryItem<'a>>,
+    holding: Option<usize>,
+    camera_disturb_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
     is_teleported: bool,
+    can_detecting_radius: f32,
+    ability_radius: f32,
+    is_using_ability: bool,
+    track_path_ability: bool,
 }
 
 impl Player<'_> {
@@ -82,16 +210,36 @@ impl Player<'_> {
             movement_value: DEFAULT_MOVEMENT_VALUE,
             status: PlayerStatus::NotHidden,
             interaction: None,
+            mouse_interaction: None,
             door_collectable_inventory: Vec::new(),
+            inventory: vec![
+                InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
+                InventoryItem::new(InventoryItemType::Weapon, 1, Some(20), "assets/game/camera-gun.webp", String::from("Camera Gun"))
+            ],
+            holding: None,
+            camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
             is_teleported: false,
+            can_detecting_radius: 100.0,
+            ability_radius: 150.0,
+            is_using_ability: false,
+            track_path_ability: false,
         }
     }
 }
 
 impl<'a> GameObject<'a> for Player<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
+        if self.get_is_using_ability() {
+            let center = Position {
+                x: self.get_position().x + self.get_size().width / 2.0,
+                y: self.get_position().y + self.get_size().height / 2.0,
+            };
+
+            render.draw_geometric_object(center, self.get_ability_radius(), Color::RGBA(0, 255, 0, 50), None, None, None, None);
+        }
+
         let opacity = if self.status == PlayerStatus::Hidden {
             Some(0.5)
         } else {
@@ -144,8 +292,16 @@ impl<'a> Player<'a> {
         &self.interaction
     }
 
+    pub fn get_mouse_interaction(&self) -> &Option<PlayerMouseInteraction> {
+        &self.mouse_interaction
+    }
+
     pub fn set_interaction(&mut self, new_value: Option<PlayerInteraction>) {
         self.interaction = new_value;
+    }
+
+    pub fn set_mouse_interaction(&mut self, new_value: Option<PlayerMouseInteraction>) {
+        self.mouse_interaction = new_value;
     }
     
     pub fn get_door_collectable_inventory(&self) -> &[DoorCollectableInventory] {
@@ -198,8 +354,265 @@ impl<'a> Player<'a> {
         self.is_teleported = new_val;
     }
 
+    pub fn get_can_detecting_radius(&self) -> f32 {
+        self.can_detecting_radius
+    }
+
+    pub fn set_can_detecting_radius(&mut self, new_radius: f32) {
+        self.can_detecting_radius = new_radius;
+    }
+
+    pub fn get_camera_disturb_lifttime(&self) -> Duration {
+        self.camera_disturb_lifttime
+    }
+
+    pub fn set_camera_disturb_lifttime(&mut self, new_secs: u64) {
+        self.camera_disturb_lifttime = Duration::from_secs(new_secs);
+    }
+
+    pub fn get_ability_radius(&self) -> f32 {
+        self.ability_radius
+    }
+
+    pub fn set_ability_radius(&mut self, new_radius: f32) {
+        self.ability_radius = new_radius;
+    }
+
+    pub fn get_is_using_ability(&self) -> bool {
+        self.is_using_ability
+    }
+
+    pub fn set_is_using_ability(&mut self, new_val: bool) {
+        self.is_using_ability = new_val;
+    }
+    
+    pub fn get_track_path_ability(&self) -> bool {
+        self.track_path_ability
+    }
+
+    pub fn set_track_path_ability(&mut self, new_val: bool) {
+        self.track_path_ability = new_val;
+    }
+
     fn set_calc_position(&mut self) {
         self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
+    }
+
+    pub fn get_holding_item(&self) -> Option<InventoryItem<'a>> {
+        if let Some(holding) = self.holding {
+            Some(self.inventory[holding].clone())
+        } else {
+            None
+        }
+    }
+
+    fn get_next_holding_item_index(&self) -> usize {
+        if let Some(holding) = self.holding {
+            (holding + 1) % self.inventory.len()
+        } else {
+            0
+        }
+    }
+
+    fn get_prev_holding_item_index(&self) -> usize {
+        if let Some(holding) = self.holding {
+            if holding == 0 {
+                return self.inventory.len() - 1;   
+            }
+
+            (holding - 1) % self.inventory.len()
+        } else {
+            0
+        }
+    }
+
+    pub fn switch_items(&mut self) {
+        if let Some(interaction) = &self.interaction {
+            match interaction.key() {
+                &Key::I => {
+                    if interaction.action() == &Action::Repeat {
+                        self.holding = None;
+                    }
+                },
+
+                &Key::K => {
+                    if interaction.action() == &Action::Press {
+                        self.holding = Some(self.get_next_holding_item_index());
+                    }
+                },
+
+                &Key::J => {
+                    if interaction.action() == &Action::Press {
+                        self.holding = Some(self.get_prev_holding_item_index());
+                    }
+                }
+
+                _ => ()
+            }
+        }
+    }
+
+    pub fn shoot(&mut self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ShootObject<'a>> {
+        let holding_item = self.get_holding_item();
+
+        if let Some(item) = holding_item {
+            if let Some(mouse_interaction) = self.get_mouse_interaction() {
+                let window_end = window_start + window_size;
+
+                let start_position = if self.flip {
+                    Position { x: self.position.x + self.size.width, y: self.position.y + 15.0 }
+                } else {
+                    Position { x: self.position.x, y: self.position.y + 15.0 }
+                };
+
+                let mut end_position = mouse_interaction.get_cursor_position();
+
+                let length = length_of_line(&start_position, &end_position);
+
+                match item.get_item_type() {
+                    InventoryItemType::TrickCan => {
+                        match mouse_interaction.get_mouse_button() {
+                            &MouseButton::Button1 => {
+                                match mouse_interaction.get_action() {
+                                    &Action::Press => {
+                                        let change_end_position = move | (object_start, object_end): EndStartPositions, (other_start, other_end): EndStartPositions | {
+                                            let mut x_offset = 0.0;
+                                            let mut x_sing = 1.0;
+                                            if other_end.x <= object_start.x {
+                                                x_offset = absolute_f32(object_start.x - end_position.x);
+                                                x_sing = -1.0;
+                                            } else if other_start.x >= object_end.x {
+                                                x_offset = absolute_f32(object_end.x - end_position.x);
+                                                x_sing = 1.0;
+                                            }
+
+                                            let mut y_offset = 0.0;
+                                            let mut y_sing = 1.0;
+                                            if other_end.y <= object_start.y {
+                                                y_offset = absolute_f32(object_start.y - end_position.y);
+                                                y_sing = -1.0;
+                                            } else if other_start.y >= object_end.y {
+                                                y_offset = absolute_f32(object_end.y - end_position.y);
+                                                y_sing = 1.0;
+                                            }
+
+                                            Position { x: end_position.x + (x_sing * x_offset), y: end_position.y + (y_sing * y_offset) }
+                                        };
+
+                                        if length > 250.0 {
+                                            let direction = (end_position - start_position).normalize(&window_start);
+
+                                            end_position = start_position + (direction * 250.0);
+                                        }
+
+                                        let window_check = is_position_in_border(&window_start, &window_end, &end_position);
+
+                                        if !window_check.0 {
+                                            if end_position.x < window_start.x {
+                                                end_position.x = window_start.x;
+                                            } else {
+                                                end_position.x = window_end.x;
+                                            }
+                                        }
+
+                                        if !window_check.1 {
+                                            if end_position.y < window_start.y {
+                                                end_position.y = window_start.y;
+                                            } else {
+                                                end_position.y = window_end.y;
+                                            }
+                                        }
+
+                                        for wall in walls {
+                                            let (wall_start, wall_end)  = wall.get_calc_position();
+                                            
+                                            let (x_check, y_check) = is_position_in_border(&wall_start, &wall_end, &end_position);
+
+                                            let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), wall);
+
+                                            if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
+                                                end_position = change_end_position(wall.get_calc_position(), self.get_calc_position());
+                                            }
+                                        }
+
+                                        for door in doors {
+                                            if door.is_closed() {
+                                                let (door_start, door_end)  = door.get_calc_position();
+                                                
+                                                let (x_check, y_check) = is_position_in_border(&door_start, &door_end, &end_position);
+
+                                                let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), door);
+
+                                                if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
+                                                    end_position = change_end_position(door.get_calc_position(), self.get_calc_position());
+                                                }
+                                            }
+                                        }
+
+                                        render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
+                                    },
+
+                                    &Action::Release => {
+                                        if item.amount == 0 {
+                                            return None;
+                                        }
+
+                                        self.inventory[self.holding.unwrap()].decrease_amount(1);
+
+                                        return Some(ShootObject::Can(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
+                                    },
+
+                                    _ => ()
+                                }
+                            },
+
+                            _ => ()
+                        }
+                    },
+
+                    InventoryItemType::Weapon => {
+                        match mouse_interaction.get_mouse_button() {
+                            &MouseButton::Button1 => {
+                                match mouse_interaction.get_action() {
+                                    &Action::Press => {
+                                        if length > 150.0 {
+                                            let direction = (end_position - start_position).normalize(&window_start);
+
+                                            end_position = start_position + (direction * 150.0);
+                                        }
+
+                                        render.draw_line(start_position, end_position, Color::Green, None, None, None);
+                                    },
+
+                                    &Action::Release => {
+                                        if item.ammo.is_none() {
+                                            return None;
+                                        }
+
+                                        let ammo = item.ammo.unwrap();
+
+                                        if ammo == 0 {
+                                            return None;
+                                        }
+
+                                        self.inventory[self.holding.unwrap()].decrease_ammo(1);
+
+                                        return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
+                                    },
+
+                                    _ => ()
+                                }
+                            },
+
+                            _ => ()
+                        }
+
+                    },
+                }
+            }
+        }
+
+        None
     }
 
     pub fn move_player(&mut self, direction: Direction) {
