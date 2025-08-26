@@ -426,7 +426,7 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
         if dirction.0 == Direction::Right {
             x_pos = (player_start.x + x_count, player_end.x + x_count);
         } else {
-            x_pos = (player_start.x - x_count, player_end.x + x_count);
+            x_pos = (player_start.x - x_count, player_end.x - x_count);
         }
 
         let mut y_count = 0.0;
@@ -479,14 +479,24 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
     for door in doors {
         let (door_start, door_end) = door.get_calc_position();
 
+        let mut door_check = (false, false);
+
         for (start_check_position, end_check_position) in check_positions.iter() {
             if is_in_object(start_check_position, &door_start, &door_end) {
+                door_check.0 = true;
+
                 player_body_check_positions.0 = door.is_closed();
             }
 
             if is_in_object(end_check_position, &door_start, &door_end) {
+                door_check.1 = true;
+
                 player_body_check_positions.1 = door.is_closed();
             }
+        }
+
+        if (door_check.0 && door_check.1) && (player_body_check_positions.0 && player_body_check_positions.1) {
+            return true;
         }
     }
 
