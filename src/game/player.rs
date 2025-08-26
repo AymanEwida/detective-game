@@ -133,6 +133,36 @@ impl<'a> InventoryItem<'a> {
     pub fn get_image(&self) -> &'a str {
         self.image
     }
+
+    pub fn increase_amount(&mut self, num: u32) {
+        self.amount += num;
+    }
+
+    pub fn decrease_amount(&mut self, num: u32) {
+        if self.amount < num {
+            self.amount = 0;
+        } else {
+            self.amount -= num;
+        }
+    }
+
+    pub fn increase_ammo(&mut self, num: usize) {
+        if self.ammo.is_some() {
+            self.ammo = Some(self.ammo.unwrap() + num);
+        }
+    }
+
+    pub fn decrease_ammo(&mut self, num: usize) { 
+        if self.ammo.is_some() {
+            let ammo = self.ammo.unwrap();
+
+            if ammo < num {
+                self.ammo = Some(0);
+            } else {
+                self.ammo = Some(ammo - num);
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -183,8 +213,8 @@ impl Player<'_> {
             mouse_interaction: None,
             door_collectable_inventory: Vec::new(),
             inventory: vec![
-                InventoryItem::new(InventoryItemType::TrickCan, 25, None, "assets/game/trick-can.png", String::from("Trick Can")),
-                InventoryItem::new(InventoryItemType::Weapon, 1, Some(15), "assets/game/camera-gun.webp", String::from("Camera Gun"))
+                InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
+                InventoryItem::new(InventoryItemType::Weapon, 1, Some(20), "assets/game/camera-gun.webp", String::from("Camera Gun"))
             ],
             holding: None,
             camera_disturb_lifttime: Duration::from_secs(10),
@@ -194,7 +224,7 @@ impl Player<'_> {
             can_detecting_radius: 100.0,
             ability_radius: 150.0,
             is_using_ability: false,
-            track_path_ability: true,
+            track_path_ability: false,
         }
     }
 }
@@ -422,7 +452,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn shoot(&self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ShootObject<'a>> {
+    pub fn shoot(&mut self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ShootObject<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
@@ -523,6 +553,12 @@ impl<'a> Player<'a> {
                                     },
 
                                     &Action::Release => {
+                                        if item.amount == 0 {
+                                            return None;
+                                        }
+
+                                        self.inventory[self.holding.unwrap()].decrease_amount(1);
+
                                         return Some(ShootObject::Can(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
                                     },
 
@@ -549,6 +585,18 @@ impl<'a> Player<'a> {
                                     },
 
                                     &Action::Release => {
+                                        if item.ammo.is_none() {
+                                            return None;
+                                        }
+
+                                        let ammo = item.ammo.unwrap();
+
+                                        if ammo == 0 {
+                                            return None;
+                                        }
+
+                                        self.inventory[self.holding.unwrap()].decrease_ammo(1);
+
                                         return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
                                     },
 
