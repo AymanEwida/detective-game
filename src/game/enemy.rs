@@ -1,7 +1,9 @@
 use core::fmt;
-use std::{cmp::Ordering, collections::{BinaryHeap, HashMap}, time::{Duration, Instant}};
+use std::{cmp::Ordering, collections::{BinaryHeap, HashMap, HashSet}, time::{Duration, Instant}};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use queues::{IsQueue, Queue};
+
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::{GridPosition, Position}}};
 
 use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::Door, hide_place::HidePlace, level::{EndStartPositions, GameObject}, player::{Player, PlayerStatus}, wall::Wall};
 
@@ -144,7 +146,7 @@ impl<'a> Enemy<'a> {
                     is_colliding: false,
                     collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
                     want_to_teleport: false,
-                    draw_detect_traingle: false,
+                    draw_detect_traingle: true, // return to false after
                     draw_move_path: false
                 }
             }
@@ -790,52 +792,57 @@ impl<'a> Enemy<'a> {
     }
 
     pub fn get_near_hide_places_positions(&self, start_position: Option<Position>, hide_places: &[HidePlace<'a>]) -> Vec<Position> {
+        assert!(self.movement_grid != None, "movement grid can not be none");
+
+        let grid_start_position = self.movement_grid.as_ref().unwrap().0;
+        let grid = &self.movement_grid.as_ref().unwrap().1;
+
         let (enemy_start, ..) = self.get_calc_position();
+        let start_position = start_position.unwrap_or(enemy_start).to_grid_position(grid_start_position, self.movement_value);
 
-        let start_position = start_position.unwrap_or(enemy_start);
+        let mut q: Queue<GridPosition> = Queue::new();
+        q.add(start_position).unwrap();
 
-        let mut near_hide_places_positions = Vec::new();
+        let mut visited: HashSet<GridPosition> = HashSet::new();
+        visited.insert(start_position);
 
-        for hide_place in hide_places {
-            let hide_place_position = round_position_to_full_numbers(hide_place.get_position(), self.movement_value, false, true);
+        let is_colliding_with_hide_place = | start_position: Position, (hide_place_start, hide_place_end): (Position, Position) | -> bool {
+            let end_position = start_position + self.size;
 
-            let heuristic_distance = get_heuristic_score(&start_position, &hide_place_position, self.movement_value);
+            start_position.x <= hide_place_end.x &&
+            end_position.x >= hide_place_start.x &&
+            start_position.y <= hide_place_end.y &&
+            end_position.y >= hide_place_start.y
+        };
 
-            if near_hide_places_positions.len() < 3 {
-                let mut found_idx: i32 = -1;
+        let is_hide_place = | position: Position | -> Option<Position> {
+            for hide_place in hide_places {
+                let (start, end) = hide_place.get_calc_position();
 
-                for (idx, near_hide_place_position) in near_hide_places_positions.iter().enumerate() {
-                    if get_heuristic_score(&start_position, near_hide_place_position, self.movement_value) > heuristic_distance {
-                        found_idx = idx as i32;
+                if is_colliding_with_hide_place(position, (start, end)) {
+                    return Some(hide_place.get_position());
+                }
+            }
 
-                        break;
+            None
+        };
+
+        while let Ok(current_position) = q.remove() {
+            if let Some(hide_place_position) = is_hide_place(current_position.to_position(grid_start_position, self.movement_value)) {
+                return vec![hide_place_position];
+            }
+
+            for neighbor in current_position.get_neighbors() {
+                if neighbor.row < grid.len() && neighbor.col < grid[0].len() && grid[neighbor.row][neighbor.col] {
+                    if !visited.contains(&neighbor) {
+                        visited.insert(neighbor);
+                        q.add(neighbor).unwrap();
                     }
-                }
-
-                if found_idx == -1 {
-                    near_hide_places_positions.push(hide_place_position); 
-                } else {
-                    near_hide_places_positions.insert(found_idx as usize, hide_place_position);
-                }
-            } else {
-                let mut found_idx: i32 = -1;
-
-                for (idx, near_hide_place_position) in near_hide_places_positions.iter().enumerate() {
-                    if get_heuristic_score(&start_position, near_hide_place_position, self.movement_value) > heuristic_distance {
-                        found_idx = idx as i32;
-
-                        break;
-                    }
-                }
-
-                if found_idx >= 0 {
-                    near_hide_places_positions.remove(near_hide_places_positions.len() - 1);
-                    near_hide_places_positions.insert(found_idx as usize, hide_place_position);
-                }
+                } 
             }
         }
 
-        near_hide_places_positions
+        vec![]
     }
 
     fn get_default_search_path(&self) -> PathVec {

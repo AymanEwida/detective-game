@@ -151,6 +151,57 @@ impl Position {
             *self
         }
     }
+
+    pub fn to_grid_position(&self, grid_start_position: Position, value: f32) -> GridPosition {
+        let col = (self.x - grid_start_position.x) / value;
+        let row = (self.y - grid_start_position.y) / value;
+
+        GridPosition {
+            row: row as usize,
+            col: col as usize
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GridPosition {
+    pub row: usize,
+    pub col: usize,
+}
+
+impl From<(Position, Position, f32)> for GridPosition {
+    fn from(value: (Position, Position, f32)) -> Self {
+        value.0.to_grid_position(value.1, value.2)
+    }
+}
+
+impl GridPosition {
+    pub fn get_neighbors(&self) -> Vec<Self> {
+        let mut neighbors = vec![
+            Self { row: self.row + 1, col: self.col },
+            Self { row: self.row, col: self.col + 1 }
+        ];
+
+        if self.row != 0 {
+            neighbors.push(Self { row: self.row - 1, col: self.col });
+        }
+
+        if self.col != 0 {
+            neighbors.push(Self { row: self.row, col: self.col - 1 });
+        }
+
+        neighbors
+    }
+
+    pub fn to_position(&self, grid_start_position: Position, value: f32) -> Position {
+        let col = self.col as f32;
+        let row = self.row as f32;
+
+        Position {
+            x: (col * value) + grid_start_position.x,
+            y: (row * value) + grid_start_position.y 
+        }
+    }
 }
 
 #[derive(Debug)]
