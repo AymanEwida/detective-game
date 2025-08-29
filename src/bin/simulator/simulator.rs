@@ -1,4 +1,4 @@
-use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::{get_attached_enemy_index, is_in_circle}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType, SearchingMode}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::{get_attached_enemy_index, is_in_circle}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
@@ -214,7 +214,7 @@ impl<'a> Simulator<'a> {
 
             for enemy in self.enemies.iter_mut() {
                 if detect_range.is_in_range(enemy) {
-                    enemy.search(detect_range.get_center_position());
+                    enemy.search(SearchingMode::TrickCanSearch, detect_range.get_center_position());
 
                     break;
                 }
@@ -277,6 +277,9 @@ impl<'a> Simulator<'a> {
                 enemy.set_draw_detect_traingle(false);
                 enemy.set_draw_move_path(false);
             }
+
+            // TODO: delete this later
+            enemy.set_draw_detect_traingle(true);
 
             enemy.draw(render)?;
             
@@ -342,8 +345,8 @@ impl<'a> Simulator<'a> {
                 if !is_object_colliding {
                     for enemy in self.enemies.iter_mut() {
                         if bullet.collide(enemy) {
-                            if (enemy.get_mode() == &EnemyMode::Regular) || (enemy.get_mode() == &EnemyMode::Searching) {
-                                enemy.search(bullet.get_start_position());
+                            if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
+                                enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
                             }
 
                             is_object_colliding = true;
@@ -392,10 +395,10 @@ impl<'a> Simulator<'a> {
 
                 if !is_object_colliding {
                     for enemy in self.enemies.iter_mut() {
-                        if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.get_mode() == &EnemyMode::Searching) {
+                        if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode()) {
                             is_object_colliding = true;
 
-                            enemy.search(can.get_start_position());
+                            enemy.search(SearchingMode::TrickCanSearch, can.get_start_position());
                         }
                     }
                 }

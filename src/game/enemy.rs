@@ -35,10 +35,18 @@ pub enum EnemyType {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
+pub enum SearchingMode {
+    AfterDetectSearch,
+    TrickCanSearch,
+    BulletSearch,
+    AfterCameraDetectSearch
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum EnemyMode {
     Regular,
     Detecting,
-    Searching
+    Searching(SearchingMode)
 }
 
 impl fmt::Display for EnemyMode {
@@ -52,8 +60,8 @@ impl fmt::Display for EnemyMode {
                 write!(f, "Detecting")
             },
 
-            Self::Searching => {
-                write!(f, "Searching")
+            Self::Searching(searching_mode) => {
+                write!(f, "Searching, mode: {:?}", searching_mode)
             }
         }
     }
@@ -90,8 +98,12 @@ pub struct Enemy<'a> {
     default_search_path: Option<PathVec>,
     movement_grid: Option<(Position, Vec<Vec<bool>>)>,
     near_hide_places_positions: Option<Vec<Position>>,
+    near_doors_to_search: Option<Vec<Position>>,
     current_search_idx: usize,
     estimated_search_position: Option<Position>,
+    is_done_with_default_search: bool,
+    is_done_with_doors: bool,
+    is_done_with_hide_places: bool,
     is_colliding: bool,
     collide_info: (u32, Option<Direction>, f32),
     want_to_teleport: bool,
@@ -141,8 +153,12 @@ impl<'a> Enemy<'a> {
                     default_search_path: None,
                     movement_grid: None,
                     near_hide_places_positions: None,
+                    near_doors_to_search: None,
                     current_search_idx: 0,
                     estimated_search_position: None,
+                    is_done_with_default_search: false,
+                    is_done_with_doors: false,
+                    is_done_with_hide_places: false,
                     is_colliding: false,
                     collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
                     want_to_teleport: false,
@@ -283,6 +299,10 @@ impl<'a> Enemy<'a> {
 
     pub fn set_draw_move_path(&mut self, new_val: bool) {
         self.draw_move_path = new_val;
+    }
+
+    pub fn is_search_mode(&self) -> bool {
+        matches!(self.mode, EnemyMode::Searching(_))
     }
 
     pub fn get_calc_start_position(&self) -> EndStartPositions {
@@ -685,63 +705,36 @@ impl<'a> Enemy<'a> {
                         player.set_is_detected_by_enemy(false);
                     }
 
-                    self.mode = EnemyMode::Searching;
+                    self.mode = EnemyMode::Searching(SearchingMode::AfterDetectSearch);
                 }
 
                 self.already_detected_player = true;
                 self.prev_mode = EnemyMode::Detecting;
             },
 
-            EnemyMode::Searching => {
-                if let Some(start_searching_position) = self.start_searching_position {
-                    if self.prev_mode != EnemyMode::Searching {
-                        if self.move_interval != DEFAULT_MOVE_INTERVAL {
-                            self.move_interval = DEFAULT_MOVE_INTERVAL;
-                        }
+            EnemyMode::Searching(searching_mode) => {
+                if !matches!(self.prev_mode, EnemyMode::Searching(_)) {
+                    if self.move_interval != DEFAULT_MOVE_INTERVAL {
+                        self.move_interval = DEFAULT_MOVE_INTERVAL;
                     }
+                }
 
-                    if self.near_hide_places_positions.is_none() {
-                        self.near_hide_places_positions = Some(self.get_near_hide_places_positions(Some(start_searching_position), hide_places));
-                    }
+                let reach_position = | position: Position | {
+                    (enemy_start == position)
+                    || (
+                        (
+                            enemy_start.y == position.y && (enemy_start.x + self.movement_value) == position.x
+                        ) || (
+                            enemy_start.x == position.x && (enemy_start.y + self.movement_value) == position.y
+                        )
+                    )
+                };
 
-                    if let Some(near_hide_places_positions) = &self.near_hide_places_positions {
-                        if near_hide_places_positions.len() > 0 && self.current_search_idx < near_hide_places_positions.len() {
-                            let current_hide_place_position = round_position_to_full_numbers(near_hide_places_positions[self.current_search_idx], self.movement_value, false, true);
-        
-                            let reach_hide_place = || {
-                                (enemy_start == current_hide_place_position)
-                                || (
-                                    (
-                                        enemy_start.y == current_hide_place_position.y && (enemy_start.x + self.movement_value) == current_hide_place_position.x
-                                    ) || (
-                                        enemy_start.x == current_hide_place_position.x && (enemy_start.y + self.movement_value) == current_hide_place_position.y
-                                    )
-                                )
-                            };
-
-                            if !reach_hide_place() {
-                                self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
-                                self.move_enemy_in_path(None); 
-                            } else {
-                                if self.collide(player) {
-                                    player.throw_form_hide_place(walls, &self.moving_towards);
-                                    player.set_status(PlayerStatus::Detectit);
-                                    player.set_is_detected_by_enemy(true);
-
-                                    self.already_detected_player = true;
-                                    self.mode = EnemyMode::Detecting;
-                                    self.detect_player_position = Some(
-                                        round_position_to_full_numbers(player.get_position(), self.movement_value, true, true)
-                                    );
-                                }
-
-                                if self.last_move_time.elapsed() >= Duration::from_millis(2000) {
-                                    self.current_search_idx += 1;
-                                }
-                            }
-                        } else if near_hide_places_positions.len() == 0 {
-                            if self.default_search_path.is_none() {
-                                self.default_search_path = Some(self.get_default_search_path());
+                match searching_mode {
+                    SearchingMode::AfterDetectSearch => {
+                        if let Some(start_searching_position) = self.start_searching_position {
+                            if !self.is_done_with_default_search && self.default_search_path.is_none() {
+                                self.default_search_path = Some(self.get_default_search_path(None));
                             }
 
                             if let Some(default_search_path) = &self.default_search_path {
@@ -766,29 +759,222 @@ impl<'a> Enemy<'a> {
                                 } else {
                                     self.current_search_idx = 0;
 
+                                    self.default_search_path = None;
+                                    self.is_done_with_default_search = true;
+                                    self.estimated_search_position = None;
+                                }
+                            } else {
+                                if !self.is_done_with_doors && self.near_doors_to_search.is_none() {
+                                    self.near_doors_to_search = Some(self.get_near_doors_to_search(true, doors));
+                                }
+
+                                if let Some(near_doors_to_search) = &self.near_doors_to_search {
+                                    if near_doors_to_search.len() > 0 && self.current_search_idx < near_doors_to_search.len() {
+                                        let current_door_position = round_position_to_full_numbers(near_doors_to_search[self.current_search_idx], self.movement_value, true, true);
+
+                                        if !reach_position(current_door_position) {
+                                            self.current_moves_path = self.find_optimal_path(current_door_position, grid_start_position, grid).unwrap_or(Vec::new());
+                                            self.move_enemy_in_path(None); 
+                                        } else {
+                                            self.current_search_idx += 1;
+                                        }
+                                    } else {
+                                        self.current_search_idx = 0;
+                                        self.near_doors_to_search = None;
+                                        self.is_done_with_doors = true;
+                                    }
+                                } else {
+                                    if !self.is_done_with_hide_places && self.near_hide_places_positions.is_none() {
+                                        self.near_hide_places_positions = Some(self.get_near_hide_places_positions(Some(start_searching_position), hide_places));
+                                    }
+
+                                    if let Some(near_hide_places_positions) = &self.near_hide_places_positions {
+                                        if near_hide_places_positions.len() > 0 && self.current_search_idx < near_hide_places_positions.len() {
+                                            let current_hide_place_position = round_position_to_full_numbers(near_hide_places_positions[self.current_search_idx], self.movement_value, false, true);
+
+                                            if !reach_position(current_hide_place_position) {
+                                                self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
+                                                self.move_enemy_in_path(None); 
+                                            } else {
+                                                if self.collide(player) {
+                                                    player.throw_form_hide_place(walls, &self.moving_towards);
+                                                    player.set_status(PlayerStatus::Detectit);
+                                                    player.set_is_detected_by_enemy(true);
+
+                                                    self.already_detected_player = true;
+                                                    self.mode = EnemyMode::Detecting;
+                                                    self.detect_player_position = Some(
+                                                        round_position_to_full_numbers(player.get_position(), self.movement_value, true, true)
+                                                    );
+                                                }
+
+                                                if self.last_move_time.elapsed() >= Duration::from_millis(2000) {
+                                                    self.current_search_idx += 1;
+                                                }
+                                            }
+                                        } else {
+                                            self.current_search_idx = 0;
+
+                                            self.near_hide_places_positions = None;
+                                            self.is_done_with_hide_places = true;
+                                        }
+                                    } else {
+                                        self.reset_search_props();
+
+                                        self.mode = EnemyMode::Regular;
+                                    }
+                                }
+                            }
+                        }
+                    },
+
+                    SearchingMode::AfterCameraDetectSearch => {
+                        if !self.is_done_with_hide_places && self.near_hide_places_positions.is_none() {
+                            self.near_hide_places_positions = Some(self.get_near_hide_places_positions(None, hide_places));
+                        }
+
+                        if let Some(near_hide_places_positions) = &self.near_hide_places_positions {
+                            if near_hide_places_positions.len() > 0 && self.current_search_idx < near_hide_places_positions.len() {
+                                let current_hide_place_position = round_position_to_full_numbers(near_hide_places_positions[self.current_search_idx], self.movement_value, false, true);
+
+                                if !reach_position(current_hide_place_position) {
+                                    self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
+                                    self.move_enemy_in_path(None); 
+                                } else {
+                                    if self.collide(player) {
+                                        player.throw_form_hide_place(walls, &self.moving_towards);
+                                        player.set_status(PlayerStatus::Detectit);
+                                        player.set_is_detected_by_enemy(true);
+
+                                        self.already_detected_player = true;
+                                        self.mode = EnemyMode::Detecting;
+                                        self.detect_player_position = Some(
+                                            round_position_to_full_numbers(player.get_position(), self.movement_value, true, true)
+                                        );
+                                    }
+
+                                    if self.last_move_time.elapsed() >= Duration::from_millis(2000) {
+                                        self.current_search_idx += 1;
+                                    }
+                                }
+                            } else {
+                                self.current_search_idx = 0;
+
+                                self.near_hide_places_positions = None;
+                                self.is_done_with_hide_places = true;
+                            }
+                        } else {
+                            self.reset_search_props();
+
+                            self.mode = EnemyMode::Regular;
+                        }
+                    },
+
+                    SearchingMode::TrickCanSearch => {
+                        if let Some(target_position) = self.start_searching_position {
+                            if enemy_start != target_position {
+                                self.current_moves_path = self.find_optimal_path(target_position, grid_start_position, grid).unwrap_or(Vec::new());
+                                self.move_enemy_in_path(None);
+                            } else {
+                                if self.last_move_time.elapsed() >= Duration::from_millis(3000) {
+                                    self.reset_search_props();
+
                                     self.mode = EnemyMode::Regular;
                                 }
                             }
                         } else {
-                            self.current_search_idx = 0;
-                            self.near_hide_places_positions = None;
+                            self.reset_search_props();
+
+                            self.mode = EnemyMode::Regular;
+                        }
+                    },
+
+                    SearchingMode::BulletSearch => {
+                        if let Some(target_position) = self.start_searching_position {
+                            if !self.is_done_with_default_search && self.default_search_path.is_none() {
+                                self.default_search_path = Some(self.get_default_search_path(Some(target_position)));
+                            }
+
+                            if let Some(default_search_path) = &self.default_search_path {
+                                if default_search_path.len() > 0 && self.current_search_idx < default_search_path.len() {
+                                    let (steps, direction, wait_interval) = default_search_path[self.current_search_idx];
+
+                                    if self.estimated_search_position.is_none() {
+                                        self.estimated_search_position = Some(get_estimated_position(&enemy_start, steps, direction, self.movement_value));
+                                    }
+
+                                    assert!(self.estimated_search_position != None, "estimated search position must exist");
+
+                                    let estimated_search_position = self.estimated_search_position.unwrap();
+
+                                    if !self.is_colliding && enemy_start != estimated_search_position {
+                                        self.current_moves_path = vec![(steps, direction, wait_interval)];
+                                        self.move_enemy_in_path(None);
+                                    } else {
+                                        self.current_search_idx += 1;
+                                        self.estimated_search_position = None;
+                                    }
+                                } else {
+                                    self.current_search_idx = 0;
+
+                                    self.default_search_path = None;
+                                    self.is_done_with_default_search = true;
+                                    self.estimated_search_position = None;
+                                }
+                            } else {
+                                if !self.is_done_with_doors && self.near_doors_to_search.is_none() {
+                                    self.near_doors_to_search = Some(self.get_near_doors_to_search(false, doors));
+                                }
+
+                                if let Some(near_doors_to_search) = &self.near_doors_to_search {
+                                    if near_doors_to_search.len() > 0 && self.current_search_idx < near_doors_to_search.len() {
+                                        let current_door_position = round_position_to_full_numbers(near_doors_to_search[self.current_search_idx], self.movement_value, true, true);
+
+                                        if !reach_position(current_door_position) {
+                                            self.current_moves_path = self.find_optimal_path(current_door_position, grid_start_position, grid).unwrap_or(Vec::new());
+                                            self.move_enemy_in_path(None); 
+                                        } else {
+                                            self.current_search_idx += 1;
+                                        }
+                                    } else {
+                                        self.current_search_idx = 0;
+                                        self.near_doors_to_search = None;
+                                        self.is_done_with_doors = true;
+                                    }
+                                } else {
+                                    self.reset_search_props();
+
+                                    self.mode = EnemyMode::Regular;
+                                }
+                            }
+                        } else {
+                            self.reset_search_props();
 
                             self.mode = EnemyMode::Regular;
                         }
                     }
-                } else {
-                    self.current_search_idx = 0;
-                    self.near_hide_places_positions = None;
-
-                    self.mode = EnemyMode::Regular;
                 }
 
                 self.already_detected_player = true;
-                self.prev_mode = EnemyMode::Searching;
+                self.prev_mode = EnemyMode::Searching(searching_mode);
             }
         }
 
         new_notority_level
+    }
+
+    fn reset_search_props(&mut self) {
+        self.current_search_idx = 0;
+
+        self.start_searching_position = None;
+        self.default_search_path = None;
+        self.estimated_search_position = None;
+        self.near_doors_to_search = None;
+        self.near_hide_places_positions = None;
+
+        self.is_done_with_default_search = false;
+        self.is_done_with_doors = false;
+        self.is_done_with_hide_places = false;
     }
 
     pub fn get_near_hide_places_positions(&self, start_position: Option<Position>, hide_places: &[HidePlace<'a>]) -> Vec<Position> {
@@ -827,9 +1013,22 @@ impl<'a> Enemy<'a> {
             None
         };
 
+        let mut near_hide_places_positions = Vec::new();
+        let mut near_hide_places_max_len = 3;
+
         while let Ok(current_position) = q.remove() {
+            if near_hide_places_positions.len() >= near_hide_places_max_len {
+                return near_hide_places_positions;
+            }
+
             if let Some(hide_place_position) = is_hide_place(current_position.to_position(grid_start_position, self.movement_value)) {
-                return vec![hide_place_position];
+                if current_position == start_position {
+                    near_hide_places_max_len = 4;
+                }
+
+                if !near_hide_places_positions.contains(&hide_place_position) {
+                    near_hide_places_positions.push(hide_place_position);
+                }
             }
 
             for neighbor in current_position.get_neighbors() {
@@ -842,17 +1041,275 @@ impl<'a> Enemy<'a> {
             }
         }
 
-        vec![]
+        near_hide_places_positions
     }
 
-    fn get_default_search_path(&self) -> PathVec {
-        let steps = 60 / self.movement_value as u32;
+    fn get_near_doors_to_search(&self, with_moving_towards: bool, doors: &[Door<'a>]) -> Vec<Position> {
+        assert!(self.movement_grid != None, "movement grid can not be none");
 
-        vec![(steps, Direction::Left, 0), (steps, Direction::Right, 0), (steps, Direction::Up, 0), (steps * 2, Direction::Down, 0), (steps, Direction::Up, 0), (steps, Direction::Right, 0)]
+        let grid_start_position = self.movement_grid.as_ref().unwrap().0;
+        let grid = &self.movement_grid.as_ref().unwrap().1;
+
+        let (enemy_start, ..) = self.get_calc_position();
+        let start_position = enemy_start.to_grid_position(grid_start_position, self.movement_value);
+
+        let strat_position_neighbors = {
+            let mut neighbors = vec![];
+
+            if with_moving_towards {
+                match self.moving_towards {
+                    Direction::Up => {
+                        if start_position.row != 0 {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row - 1,
+                                    col: start_position.col
+                                }
+                            );
+                        } else {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row,
+                                    col: start_position.col + 1
+                                }
+                            );
+                        }
+                    },
+
+                    Direction::Down => {
+                        neighbors = vec![
+                            GridPosition {
+                                row: start_position.row + 1,
+                                col: start_position.col
+                            }
+                        ];
+
+                        if start_position.col != 0 {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row,
+                                    col: start_position.col - 1
+                                }
+                            );
+                        } else {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row,
+                                    col: start_position.col + 1
+                                }
+                            );
+                        }
+                    },
+
+                    Direction::Left => {
+                        if start_position.col != 0 {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row,
+                                    col: start_position.col - 1
+                                }
+                            );
+                        } else {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row + 1,
+                                    col: start_position.col
+                                }
+                            );
+                        }
+                    },
+
+                    Direction::Right => {
+                        neighbors = vec![
+                            GridPosition {
+                                row: start_position.row,
+                                col: start_position.col + 1
+                            }
+                        ];
+
+                        if start_position.row != 0 {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row - 1,
+                                    col: start_position.col
+                                }
+                            );
+                        } else {
+                            neighbors.push(
+                                GridPosition {
+                                    row: start_position.row + 1,
+                                    col: start_position.col
+                                }
+                            );
+                        }
+                    }
+                }
+            } else {
+                neighbors = start_position.get_neighbors();
+            }
+
+            neighbors
+        };
+
+        let mut q: Queue<GridPosition> = Queue::new();
+        q.add(start_position).unwrap();
+
+        let mut visited: HashSet<GridPosition> = HashSet::new();
+        visited.insert(start_position);
+
+        let is_colliding_with_door = | start_position: Position, (door_start, door_end): (Position, Position) | -> bool {
+            let end_position = start_position + self.size;
+
+            start_position.x <= door_end.x &&
+            end_position.x >= door_start.x &&
+            start_position.y <= door_end.y &&
+            end_position.y >= door_start.y
+        };
+
+        let is_door = | position: Position | -> Option<Position> {
+            for door in doors {
+                let (start, end) = door.get_calc_position();
+
+                if is_colliding_with_door(position, (start, end)) {
+                    return Some(door.get_position());
+                }
+            }
+
+            None
+        };
+
+        let mut near_doors_to_search = Vec::new();
+        let mut doors_max_len = 2;
+
+        while let Ok(current_position) = q.remove() {
+            if near_doors_to_search.len() >= doors_max_len {
+                return near_doors_to_search;
+            }
+
+            if current_position == start_position {
+                if let Some(door_position) = is_door(current_position.to_position(grid_start_position, self.movement_value)) {
+                    doors_max_len = 3;
+
+                    near_doors_to_search.push(door_position);
+                }
+
+                for neighbor in strat_position_neighbors.iter() {
+                    if neighbor.row < grid.len() && neighbor.col < grid[0].len() && grid[neighbor.row][neighbor.col] {
+                        if !visited.contains(&neighbor) {
+                            visited.insert(*neighbor);
+                            q.add(*neighbor).unwrap();
+                        }
+                    } 
+                }
+            } else {
+                if let Some(door_position) = is_door(current_position.to_position(grid_start_position, self.movement_value)) {
+                    if !near_doors_to_search.contains(&door_position) {
+                        near_doors_to_search.push(door_position);
+                    }
+                }
+
+                for neighbor in current_position.get_neighbors() {
+                    if neighbor.row < grid.len() && neighbor.col < grid[0].len() && grid[neighbor.row][neighbor.col] {
+                        if !visited.contains(&neighbor) {
+                            visited.insert(neighbor);
+                            q.add(neighbor).unwrap();
+                        }
+                    } 
+                }
+            }
+        }
+
+        near_doors_to_search
+    }
+
+    fn get_default_search_path(&self, position: Option<Position>) -> PathVec {
+        let (enemy_start, ..) = self.get_calc_position();
+
+        if let Some(position) = position {
+            let mut x_direction = None;
+            let mut y_direction = None;
+
+            if enemy_start.x > position.x {
+                x_direction = Some(Direction::Left);
+            } else if enemy_start.x < position.x {
+                x_direction = Some(Direction::Right);
+            }
+
+            if enemy_start.y > position.y {
+                y_direction = Some(Direction::Up);
+            } else if enemy_start.y < position.y {
+                y_direction = Some(Direction::Down);
+            }
+
+            let mut path = Vec::new();
+
+            if x_direction.is_some() {
+                let x_direction = x_direction.unwrap();
+
+                path.push((1, x_direction, 0));
+            }
+
+            if y_direction.is_some() {
+                let y_direction = y_direction.unwrap();
+
+                path.push((1, y_direction, 0));
+            }
+
+            return path;
+        }
+
+        assert!(self.movement_grid != None, "movement grid can not be none");
+
+        let grid_start_position = self.movement_grid.as_ref().unwrap().0;
+        let grid = &self.movement_grid.as_ref().unwrap().1;
+
+        let grid_coordinate = enemy_start.to_grid_position(grid_start_position, self.movement_value);
+
+        match self.moving_towards {
+            Direction::Up => {
+                if grid_coordinate.row >= 3 && grid[grid_coordinate.row - 3][grid_coordinate.col] {
+                    return vec![(3, Direction::Up, 0)];
+                }
+            },
+
+            Direction::Down => {
+                if grid_coordinate.row + 3 < grid.len() && grid[grid_coordinate.row + 3][grid_coordinate.col] {
+                    return vec![(3, Direction::Down, 0)];
+                }
+            },
+
+            Direction::Left => {
+                if grid_coordinate.col >= 3 && grid[grid_coordinate.row][grid_coordinate.col - 3] {
+                    return vec![(3, Direction::Left, 0)];
+                }
+            },
+
+            Direction::Right => {
+                if grid_coordinate.col + 3 < grid.len() && grid[grid_coordinate.row][grid_coordinate.col + 3] {
+                    return vec![(3, Direction::Right, 0)];
+                }
+            }
+        }
+
+        vec![]
     } 
 
-    pub fn search(&mut self, target_search_position: Position) {
-        self.mode = EnemyMode::Searching;
+    pub fn search(&mut self, searching_mode: SearchingMode, target_search_position: Position) {
+        self.mode = EnemyMode::Searching(searching_mode);
+        
+        if searching_mode == SearchingMode::TrickCanSearch {
+            assert!(self.movement_grid != None, "movement grid can not be none");
+
+            let grid_start_position = self.movement_grid.as_ref().unwrap().0;
+            let grid = &self.movement_grid.as_ref().unwrap().1;
+
+            let grid_coordinate = target_search_position.to_grid_position(grid_start_position, self.movement_value);
+
+            if !grid[grid_coordinate.row][grid_coordinate.col] {
+                // TODO: get a new correct Treck Can position
+            }
+        }
+
         self.start_searching_position = Some(target_search_position);
     }
 
