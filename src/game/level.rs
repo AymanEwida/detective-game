@@ -28,13 +28,19 @@ enum LevelStatus {
 }
 
 #[derive(Debug)]
+pub enum AttachedType {
+    CameraDetect,
+   DetectRangeSearch 
+}
+
+#[derive(Debug)]
 pub struct GameLevel<'a> {
     border_top_left: Position,
     border_size: Size,
     background_image: &'a str,
     current_level: u8,
     enemies: Vec<Enemy<'a>>,
-    attached_enemies_ids: Vec<(usize, Position)>,
+    attached_enemies_ids: Vec<(usize, Position, AttachedType)>,
     walls: Vec<Wall<'a>>,
     doors: Vec<Door<'a>>,
     door_collectables: Vec<DoorCollectable<'a>>,
@@ -278,14 +284,14 @@ impl<'a> GameLevel<'a> {
             self.notoriety_level = new_notoriety_level;
 
             if let Some(enemy_id) = enemy_id {
-                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap()));
+                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap(), AttachedType::CameraDetect));
             }
         }
 
         for enemy in self.enemies.iter_mut() {
             let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
             if idx != -1 {
-                let (.., detected_player_position) = self.attached_enemies_ids[idx as usize];
+                let (.., detected_player_position, _) = self.attached_enemies_ids[idx as usize];
 
                 enemy.attach_camera(detected_player_position);
 
@@ -580,6 +586,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_wall(Wall::new(Position { x: 780.0, y: 300.0 }, Size { width: 50.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 785.0, y: 400.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 720.0, y: 510.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 755.0, y: 520.0 }, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 785.0, y: 235.0 }, None));
@@ -595,7 +602,8 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 925.0, y: 90.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 860.0, y: 235.0 }, None));
 
-                self.insert_hide_place(HidePlace::new(Position { x: 925.0, y: 400.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 925.0, y: 360.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 860.0, y: 430.0 }, None));
 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 990.0, y: 610.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
                 self.insert_hide_place(HidePlace::new(Position { x: 900.0, y: 615.0 }, None));

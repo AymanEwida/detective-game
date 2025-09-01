@@ -1,4 +1,4 @@
-use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType, SearchingMode}, hide_place::HidePlace, level::{display_holding_item, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::utils::{get_attached_enemy_index, is_in_circle}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType, SearchingMode}, hide_place::HidePlace, level::{display_holding_item, AttachedType, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{get_attached_enemy_index, get_correct_start_position, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
@@ -45,7 +45,7 @@ pub struct Simulator<'a> {
     door_collectables: Vec<DoorCollectable<'a>>,
     hide_places: Vec<HidePlace<'a>>,
     enemies: Vec<Enemy<'a>>,
-    attached_enemies_ids: Vec<(usize, Position)>,
+    attached_enemies_ids: Vec<(usize, Position, AttachedType)>,
     cameras: Vec<Camera<'a>>,
     cans: Queue<Can<'a>>,
     bullets: Queue<Bullet<'a>>,
@@ -205,18 +205,33 @@ impl<'a> Simulator<'a> {
             self.notoriety_level = new_notoriety_level;
 
             if let Some(enemy_id) = enemy_id {
-                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap()));
+                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap(), AttachedType::CameraDetect));
             }
         }
 
         for _ in 0..self.detecting_ranges.len() {
             let detect_range = self.detecting_ranges.remove(0);
 
-            for enemy in self.enemies.iter_mut() {
-                if detect_range.is_in_range(enemy) {
-                    enemy.search(SearchingMode::TrickCanSearch, detect_range.get_center_position());
+            let mut enemies_in_detect_area = Vec::new();
 
-                    break;
+            for enemy in &self.enemies {
+                if !enemy.get_is_searching_detect_area() && detect_range.is_in_range(enemy) {
+                    enemies_in_detect_area.push(enemy);
+                }
+            }
+
+            if enemies_in_detect_area.len() > 0 {
+                let mut start_position = round_position_to_full_numbers(detect_range.get_center_position(), DEFAULT_MOVEMENT_VALUE, true, true);
+
+                let enemy = enemies_in_detect_area[0];
+                let movement_grid = enemy.get_grid().as_ref().unwrap();
+
+                start_position = get_correct_start_position(start_position, movement_grid, enemy.get_movement_value());
+
+                let nearest_enemy_id = get_nearest_enemy_id(start_position, &enemies_in_detect_area);
+
+                if nearest_enemy_id != -1 {
+                    self.attached_enemies_ids.push((nearest_enemy_id as usize, start_position, AttachedType::DetectRangeSearch));
                 }
             }
         }
@@ -224,9 +239,17 @@ impl<'a> Simulator<'a> {
         for enemy in self.enemies.iter_mut() {
             let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
             if idx != -1 {
-                let (.., detected_player_position) = self.attached_enemies_ids[idx as usize];
+                let (.., attached_position, attached_type) = &self.attached_enemies_ids[idx as usize];
 
-                enemy.attach_camera(detected_player_position);
+                match attached_type {
+                    AttachedType::CameraDetect => {
+                        enemy.attach_camera(*attached_position);
+                    },
+
+                    AttachedType::DetectRangeSearch => {
+                        enemy.search(SearchingMode::TrickCanSearch, *attached_position);
+                    }
+                }
 
                 self.attached_enemies_ids.remove(idx as usize);
             }
@@ -398,7 +421,7 @@ impl<'a> Simulator<'a> {
                         if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode()) {
                             is_object_colliding = true;
 
-                            enemy.search(SearchingMode::TrickCanSearch, can.get_start_position());
+                            enemy.search(SearchingMode::TrickCanHitSearch, can.get_start_position());
                         }
                     }
                 }
@@ -413,7 +436,11 @@ impl<'a> Simulator<'a> {
             if !can.get_is_finished() {
                 can.calc_next_position();
             } else {
-                self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), can.get_calc_position().0));
+                if !can.get_added_detect_range() {
+                    self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), can.get_calc_position().0));
+
+                    can.set_added_detect_range(true);
+                }
             }
 
             if !can.get_done() {
@@ -433,6 +460,7 @@ impl<'a> Simulator<'a> {
         match simulator_type {
             SimulatorType::EnemyLogic => {
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 300.0, y: 80.0 }, "4r/2500 4l/2500", false));
 
                 self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
                 self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));

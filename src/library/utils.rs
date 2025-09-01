@@ -1,9 +1,10 @@
-use std::{f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
+use std::{collections::HashSet, f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
 
 use glam::bool;
+use queues::{IsQueue, Queue};
 use rand::Rng;
 
-use crate::{game::{character::Direction, door::Door, level::{EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, renderer::{render::Size, vertice::Position}};
+use crate::{game::{character::{Direction, DEFAULT_CHARACTER_SIZE}, door::Door, enemy::Enemy, level::{AttachedType, EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, library::constants::DEFAULT_MOVEMENT_VALUE, renderer::{render::Size, vertice::{GridPosition, Position}}};
 
 use super::constants::GAME_ASSETS_DIR;
 
@@ -340,7 +341,7 @@ pub fn check_point_in_triangle(point: &Position, first: &Position, second: &Posi
     (first_to_second.signum() == second_to_apex.signum()) && (first_to_second.signum() == apex_to_first.signum()) && (second_to_apex.signum() == apex_to_first.signum())
 }
 
-pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position)>, search_id: usize) -> i32 {
+pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position, AttachedType)>, search_id: usize) -> i32 {
     let mut found_idx = -1;
 
     for (idx, (attached_enemy_id, ..)) in attached_enemies.iter().enumerate() {
@@ -511,5 +512,109 @@ pub fn is_in_circle<'a>(center: Position, radius: f32, object: &impl GameObject<
     let (start, end) = object.get_calc_position();
 
     length_of_line(&start, &center) <= radius || length_of_line(&end, &center) <= radius
+}
+
+pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) -> isize {
+    if enemies.len() == 0 {
+        return -1;
+    }
+
+    let found_enemy = enemies[0];
+
+    let movement_grid = found_enemy.get_grid();
+    assert!(movement_grid != &None, "movement_grid can not be none");
+    let (grid_start_position, grid) = movement_grid.as_ref().unwrap();
+
+    let start_position = start_position.to_grid_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE);
+
+    let mut q: Queue<GridPosition> = Queue::new();
+    q.add(start_position).unwrap();
+
+    let mut visited: HashSet<GridPosition> = HashSet::new();
+    visited.insert(start_position);
+
+    let is_colliding_with_enemy = | start_position: Position, (enemy_start, enemy_end): (Position, Position) | -> bool {
+        let end_position = start_position + DEFAULT_CHARACTER_SIZE;
+
+        start_position.x <= enemy_end.x &&
+        end_position.x >= enemy_start.x &&
+        start_position.y <= enemy_end.y &&
+        end_position.y >= enemy_start.y
+    };
+
+    let is_enemy = | position: Position | -> Option<usize> {
+        for enemy in enemies {
+            let (start, end) = enemy.get_calc_position();
+
+            if is_colliding_with_enemy(position, (start, end)) {
+                return Some(enemy.get_id());
+            }
+        }
+
+        None
+    };
+
+    while let Ok(current_position) = q.remove() {
+        if let Some(enemy_id) = is_enemy(current_position.to_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE)) {
+            return enemy_id as isize;
+        }
+
+        for neighbor in current_position.get_neighbors() {
+            if neighbor.row < grid.len() && neighbor.col < grid[0].len() && grid[neighbor.row][neighbor.col] {
+                if !visited.contains(&neighbor) {
+                    visited.insert(neighbor);
+                    q.add(neighbor).unwrap();
+                }
+            } 
+        }
+    }
+
+    -1
+}
+
+pub fn get_correct_start_position(mut position: Position, movement_grid: &(Position, Vec<Vec<bool>>), value: f32) -> Position {
+    let (grid_start_position, grid) = movement_grid;
+
+    let mut grid_coordinate = position.to_grid_position(*grid_start_position, value);
+
+    let mut steps;
+
+    let mut is_done = false;
+
+    if !grid[grid_coordinate.row][grid_coordinate.col] {
+        for neighbor in grid_coordinate.get_neighbors() {
+            if grid[neighbor.row][neighbor.col] {
+                is_done = true;
+
+                position = neighbor.to_position(*grid_start_position, value);
+
+                break;
+            }
+        }
+
+        if !is_done {
+            steps = (DEFAULT_CHARACTER_SIZE.height / value) as usize;
+
+            grid_coordinate = GridPosition {
+                row: grid_coordinate.row - steps,
+                col: grid_coordinate.col
+            };
+
+            if !grid[grid_coordinate.row][grid_coordinate.col] {
+                steps = (DEFAULT_CHARACTER_SIZE.width / value) as usize;
+
+                grid_coordinate = GridPosition {
+                    row: grid_coordinate.row,
+                    col: grid_coordinate.col - steps
+                };
+
+                position = grid_coordinate.to_position(*grid_start_position, value);
+            } else {
+                position = grid_coordinate.to_position(*grid_start_position, value);
+            }
+        }
+    }
+
+    position
 }
 
