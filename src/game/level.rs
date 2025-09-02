@@ -1,6 +1,6 @@
 use glfw::{Action, Key};
 
-use crate::{game::{enemy::EnemyType, player::PlayerStatus}, library::utils::{get_attached_enemy_index, get_level_challenges}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{game::{enemy::{EnemyMode, EnemyType}, player::PlayerStatus}, library::utils::{get_attached_enemy_index, get_level_challenges}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{camera::Camera, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall};
 
@@ -193,12 +193,29 @@ impl<'a> GameLevel<'a> {
         }
 
         for teleport_door in self.teleport_doors.iter() {
-            let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.get_want_to_teleport() && enemy.collide(teleport_door)).collect();
+            let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | {
+                if enemy.get_want_to_teleport_id().is_none() {
+                    return false;
+                }
+
+                !enemy.get_is_teleported() && enemy.get_want_to_teleport_id().unwrap() == teleport_door.get_id() && enemy.collide(teleport_door)
+            }).collect();
             
             if want_to_teleport_enemies.len() > 0 {
                 for enemy in want_to_teleport_enemies {
                     teleport_door.teleport(enemy);
-                    enemy.set_want_to_teleport(false);
+
+                    enemy.set_is_teleported(true);
+                    enemy.set_want_to_teleport_id(None);
+                    enemy.set_move_to_teleport_id(Some(teleport_door.get_move_to_id()));
+                    
+                    if enemy.get_mode() != &EnemyMode::Regular {
+                        if enemy.get_should_attach_teleport_door() {
+                            enemy.attach_teleport_door(teleport_door.get_id(), teleport_door.get_move_to_id(), teleport_door.get_character_move_position());
+                        } else {
+                            enemy.set_should_attach_teleport_door(true);
+                        }
+                    }
                 }
             }           
 
@@ -214,8 +231,10 @@ impl<'a> GameLevel<'a> {
             teleport_door.draw(render)?;
         }
 
-        if player.get_is_teleported() {
-            player.set_is_teleported(false);
+        for enemy in self.enemies.iter_mut() {
+            if enemy.get_is_teleported() {
+                enemy.set_is_teleported(false);
+            }
         }
 
         for door_collectable in self.door_collectables.iter_mut() {
@@ -334,8 +353,13 @@ impl<'a> GameLevel<'a> {
                 Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
                 &self.walls,
                 &self.doors,
+                &self.teleport_doors,
                 &self.hide_places
             );
+        }
+
+        if player.get_is_teleported() {
+            player.set_is_teleported(false);
         }
 
         player.draw(render)?;

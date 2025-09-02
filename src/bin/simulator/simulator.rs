@@ -24,6 +24,7 @@ impl std::error::Error for SimulationError {}
 #[derive(Debug, Clone)]
 pub enum SimulatorType {
     EnemyLogic,
+    EnemySearchLogic,
     PlayerInteractionWithHidePlace,
     CameraLogic,
     DoorLogic,
@@ -137,14 +138,31 @@ impl<'a> Simulator<'a> {
         }
 
         for teleport_door in self.teleport_doors.iter() {
-            let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | enemy.get_want_to_teleport() && enemy.collide(teleport_door)).collect();
+            let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | {
+                if enemy.get_want_to_teleport_id().is_none() {
+                    return false;
+                }
+
+                !enemy.get_is_teleported() && enemy.get_want_to_teleport_id().unwrap() == teleport_door.get_id() && enemy.collide(teleport_door)
+            }).collect();
             
             if want_to_teleport_enemies.len() > 0 {
                 for enemy in want_to_teleport_enemies {
                     teleport_door.teleport(enemy);
-                    enemy.set_want_to_teleport(false);
+
+                    enemy.set_is_teleported(true);
+                    enemy.set_want_to_teleport_id(None);
+                    
+                    if enemy.get_mode() != &EnemyMode::Regular {
+                        if enemy.get_should_attach_teleport_door() {
+                            enemy.attach_teleport_door(teleport_door.get_id(), teleport_door.get_move_to_id(), teleport_door.get_character_move_position());
+                        } else {
+                            enemy.set_should_attach_teleport_door(true);
+                        }
+                    }
                 }
             }           
+
 
             if player.is_colliding_with_object(teleport_door) {
                 if let Some(player_interaction) = player.get_interaction() {
@@ -153,11 +171,15 @@ impl<'a> Simulator<'a> {
                         player.set_is_teleported(true);
                     }
                 }
-            } else if player.get_is_teleported() {
-                player.set_is_teleported(false);
             }
 
             teleport_door.draw(render)?;
+        }
+
+        for enemy in self.enemies.iter_mut() {
+            if enemy.get_is_teleported() {
+                enemy.set_is_teleported(false);
+            }
         }
 
         for door_collectable in self.door_collectables.iter_mut() {
@@ -313,8 +335,13 @@ impl<'a> Simulator<'a> {
                 render.get_size(),  
                 &self.walls,
                 &self.doors,
+                &self.teleport_doors,
                 &self.hide_places
             );
+        }
+
+        if player.get_is_teleported() {
+            player.set_is_teleported(false);
         }
 
         let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
@@ -460,7 +487,6 @@ impl<'a> Simulator<'a> {
         match simulator_type {
             SimulatorType::EnemyLogic => {
                 self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
-                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 300.0, y: 80.0 }, "4r/2500 4l/2500", false));
 
                 self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
                 self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
@@ -478,6 +504,36 @@ impl<'a> Simulator<'a> {
                 self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
                 self.hide_places.push(HidePlace::new(Position { x: 375.0, y: 200.0 }, None));
                 self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
+            },
+
+            SimulatorType::EnemySearchLogic => {
+                // self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 260.0 }, "6u/5500 6r/0 6d/5500 6u/0 9r/5500 6d/5500 15l/5500", false));
+                self.enemies.push(Enemy::new(EnemyType::Regular, Position { x: 300.0, y: 80.0 }, "4r/2500 4l/2500", false));
+                
+                self.walls.push(Wall::new(Position { x: 0.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 500.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 170.0 }, None, None));
+
+                self.hide_places.push(HidePlace::new(Position { x: 100.0, y: 60.0 }, None));
+                self.teleport_doors.push(TeleportDoor::new_test(Position { x: 200.0, y: 80.0 }, Position { x: 800.0, y: 260.0 }, 2, None, None));
+
+                self.walls.push(Wall::new(Position { x: 250.0, y: 170.0 }, Size { width: 250.0, height: DEFAULT_SIZE }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 200.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
+                self.doors.push(
+                    Door::new(0, DoorType::Regular, Position { x: 247.0, y: 260.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                self.walls.push(Wall::new(Position { x: 500.0, y: 170.0 }, Size { width: DEFAULT_SIZE, height: 180.0 }, None, None));
+                self.walls.push(Wall::new(Position { x: 250.0, y: 320.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.doors.push(
+                    Door::new(1, DoorType::Regular, Position { x: 445.0, y: 320.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)
+                        .map_err(| error | SimulationError::LoadSimulationError(simulator_type.clone(), error.to_string()) )?
+                );
+                
+                self.hide_places.push(HidePlace::new(Position { x: 302.0, y: 255.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 375.0, y: 200.0 }, None));
+                self.hide_places.push(HidePlace::new(Position { x: 455.0, y: 240.0 }, None));
+
+                self.teleport_doors.push(TeleportDoor::new_test(Position { x: 800.0, y: 260.0 }, Position { x: 200.0, y: 80.0 }, 1, None, None));
             },
 
             SimulatorType::PlayerInteractionWithHidePlace => {

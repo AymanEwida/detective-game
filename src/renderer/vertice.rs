@@ -158,7 +158,8 @@ impl Position {
 
         GridPosition {
             row: row as usize,
-            col: col as usize
+            col: col as usize,
+            distance: 0
         }
     }
 }
@@ -167,6 +168,7 @@ impl Position {
 pub struct GridPosition {
     pub row: usize,
     pub col: usize,
+    pub distance: usize
 }
 
 impl From<(Position, Position, f32)> for GridPosition {
@@ -178,16 +180,16 @@ impl From<(Position, Position, f32)> for GridPosition {
 impl GridPosition {
     pub fn get_neighbors(&self) -> Vec<Self> {
         let mut neighbors = vec![
-            Self { row: self.row + 1, col: self.col },
-            Self { row: self.row, col: self.col + 1 }
+            Self { row: self.row + 1, col: self.col, distance: 0 },
+            Self { row: self.row, col: self.col + 1, distance: 0 }
         ];
 
         if self.row != 0 {
-            neighbors.push(Self { row: self.row - 1, col: self.col });
+            neighbors.push(Self { row: self.row - 1, col: self.col, distance: 0 });
         }
 
         if self.col != 0 {
-            neighbors.push(Self { row: self.row, col: self.col - 1 });
+            neighbors.push(Self { row: self.row, col: self.col - 1, distance: 0 });
         }
 
         neighbors

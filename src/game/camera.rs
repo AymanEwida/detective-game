@@ -2,7 +2,7 @@ use std::{collections::HashSet, time::{Duration, Instant}, usize};
 
 use queues::{IsQueue, Queue};
 
-use crate::{game::character::DEFAULT_CHARACTER_SIZE, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, get_nearest_enemy_id, round_position_to_full_numbers, simple_object_detect_check}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::{GridPosition, Position}}};
+use crate::{game::character::DEFAULT_CHARACTER_SIZE, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, round_position_to_full_numbers, simple_object_detect_check}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::{GridPosition, Position}}};
 
 use super::{character::Direction, door::Door, enemy::{DetectTraingle, Enemy}, level::GameObject, level_object::ObjectType, player::{Player, PlayerStatus}, wall::Wall};
 

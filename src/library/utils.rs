@@ -597,7 +597,8 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
 
             grid_coordinate = GridPosition {
                 row: grid_coordinate.row - steps,
-                col: grid_coordinate.col
+                col: grid_coordinate.col,
+                distance: 0
             };
 
             if !grid[grid_coordinate.row][grid_coordinate.col] {
@@ -605,7 +606,8 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
 
                 grid_coordinate = GridPosition {
                     row: grid_coordinate.row,
-                    col: grid_coordinate.col - steps
+                    col: grid_coordinate.col - steps,
+                    distance: 0
                 };
 
                 position = grid_coordinate.to_position(*grid_start_position, value);
