@@ -140,9 +140,6 @@ impl Door<'_> {
     }
 }
 
-#[allow(non_upper_case_globals)]
-static mut teleport_doors_count: usize = 0;
-
 #[derive(Debug)]
 pub struct TeleportDoor<'a> {
     id: usize,
@@ -188,31 +185,9 @@ impl<'a> LevelObject<'a> for TeleportDoor<'a> {
 }
 
 impl TeleportDoor<'_> {
-    pub fn new(position: Position, character_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
-        unsafe {
-            teleport_doors_count += 1;
-        }
-
+    pub fn new(id: usize, position: Position, character_move_position: Position, move_to_id: usize, scale: Option<f32>, rotate: Option<f32>) -> Self {
         Self {
-            id: unsafe { teleport_doors_count },
-            position, 
-            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_TELEPORT_DOOR, DEFAULT_MOVEMENT_VALUE),
-            size: DEFAULT_SIZE_FOR_TELEPORT_DOOR, 
-            image: "assets/game/teleport-door.webp",
-            scale,
-            rotate,
-            character_move_position,
-            move_to_id: 0 // TODO: chnage this later to have the correct value
-        }
-    }
-
-    pub fn new_test(position: Position, character_move_position: Position, move_to_id: usize, scale: Option<f32>, rotate: Option<f32>) -> Self {
-        unsafe {
-            teleport_doors_count += 1;
-        }
-
-        Self {
-            id: unsafe { teleport_doors_count },
+            id,
             position, 
             calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_TELEPORT_DOOR, DEFAULT_MOVEMENT_VALUE),
             size: DEFAULT_SIZE_FOR_TELEPORT_DOOR, 

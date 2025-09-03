@@ -116,7 +116,7 @@ pub struct Enemy<'a> {
     should_attach_teleport_door: bool,
     is_teleported: bool,
     attached_teleport_doors: Vec<(usize, usize, Position)>,
-    attached_detect_teleport_door: Option<(bool, usize, Position)>,
+    attached_detect_teleport_door: Option<(bool, usize, Position, Position)>,
     draw_detect_traingle: bool,
     draw_move_path: bool
 }
@@ -256,6 +256,7 @@ impl<'a> GameObject<'a> for Enemy<'a> {
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
         self.set_calc_position();
+        self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
     }
 
     fn get_size(&self) -> Size {
@@ -757,6 +758,7 @@ impl<'a> Enemy<'a> {
                             ).unwrap_or(Vec::new());
                         } else {
                             self.moves_count = 0;
+                            self.attached_teleport_doors = Vec::new();
 
                             self.current_moves_path = convert_path(self.original_moves_path);
 
@@ -787,11 +789,15 @@ impl<'a> Enemy<'a> {
                         self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
                     }
                 } else {
-                    if let Some((is_available, id, detect_teleport_door_position)) = self.attached_detect_teleport_door {
+                    if let Some((is_available, id, detect_teleport_door_position, move_to_position)) = self.attached_detect_teleport_door {
                         if is_available {
                             if enemy_start == detect_teleport_door_position {
                                 self.want_to_teleport_door_id = Some(id);
                                 self.attached_detect_teleport_door = None;
+
+                                if !self.is_detecting_player(player, walls, doors) {
+                                    self.start_searching_position = Some(move_to_position);
+                                }
                             } else {
                                 if self.prev_mode != EnemyMode::Detecting && self.move_interval != DEFAULT_MOVE_INTERVAL {
                                     self.move_interval = Duration::from_millis(1500);
@@ -1587,25 +1593,41 @@ impl<'a> Enemy<'a> {
         match self.moving_towards {
             Direction::Up => {
                 if grid_coordinate.row >= 3 && grid[grid_coordinate.row - 3][grid_coordinate.col] {
-                    return vec![(3, Direction::Up, 0)];
+                    if grid_coordinate.row >= 4 && grid[grid_coordinate.row - 4][grid_coordinate.col] {
+                        return vec![(3, Direction::Up, 0)];
+                    } else {
+                        return vec![(2, Direction::Up, 0)];
+                    }
                 }
             },
 
             Direction::Down => {
                 if grid_coordinate.row + 3 < grid.len() && grid[grid_coordinate.row + 3][grid_coordinate.col] {
-                    return vec![(3, Direction::Down, 0)];
+                    if grid_coordinate.row + 4 < grid.len() && grid[grid_coordinate.row + 4][grid_coordinate.col] {
+                        return vec![(3, Direction::Down, 0)];
+                    } else {
+                        return vec![(2, Direction::Down, 0)];
+                    }
                 }
             },
 
             Direction::Left => {
                 if grid_coordinate.col >= 3 && grid[grid_coordinate.row][grid_coordinate.col - 3] {
-                    return vec![(3, Direction::Left, 0)];
+                    if grid_coordinate.col >= 4 && grid[grid_coordinate.row][grid_coordinate.col - 4] {
+                        return vec![(3, Direction::Left, 0)];
+                    } else {
+                        return vec![(2, Direction::Left, 0)];
+                    }
                 }
             },
 
             Direction::Right => {
-                if grid_coordinate.col + 3 < grid.len() && grid[grid_coordinate.row][grid_coordinate.col + 3] {
-                    return vec![(3, Direction::Right, 0)];
+                if grid_coordinate.col + 3 < grid[0].len() && grid[grid_coordinate.row][grid_coordinate.col + 3] {
+                    if grid_coordinate.col + 4 < grid[0].len() && grid[grid_coordinate.row][grid_coordinate.col + 4] {
+                        return vec![(3, Direction::Right, 0)];
+                    } else {
+                        return vec![(2, Direction::Right, 0)];
+                    }
                 }
             }
         }
@@ -1694,6 +1716,7 @@ impl<'a> Enemy<'a> {
 
             player.set_status(PlayerStatus::Detectit);
             player.set_is_detected_by_enemy(true);
+            player.set_is_seen_by_enemy(true);
 
             let is_available = if self.attached_detect_teleport_door.is_some() {
                 self.attached_detect_teleport_door.unwrap().0
@@ -1710,6 +1733,7 @@ impl<'a> Enemy<'a> {
                                 false,
                                 teleport_door.get_id(),
                                 teleport_door.get_calc_position().0,
+                                teleport_door.get_character_move_position()
                             )
                         ); 
                     }
@@ -1737,11 +1761,14 @@ impl<'a> Enemy<'a> {
                         (
                             true,
                             attached_teleport_door.1,
-                            attached_teleport_door.2
+                            attached_teleport_door.2,
+                            attached_teleport_door.3
                         )
                     );
                 }
             }
+
+            player.set_is_seen_by_enemy(false);
         }
 
         current_notoriety_level
