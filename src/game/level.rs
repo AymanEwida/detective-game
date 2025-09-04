@@ -1,8 +1,9 @@
 use glfw::{Action, Key};
+use queues::{IsQueue, Queue};
 
-use crate::{game::{enemy::{EnemyMode, EnemyType}, player::PlayerStatus}, library::utils::{get_attached_enemy_index, get_level_challenges}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
 
-use super::{camera::Camera, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall};
+use super::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall};
 
 pub const DEFAULT_SIZE: f32 = 30.0;
 pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
@@ -21,7 +22,7 @@ pub trait GameObject<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-enum LevelStatus {
+pub enum LevelStatus {
     Lose,
     Win,
     NotDetermine,
@@ -49,6 +50,9 @@ pub struct GameLevel<'a> {
     hide_places: Vec<HidePlace<'a>>,
     coins: Vec<Coin<'a>>,
     cameras: Vec<Camera<'a>>,
+    cans: Queue<Can<'a>>,
+    bullets: Queue<Bullet<'a>>,
+    detecting_ranges: Vec<DetectRange>,
     challenges: Vec<String>,
     notoriety_level: u64,
     status: LevelStatus,
@@ -75,6 +79,9 @@ impl Default for GameLevel<'_> {
             hide_places: Vec::new(),
             coins: Vec::new(),
             cameras: Vec::new(),
+            cans: Queue::new(),
+            bullets: Queue::new(),
+            detecting_ranges: Vec::new(),
             challenges: Vec::new(),
             notoriety_level: 0,
             status: LevelStatus::NotDetermine,
@@ -82,21 +89,23 @@ impl Default for GameLevel<'_> {
     }
 }
 
-pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<InventoryItem<'a>>, render: &mut Render<'a>) -> Result<()> {
+pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<InventoryItem<'a>>, scale: f32, render: &mut Render<'a>) -> Result<()> {
+    let negate_scale = absolute_f32(1.0 - scale);
+
     if let Some(item) = holding_item {
-        render.display_text(&format!("holding: {}", item.get_name()), start_position, 1.0, None, Color::White)?; 
+        render.display_text(&format!("holding: {}", item.get_name()), start_position, scale, None, Color::White)?; 
 
-        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + 55.0 }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
+        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + (55.0 - (negate_scale * 50.0)) }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
 
-        render.display_text(&format!("| {}", item.get_amount()), Position { x: start_position.x + 150.0, y: start_position.y + 50.0 }, 1.0, None, Color::White)?;
+        render.display_text(&format!("| {}", item.get_amount()), Position { x: start_position.x + 150.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
         if let Some(ammo) = item.get_ammo() {
-            render.display_text(&format!("| {}", ammo), Position { x: start_position.x + 230.0, y: start_position.y + 50.0 }, 1.0, None, Color::White)?;
+            render.display_text(&format!("| {}", ammo), Position { x: start_position.x + 230.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
-            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 310.0, y: start_position.y + 50.0 }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
+            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 310.0, y: start_position.y + (50.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
         }
     } else {
-        render.display_text("holding: nothing", start_position, 1.0, None, Color::White)?; 
+        render.display_text("holding: nothing", start_position, scale, None, Color::White)?; 
     }
 
     Ok(())
@@ -121,8 +130,6 @@ impl<'a> GameLevel<'a> {
         render.display_text(&format!("level: {}", self.current_level), Position { x: 1580.0, y: 60.0 }, 0.5, None, Color::White).expect("Unable to display text");
         render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.5, None, Color::White).expect("Unable to display text");
 
-        render.display_text("holding: nothing", Position { x: 50.0, y: 900.0 }, 0.5, None, Color::White).expect("Unable to display text");
-
         render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None, None)?;
 
         for num in 0..8 {
@@ -140,6 +147,10 @@ impl<'a> GameLevel<'a> {
             // border left
             render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
         }
+
+        let holding_item = player.get_holding_item();
+
+        display_holding_item(Position { x: 50.0, y:  900.0 }, holding_item, 0.8, render)?;
 
         for wall in self.walls.iter() {
             if player.collide(wall) {
@@ -273,7 +284,7 @@ impl<'a> GameLevel<'a> {
                 if let Some(player_interaction) = player.get_interaction() {
                     let player_status = player.get_status();
 
-                    if (!player.get_is_detected_by_enemy() || player_status != &PlayerStatus::Detectit) && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                    if (!player.get_is_detected_by_enemy() || (player.get_is_detected_by_enemy() && !player.get_is_seen_by_enemy()) || player_status != &PlayerStatus::Detectit) && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
                         if player.get_status() == &PlayerStatus::Hidden {
                             player.set_status(PlayerStatus::NotHidden);
                         } else {
@@ -307,12 +318,47 @@ impl<'a> GameLevel<'a> {
             }
         }
 
+        for _ in 0..self.detecting_ranges.len() {
+            let detect_range = self.detecting_ranges.remove(0);
+
+            let mut enemies_in_detect_area = Vec::new();
+
+            for enemy in &self.enemies {
+                if !enemy.get_is_searching_detect_area() && detect_range.is_in_range(enemy) {
+                    enemies_in_detect_area.push(enemy);
+                }
+            }
+
+            if enemies_in_detect_area.len() > 0 {
+                let mut start_position = round_position_to_full_numbers(detect_range.get_center_position(), DEFAULT_MOVEMENT_VALUE, true, true);
+
+                let enemy = enemies_in_detect_area[0];
+                let movement_grid = enemy.get_grid().as_ref().unwrap();
+
+                start_position = get_correct_start_position(start_position, movement_grid, enemy.get_movement_value());
+
+                let nearest_enemy_id = get_nearest_enemy_id(start_position, &enemies_in_detect_area);
+
+                if nearest_enemy_id != -1 {
+                    self.attached_enemies_ids.push((nearest_enemy_id as usize, start_position, AttachedType::DetectRangeSearch));
+                }
+            }
+        }
+
         for enemy in self.enemies.iter_mut() {
             let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
             if idx != -1 {
-                let (.., detected_player_position, _) = self.attached_enemies_ids[idx as usize];
+                let (.., attached_position, attached_type) = &self.attached_enemies_ids[idx as usize];
 
-                enemy.attach_camera(detected_player_position);
+                match attached_type {
+                    AttachedType::CameraDetect => {
+                        enemy.attach_camera(*attached_position);
+                    },
+
+                    AttachedType::DetectRangeSearch => {
+                        enemy.search(SearchingMode::TrickCanSearch, *attached_position);
+                    }
+                }
 
                 self.attached_enemies_ids.remove(idx as usize);
             }
@@ -344,6 +390,26 @@ impl<'a> GameLevel<'a> {
                 render.display_text("Lost", Position { x: 600.0, y: 400.0 }, 1.5, None, Color::Red)?;
             }
 
+            if player.get_is_using_ability() {
+                let center = Position {
+                    x: player.get_position().x + player.get_size().width / 2.0,
+                    y: player.get_position().y + player.get_size().height / 2.0,
+                };
+
+                let is_in = is_in_circle(center, player.get_ability_radius(), enemy);
+
+                enemy.set_draw_detect_traingle(is_in);
+
+                if is_in && player.get_track_path_ability() {
+                    enemy.set_draw_move_path(true);
+                } else {
+                    enemy.set_draw_move_path(false);
+                }
+            } else {
+                enemy.set_draw_detect_traingle(false);
+                enemy.set_draw_move_path(false);
+            }
+
             enemy.draw(render)?;
 
             self.notoriety_level = enemy.move_enemy(
@@ -362,11 +428,154 @@ impl<'a> GameLevel<'a> {
             player.set_is_teleported(false);
         }
 
+        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
+        if let Some(object) = shooted_object {
+            match object {
+                ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
+                ShootObject::Bullet(bullet) => { self.bullets.add(bullet).unwrap(); },
+            }
+        }
+
+        for _ in 0..self.bullets.size() {
+            let mut bullet = self.bullets.remove().unwrap();
+
+            if !bullet.get_is_finished() {
+                let mut is_object_colliding = bullet.is_off_border(None, render.get_size());
+
+                if !is_object_colliding {
+                    for camera in self.cameras.iter_mut() {
+                        if bullet.collide_with_camera(camera) {
+                            if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
+                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
+                            } else if bullet.get_bullet_type() == &BulletType::Other {
+                                camera.destroy();
+                            } 
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for wall in self.walls.iter() {
+                        if bullet.collide(wall) {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+                
+                if !is_object_colliding {
+                    for door in self.doors.iter() {
+                        if bullet.collide(door) && door.is_closed() {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for enemy in self.enemies.iter_mut() {
+                        if bullet.collide(enemy) {
+                            if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
+                                // TODO: see if want to implement this in game
+                                // enemy.damage(bullet.get_damage_on_enemy());
+                                //
+                                // if !enemy.get_is_dead() {
+                                //     enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                                // }
+
+                                enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                            }
+
+                            is_object_colliding = true;
+                        }
+                    }
+                }
+
+                
+                if is_object_colliding {
+                    bullet.set_is_finished(true);
+                }
+            }
+
+            bullet.draw(render)?;
+
+            if !bullet.get_is_finished() {
+                bullet.calc_next_position();
+
+                self.bullets.add(bullet).unwrap();
+            }
+        }
+
+        for _ in 0..self.cans.size() {
+            let mut can = self.cans.remove().unwrap(); 
+
+            if !can.get_is_finished() {
+                let mut is_object_colliding = false;
+
+                for wall in self.walls.iter() {
+                    if can.collide(wall) {
+                        is_object_colliding = true;
+
+                        break;
+                    }
+                }
+                
+                if !is_object_colliding {
+                    for door in self.doors.iter() {
+                        if can.collide(door) && door.is_closed() {
+                            is_object_colliding = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if !is_object_colliding {
+                    for enemy in self.enemies.iter_mut() {
+                        if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode()) {
+                            is_object_colliding = true;
+
+                            enemy.search(SearchingMode::TrickCanHitSearch, can.get_start_position());
+                        }
+                    }
+                }
+                
+                if is_object_colliding {
+                    can.set_is_finished(true);
+                }
+            }
+
+            can.draw(render)?;
+
+            if !can.get_is_finished() {
+                can.calc_next_position();
+            } else {
+                if !can.get_added_detect_range() {
+                    self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), can.get_calc_position().0));
+
+                    can.set_added_detect_range(true);
+                }
+            }
+
+            if !can.get_done() {
+                self.cans.add(can).unwrap();
+            }
+        }
+
         player.draw(render)?;
+        player.switch_items();
 
         Ok(())
     }
     
+    pub fn get_status(&self) -> &LevelStatus {
+        &self.status
+    }
+
     fn set_initial_object_position(&mut self, object: &mut impl GameObject<'a>) {
         let start_position = self.get_boder_start_position();
 

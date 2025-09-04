@@ -118,7 +118,9 @@ pub struct Enemy<'a> {
     attached_teleport_doors: Vec<(usize, usize, Position)>,
     attached_detect_teleport_door: Option<(bool, usize, Position, Position)>,
     draw_detect_traingle: bool,
-    draw_move_path: bool
+    draw_move_path: bool,
+    health: u8,
+    is_dead: bool
 }
 
 impl<'a> Enemy<'a> {
@@ -180,8 +182,10 @@ impl<'a> Enemy<'a> {
                     is_teleported: false,
                     attached_teleport_doors: Vec::new(),
                     attached_detect_teleport_door: None,
-                    draw_detect_traingle: true, // return to false after
-                    draw_move_path: false
+                    draw_detect_traingle: false,
+                    draw_move_path: false,
+                    health: 100,
+                    is_dead: false
                 }
             }
         }
@@ -377,6 +381,26 @@ impl<'a> Enemy<'a> {
         self.should_attach_teleport_door = new_val;
     }
 
+    pub fn get_health(&self) -> u8 {
+        self.health
+    }
+
+    pub fn damage(&mut self, damage_val: u8) {
+        if self.health < damage_val {
+            self.health = 0;
+        } else {
+            self.health -= damage_val
+        }
+
+        if self.health == 0 {
+            self.is_dead = true;
+        }
+    }
+
+    pub fn get_is_dead(&self) -> bool {
+        self.is_dead
+    }
+
     pub fn get_calc_start_position(&self) -> EndStartPositions {
         self.calc_start_position
     }
@@ -425,6 +449,7 @@ impl<'a> Enemy<'a> {
         if let Some(prev_position) = self.prev_position {
             self.position = prev_position;
             self.set_calc_position();
+            self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
         }
     }
 

@@ -84,7 +84,7 @@ impl<'a> Simulator<'a> {
         
         let holding_item = player.get_holding_item();
 
-        display_holding_item(Position { x: 150.0, y:  650.0 }, holding_item, render)?;
+        display_holding_item(Position { x: 150.0, y:  650.0 }, holding_item, 1.0, render)?;
 
         for wall in self.walls.iter() {
             if player.collide(wall) {
@@ -322,9 +322,6 @@ impl<'a> Simulator<'a> {
                 enemy.set_draw_detect_traingle(false);
                 enemy.set_draw_move_path(false);
             }
-
-            // TODO: delete this later
-            enemy.set_draw_detect_traingle(true);
 
             enemy.draw(render)?;
             
