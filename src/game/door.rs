@@ -1,3 +1,5 @@
+use std::usize;
+
 use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
 
 use super::{character::Character, level::{EndStartPositions, GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
@@ -140,6 +142,7 @@ impl Door<'_> {
 
 #[derive(Debug)]
 pub struct TeleportDoor<'a> {
+    id: usize,
     position: Position,
     calc_position: EndStartPositions,
     size: Size,
@@ -147,6 +150,7 @@ pub struct TeleportDoor<'a> {
     scale: Option<f32>,
     rotate: Option<f32>,
     character_move_position: Position,
+    move_to_id: usize
 }
 
 impl<'a> GameObject<'a> for TeleportDoor<'a> {
@@ -181,8 +185,9 @@ impl<'a> LevelObject<'a> for TeleportDoor<'a> {
 }
 
 impl TeleportDoor<'_> {
-    pub fn new(position: Position, character_move_position: Position, scale: Option<f32>, rotate: Option<f32>) -> Self {
+    pub fn new(id: usize, position: Position, character_move_position: Position, move_to_id: usize, scale: Option<f32>, rotate: Option<f32>) -> Self {
         Self {
+            id,
             position, 
             calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_TELEPORT_DOOR, DEFAULT_MOVEMENT_VALUE),
             size: DEFAULT_SIZE_FOR_TELEPORT_DOOR, 
@@ -190,6 +195,7 @@ impl TeleportDoor<'_> {
             scale,
             rotate,
             character_move_position,
+            move_to_id
         }
     }
 }
@@ -198,6 +204,14 @@ impl<'a> TeleportDoor<'a> {
     fn set_calc_position(&mut self) {
         self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
     } 
+
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
+    pub fn get_move_to_id(&self) -> usize {
+        self.move_to_id
+    }
 
     pub fn get_character_move_position(&self) -> Position {
         self.character_move_position

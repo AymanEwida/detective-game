@@ -20,6 +20,7 @@ pub struct Can<'a> {
     done: bool,
     last_hit_time: Instant,
     hit_duration_interval: Duration,
+    added_detect_range: bool
 }
 
 impl<'a> Can<'a> {
@@ -39,6 +40,7 @@ impl<'a> Can<'a> {
             done: false,
             last_hit_time: Instant::now(),
             hit_duration_interval: Duration::from_millis(1000),
+            added_detect_range: false
         }
     }
 }
@@ -98,6 +100,14 @@ impl<'a> Can<'a> {
 
     pub fn get_done(&self) -> bool {
         self.done
+    }
+
+    pub fn get_added_detect_range(&self) -> bool {
+        self.added_detect_range
+    }
+
+    pub fn set_added_detect_range(&mut self, new_val: bool) {
+        self.added_detect_range = new_val;
     }
 
     fn set_calc_position(&mut self) {

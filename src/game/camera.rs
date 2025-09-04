@@ -1,6 +1,8 @@
-use std::time::{Duration, Instant};
+use std::{collections::HashSet, time::{Duration, Instant}, usize};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, get_moves_number, round_position_to_full_numbers, simple_object_detect_check}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use queues::{IsQueue, Queue};
+
+use crate::{game::character::DEFAULT_CHARACTER_SIZE, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape, check_point_in_triangle, convert_angle_to_radians, round_position_to_full_numbers, simple_object_detect_check}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::{GridPosition, Position}}};
 
 use super::{character::Direction, door::Door, enemy::{DetectTraingle, Enemy}, level::GameObject, level_object::ObjectType, player::{Player, PlayerStatus}, wall::Wall};
 
@@ -249,39 +251,62 @@ impl<'a> Camera<'a> {
         check_point_in_triangle(&Position { x: player_start.x, y: player_end.y }, &first_point, &second_point, &apex)
     }
 
-    fn get_nearest_enemy(&self, detect_player_position: &Position, enemies: &[Enemy<'a>]) -> usize {
-        assert!(enemies.len() > 0, "enemies must contain at least one enemy");
+    fn get_nearest_enemy(&self, detect_player_position: &Position, enemies: &[Enemy<'a>]) -> isize {
+        if enemies.len() == 0 {
+            return -1;
+        }
 
-        let mut found_enemy = &enemies[0];
+        let found_enemy = &enemies[0];
 
         let movement_grid = found_enemy.get_grid();
         assert!(movement_grid != &None, "movement_grid can not be none");
         let (grid_start_position, grid) = movement_grid.as_ref().unwrap();
 
-        let mut moves_num = -1;
+        let start_position = detect_player_position.to_grid_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE);
 
-        for enemy in enemies.iter() {
-            let moves_path = enemy.find_optimal_path(*detect_player_position, *grid_start_position, &grid);
-            if moves_path.is_none() {
-                continue;
+        let mut q: Queue<GridPosition> = Queue::new();
+        q.add(start_position).unwrap();
+
+        let mut visited: HashSet<GridPosition> = HashSet::new();
+        visited.insert(start_position);
+
+        let is_colliding_with_enemy = | start_position: Position, (enemy_start, enemy_end): (Position, Position) | -> bool {
+            let end_position = start_position + DEFAULT_CHARACTER_SIZE;
+
+            start_position.x <= enemy_end.x &&
+            end_position.x >= enemy_start.x &&
+            start_position.y <= enemy_end.y &&
+            end_position.y >= enemy_start.y
+        };
+
+        let is_enemy = | position: Position | -> Option<usize> {
+            for enemy in enemies {
+                let (start, end) = enemy.get_calc_position();
+
+                if is_colliding_with_enemy(position, (start, end)) {
+                    return Some(enemy.get_id());
+                }
             }
 
-            let moves_path = moves_path.unwrap();
+            None
+        };
 
-            let current_moves_path_num = get_moves_number(moves_path) as i32;
-            
-            if current_moves_path_num <= 7 {
-                return enemy.get_id();
+        while let Ok(current_position) = q.remove() {
+            if let Some(enemy_id) = is_enemy(current_position.to_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE)) {
+                return enemy_id as isize;
             }
 
-            if moves_num == -1 || ((current_moves_path_num) < moves_num) {
-                moves_num = current_moves_path_num;
-
-                found_enemy = enemy;
+            for neighbor in current_position.get_neighbors() {
+                if neighbor.row < grid.len() && neighbor.col < grid[0].len() && grid[neighbor.row][neighbor.col] {
+                    if !visited.contains(&neighbor) {
+                        visited.insert(neighbor);
+                        q.add(neighbor).unwrap();
+                    }
+                } 
             }
         }
-
-        found_enemy.get_id()
+        
+        -1
     }
 
     pub fn detect_player(&mut self, current_notoriety_level: u64, player: &mut Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>], enemies: &[Enemy<'a>]) -> (u64, Option<usize>, Option<Position>) {
@@ -301,12 +326,17 @@ impl<'a> Camera<'a> {
                 self.already_detected_player = true;
 
                 let nearest_enemy_id = self.get_nearest_enemy(&player_start, enemies);
-
+                let nearest_enemy = if nearest_enemy_id == -1 {
+                    None
+                } else {
+                    Some(nearest_enemy_id as usize)
+                };
+                
                 if current_notoriety_level >= 3 {
-                    return (3, Some(nearest_enemy_id), Some(player_start));
+                    return (3, nearest_enemy, Some(player_start));
                 }
     
-                return (current_notoriety_level + 1, Some(nearest_enemy_id), Some(player_start));
+                return (current_notoriety_level + 1, nearest_enemy, Some(player_start));
             }
 
             return (current_notoriety_level, None, None);

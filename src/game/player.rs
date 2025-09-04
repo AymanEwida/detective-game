@@ -189,6 +189,7 @@ pub struct Player<'a> {
     camera_disturb_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
+    is_seen_by_enemy: bool,
     is_teleported: bool,
     can_detecting_radius: f32,
     ability_radius: f32,
@@ -220,6 +221,7 @@ impl Player<'_> {
             camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
+            is_seen_by_enemy: false,
             is_teleported: false,
             can_detecting_radius: 100.0,
             ability_radius: 150.0,
@@ -392,6 +394,14 @@ impl<'a> Player<'a> {
 
     pub fn set_track_path_ability(&mut self, new_val: bool) {
         self.track_path_ability = new_val;
+    }
+
+    pub fn get_is_seen_by_enemy(&self) -> bool {
+        self.is_seen_by_enemy
+    }
+
+    pub fn set_is_seen_by_enemy(&mut self, new_val: bool) {
+        self.is_seen_by_enemy = new_val;
     }
 
     fn set_calc_position(&mut self) {
