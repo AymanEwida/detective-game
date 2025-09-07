@@ -187,6 +187,7 @@ pub struct Player<'a> {
     inventory: Vec<InventoryItem<'a>>,
     holding: Option<usize>,
     camera_disturb_lifttime: Duration,
+    notoriety_camera_disturb_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
     is_seen_by_enemy: bool,
@@ -219,6 +220,7 @@ impl Player<'_> {
             ],
             holding: None,
             camera_disturb_lifttime: Duration::from_secs(10),
+            notoriety_camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
             is_seen_by_enemy: false,
@@ -371,6 +373,21 @@ impl<'a> Player<'a> {
     pub fn set_camera_disturb_lifttime(&mut self, new_secs: u64) {
         self.camera_disturb_lifttime = Duration::from_secs(new_secs);
     }
+
+    pub fn get_notoriety_camera_disturb_lifttime(&self) -> Duration {
+        self.notoriety_camera_disturb_lifttime
+    }
+
+    pub fn set_notoriety_camera_disturb_lifttime(&mut self, notoriety_level: u64) {
+        if notoriety_level >= 4 {
+            if notoriety_level == 4 {
+                self.notoriety_camera_disturb_lifttime = Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 1);
+            } else {
+                self.notoriety_camera_disturb_lifttime = Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 2);
+            }
+        }
+    }
+
 
     pub fn get_ability_radius(&self) -> f32 {
         self.ability_radius

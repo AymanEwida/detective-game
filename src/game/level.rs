@@ -313,6 +313,8 @@ impl<'a> GameLevel<'a> {
             );
             self.notoriety_level = new_notoriety_level;
 
+            camera.set_new_repeat_interval(self.notoriety_level);
+
             if let Some(enemy_id) = enemy_id {
                 self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap(), AttachedType::CameraDetect));
             }
@@ -428,6 +430,7 @@ impl<'a> GameLevel<'a> {
             player.set_is_teleported(false);
         }
 
+        player.set_notoriety_camera_disturb_lifttime(self.notoriety_level);
         let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
         if let Some(object) = shooted_object {
             match object {
@@ -446,7 +449,7 @@ impl<'a> GameLevel<'a> {
                     for camera in self.cameras.iter_mut() {
                         if bullet.collide_with_camera(camera) {
                             if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
-                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
+                                camera.set_is_disturbed(true, Some(player.get_notoriety_camera_disturb_lifttime()));
                             } else if bullet.get_bullet_type() == &BulletType::Other {
                                 camera.destroy();
                             } 

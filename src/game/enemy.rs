@@ -734,10 +734,25 @@ impl<'a> Enemy<'a> {
         &self.movement_grid
     }
 
+    fn get_notority_move_interval(&self, notoriety_level: u64) -> Duration {
+        if notoriety_level == 0 {
+            return DEFAULT_MOVE_INTERVAL;
+        } else if notoriety_level == 1 {
+            return Duration::from_millis(275);
+        } else if notoriety_level == 2 {
+            return Duration::from_millis(250);
+        } else if notoriety_level == 3 {
+            return Duration::from_millis(225);
+        }
+
+        Duration::from_millis(225)
+    }
+
     pub fn move_enemy(&mut self, player: &mut Player<'a>, current_notoriety_level: u64, window_start_position: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], teleport_doos: &[TeleportDoor<'a>], hide_places: &[HidePlace<'a>]) -> u64 {
         self.move_enemy_when_colliding();
 
         let new_notority_level = self.detect_player(current_notoriety_level, player, walls, doors, teleport_doos);
+        let notority_move_interval = self.get_notority_move_interval(new_notority_level);
 
         let grid_start_position: Position;
         let grid: &Vec<Vec<bool>>;
@@ -760,10 +775,6 @@ impl<'a> Enemy<'a> {
                 self.already_detected_player = false;
 
                 if self.prev_mode != EnemyMode::Regular {
-                    if self.move_interval != DEFAULT_MOVE_INTERVAL {
-                        self.move_interval = DEFAULT_MOVE_INTERVAL;
-                    }
-
                     if self.attached_teleport_doors.len() > 0 {
                         let (_, move_to_id, move_to_position) = self.attached_teleport_doors.last().unwrap();
 
@@ -796,7 +807,7 @@ impl<'a> Enemy<'a> {
                     }
                 }
 
-                self.move_enemy_in_path(None);
+                self.move_enemy_in_path(Some(notority_move_interval));
             },
 
             EnemyMode::Detecting => {
@@ -805,17 +816,14 @@ impl<'a> Enemy<'a> {
                         self.start_searching_position = Some(enemy_start);
                         self.detect_player_position = None;
                     } else {
-                        if self.prev_mode != EnemyMode::Detecting && self.move_interval != DEFAULT_MOVE_INTERVAL {
-                            self.move_interval = Duration::from_millis(1500);
-                        }
-    
                         self.current_moves_path = self.find_optimal_path(
                             detect_player_position,
                             grid_start_position,
                             grid
                         ).unwrap_or(Vec::new());
 
-                        self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
+                        self.move_interval = notority_move_interval;
+                        self.move_enemy_in_path(Some(notority_move_interval));
                     }
                 } else {
                     if let Some((is_available, id, detect_teleport_door_position, move_to_position)) = self.attached_detect_teleport_door {
@@ -828,17 +836,14 @@ impl<'a> Enemy<'a> {
                                     self.start_searching_position = Some(move_to_position);
                                 }
                             } else {
-                                if self.prev_mode != EnemyMode::Detecting && self.move_interval != DEFAULT_MOVE_INTERVAL {
-                                    self.move_interval = Duration::from_millis(1500);
-                                }
-
                                 self.current_moves_path = self.find_optimal_path(
                                     detect_teleport_door_position,
                                     grid_start_position,
                                     grid
                                 ).unwrap_or(Vec::new());
 
-                                self.move_enemy_in_path(Some(Duration::from_millis(300 - (current_notoriety_level * 50))));
+                                self.move_interval = notority_move_interval;
+                                self.move_enemy_in_path(Some(notority_move_interval));
                             }
                         } else {
                             self.attached_detect_teleport_door = None;
@@ -866,12 +871,6 @@ impl<'a> Enemy<'a> {
             },
 
             EnemyMode::Searching(searching_mode) => {
-                if !matches!(self.prev_mode, EnemyMode::Searching(_)) {
-                    if self.move_interval != DEFAULT_MOVE_INTERVAL {
-                        self.move_interval = DEFAULT_MOVE_INTERVAL;
-                    }
-                }
-
                 let reach_position = | position: Position | {
                     (enemy_start == position)
                     || (
@@ -904,7 +903,9 @@ impl<'a> Enemy<'a> {
 
                                     if !self.is_colliding && enemy_start != estimated_search_position {
                                         self.current_moves_path = vec![(steps, direction, wait_interval)];
-                                        self.move_enemy_in_path(None);
+
+                                        self.move_interval = notority_move_interval;
+                                        self.move_enemy_in_path(Some(notority_move_interval));
                                     } else {
                                         self.current_search_idx += 1;
                                         self.estimated_search_position = None;
@@ -927,7 +928,9 @@ impl<'a> Enemy<'a> {
 
                                         if !reach_position(current_door_position) {
                                             self.current_moves_path = self.find_optimal_path(current_door_position, grid_start_position, grid).unwrap_or(Vec::new());
-                                            self.move_enemy_in_path(None); 
+
+                                            self.move_interval = notority_move_interval;
+                                            self.move_enemy_in_path(Some(notority_move_interval));
                                         } else {
                                             self.current_search_idx += 1;
                                         }
@@ -970,7 +973,8 @@ impl<'a> Enemy<'a> {
                                                     }
                                                 }
                                                 
-                                                self.move_enemy_in_path(None); 
+                                                self.move_interval = notority_move_interval;
+                                                self.move_enemy_in_path(Some(notority_move_interval));
                                             } else {
                                                 if self.collide(player) {
                                                     player.throw_form_hide_place(walls, &self.moving_towards);
@@ -1002,7 +1006,9 @@ impl<'a> Enemy<'a> {
                                         if let Some(near_teleport_door) = self.near_teleport_door_to_search {
                                             if enemy_start != near_teleport_door.1 {
                                                 self.current_moves_path = self.find_optimal_path(near_teleport_door.1, grid_start_position, grid).unwrap_or(Vec::new());
-                                                self.move_enemy_in_path(None);
+
+                                                self.move_interval = notority_move_interval;
+                                                self.move_enemy_in_path(Some(notority_move_interval));
                                             } else {
                                                 self.set_want_to_teleport_id(Some(near_teleport_door.0));
 
@@ -1010,9 +1016,15 @@ impl<'a> Enemy<'a> {
                                                 self.is_done_with_teleport_door = true;
                                             }
                                         } else {
+                                            let next_mode = if !self.is_done_with_teleport_door {
+                                                EnemyMode::Regular
+                                            } else {
+                                                EnemyMode::Searching(SearchingMode::HidePlaceSearchAfterTeleport)
+                                            };
+
                                             self.reset_search_props();
 
-                                            self.mode = EnemyMode::Searching(SearchingMode::HidePlaceSearchAfterTeleport);
+                                            self.mode = next_mode;
                                         }
                                     }
                                 }
@@ -1031,7 +1043,9 @@ impl<'a> Enemy<'a> {
 
                                 if !reach_position(current_hide_place_position) {
                                     self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
-                                    self.move_enemy_in_path(None); 
+
+                                    self.move_interval = notority_move_interval;
+                                    self.move_enemy_in_path(Some(notority_move_interval));
                                 } else {
                                     if self.collide(player) {
                                         player.throw_form_hide_place(walls, &self.moving_towards);
@@ -1066,7 +1080,9 @@ impl<'a> Enemy<'a> {
                         if let Some(target_position) = self.start_searching_position {
                             if enemy_start != target_position {
                                 self.current_moves_path = self.find_optimal_path(target_position, grid_start_position, grid).unwrap_or(Vec::new());
-                                self.move_enemy_in_path(None);
+
+                                self.move_interval = notority_move_interval;
+                                self.move_enemy_in_path(Some(notority_move_interval));
                             } else {
                                 if self.last_move_time.elapsed() >= Duration::from_millis(3000) {
                                     self.reset_search_props();
@@ -1101,7 +1117,9 @@ impl<'a> Enemy<'a> {
 
                                     if !self.is_colliding && enemy_start != estimated_search_position {
                                         self.current_moves_path = vec![(steps, direction, wait_interval)];
-                                        self.move_enemy_in_path(None);
+
+                                        self.move_interval = notority_move_interval;
+                                        self.move_enemy_in_path(Some(notority_move_interval));
                                     } else {
                                         self.current_search_idx += 1;
                                         self.estimated_search_position = None;
@@ -1124,7 +1142,9 @@ impl<'a> Enemy<'a> {
 
                                         if !reach_position(current_hide_place_position) {
                                             self.current_moves_path = self.find_optimal_path(current_hide_place_position, grid_start_position, grid).unwrap_or(Vec::new());
-                                            self.move_enemy_in_path(None); 
+
+                                            self.move_interval = notority_move_interval;
+                                            self.move_enemy_in_path(Some(notority_move_interval));
                                         } else {
                                             if self.collide(player) {
                                                 player.throw_form_hide_place(walls, &self.moving_towards);
@@ -1181,7 +1201,9 @@ impl<'a> Enemy<'a> {
 
                                     if !self.is_colliding && enemy_start != estimated_search_position {
                                         self.current_moves_path = vec![(steps, direction, wait_interval)];
-                                        self.move_enemy_in_path(None);
+
+                                        self.move_interval = notority_move_interval;
+                                        self.move_enemy_in_path(Some(notority_move_interval));
                                     } else {
                                         self.current_search_idx += 1;
                                         self.estimated_search_position = None;
@@ -1204,7 +1226,9 @@ impl<'a> Enemy<'a> {
 
                                         if !reach_position(current_door_position) {
                                             self.current_moves_path = self.find_optimal_path(current_door_position, grid_start_position, grid).unwrap_or(Vec::new());
-                                            self.move_enemy_in_path(None); 
+
+                                            self.move_interval = notority_move_interval;
+                                            self.move_enemy_in_path(Some(notority_move_interval));
                                         } else {
                                             self.current_search_idx += 1;
                                         }
@@ -1773,8 +1797,8 @@ impl<'a> Enemy<'a> {
             self.detect_player_position = Some(round_position_to_full_numbers(player_start, self.movement_value, true, true));
     
             if !self.already_detected_player {
-                if current_notoriety_level >= 3 {
-                    return 3;
+                if current_notoriety_level >= 5 {
+                    return 5;
                 }
     
                 return current_notoriety_level + 1;
