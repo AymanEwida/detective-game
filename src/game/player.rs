@@ -1,8 +1,8 @@
-use std::time::Duration;
+use std::{time::Duration, usize};
 
 use glfw::{Action, Key, MouseButton};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
 
 use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
@@ -190,12 +190,14 @@ pub struct Player<'a> {
     notoriety_camera_disturb_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
-    is_seen_by_enemy: bool,
+    seen_by_enemies: Vec<usize>,
     is_teleported: bool,
     can_detecting_radius: f32,
     ability_radius: f32,
     is_using_ability: bool,
     track_path_ability: bool,
+    enemy_wait_time_on_trict_can: u64, // milliseconds
+    lifes: u8,
 }
 
 impl Player<'_> {
@@ -223,12 +225,14 @@ impl Player<'_> {
             notoriety_camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
-            is_seen_by_enemy: false,
+            seen_by_enemies: Vec::new(),
             is_teleported: false,
             can_detecting_radius: 100.0,
             ability_radius: 150.0,
             is_using_ability: false,
             track_path_ability: false,
+            enemy_wait_time_on_trict_can: 6000,
+            lifes: 5,
         }
     }
 }
@@ -413,12 +417,60 @@ impl<'a> Player<'a> {
         self.track_path_ability = new_val;
     }
 
-    pub fn get_is_seen_by_enemy(&self) -> bool {
-        self.is_seen_by_enemy
+    pub fn get_seen_by_enemies(&self) -> &[usize] {
+        self.seen_by_enemies.as_slice()
     }
 
-    pub fn set_is_seen_by_enemy(&mut self, new_val: bool) {
-        self.is_seen_by_enemy = new_val;
+    pub fn get_is_seen_by_enemy(&self) -> bool {
+        self.seen_by_enemies.len() > 0
+    }
+
+    pub fn get_seen_by_enemy_id(&self, enemy_id: usize) -> bool {
+        self.seen_by_enemies.contains(&enemy_id)
+    }
+
+    pub fn add_seen_enemy(&mut self, enemy_id: usize) {
+        if !self.get_seen_by_enemy_id(enemy_id) {
+            self.seen_by_enemies.push(enemy_id);
+        }
+    }
+
+    pub fn remove_seen_enemy(&mut self, enemy_id: usize) {
+        let mut idx = -1;
+        
+        for i in 0..self.seen_by_enemies.len() {
+            let seen_enemy_id = self.seen_by_enemies[i];
+
+            if seen_enemy_id == enemy_id {
+                idx = i as i32;
+            }
+        }
+
+        if idx != -1 {
+            self.seen_by_enemies.swap_remove(idx as usize);
+        }
+    }
+
+    pub fn get_enemy_wait_time_on_trict_can(&self) -> u64 {
+        self.enemy_wait_time_on_trict_can
+    }
+
+    pub fn set_enemy_wait_time_on_trict_can(&mut self, new_val: u64) {
+        self.enemy_wait_time_on_trict_can = new_val;
+    }
+
+    pub fn get_lifes(&self) -> u8 {
+        self.lifes
+    }
+
+    pub fn set_lifes(&mut self, new_val: u8) {
+        self.lifes = new_val;
+    }
+
+    pub fn decrease_life(&mut self) {
+        if self.lifes != 0 {
+            self.lifes -= 1;
+        }
     }
 
     fn set_calc_position(&mut self) {
@@ -479,7 +531,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn shoot(&mut self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ShootObject<'a>> {
+    pub fn shoot(&mut self, window_start: Position, window_size: Size, render: &mut Render<'a>) -> Option<ShootObject<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
@@ -492,6 +544,8 @@ impl<'a> Player<'a> {
                     Position { x: self.position.x, y: self.position.y + 15.0 }
                 };
 
+                let mut calc_start_position = Position { x: self.position.x + (self.size.width / 2.0), y: self.position.y };
+
                 let mut end_position = mouse_interaction.get_cursor_position();
 
                 let length = length_of_line(&start_position, &end_position);
@@ -502,34 +556,10 @@ impl<'a> Player<'a> {
                             &MouseButton::Button1 => {
                                 match mouse_interaction.get_action() {
                                     &Action::Press => {
-                                        let change_end_position = move | (object_start, object_end): EndStartPositions, (other_start, other_end): EndStartPositions | {
-                                            let mut x_offset = 0.0;
-                                            let mut x_sing = 1.0;
-                                            if other_end.x <= object_start.x {
-                                                x_offset = absolute_f32(object_start.x - end_position.x);
-                                                x_sing = -1.0;
-                                            } else if other_start.x >= object_end.x {
-                                                x_offset = absolute_f32(object_end.x - end_position.x);
-                                                x_sing = 1.0;
-                                            }
-
-                                            let mut y_offset = 0.0;
-                                            let mut y_sing = 1.0;
-                                            if other_end.y <= object_start.y {
-                                                y_offset = absolute_f32(object_start.y - end_position.y);
-                                                y_sing = -1.0;
-                                            } else if other_start.y >= object_end.y {
-                                                y_offset = absolute_f32(object_end.y - end_position.y);
-                                                y_sing = 1.0;
-                                            }
-
-                                            Position { x: end_position.x + (x_sing * x_offset), y: end_position.y + (y_sing * y_offset) }
-                                        };
-
-                                        if length > 250.0 {
+                                        if length > 300.0 {
                                             let direction = (end_position - start_position).normalize(&window_start);
 
-                                            end_position = start_position + (direction * 250.0);
+                                            end_position = start_position + (direction * 300.0);
                                         }
 
                                         let window_check = is_position_in_border(&window_start, &window_end, &end_position);
@@ -550,30 +580,10 @@ impl<'a> Player<'a> {
                                             }
                                         }
 
-                                        for wall in walls {
-                                            let (wall_start, wall_end)  = wall.get_calc_position();
-                                            
-                                            let (x_check, y_check) = is_position_in_border(&wall_start, &wall_end, &end_position);
-
-                                            let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), wall);
-
-                                            if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
-                                                end_position = change_end_position(wall.get_calc_position(), self.get_calc_position());
-                                            }
-                                        }
-
-                                        for door in doors {
-                                            if door.is_closed() {
-                                                let (door_start, door_end)  = door.get_calc_position();
-                                                
-                                                let (x_check, y_check) = is_position_in_border(&door_start, &door_end, &end_position);
-
-                                                let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), door);
-
-                                                if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
-                                                    end_position = change_end_position(door.get_calc_position(), self.get_calc_position());
-                                                }
-                                            }
+                                        if end_position.x > calc_start_position.x {
+                                            calc_start_position.x = self.position.x + self.size.width;
+                                        } else if end_position.x < calc_start_position.x {
+                                            calc_start_position.x = self.position.x;
                                         }
 
                                         render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
@@ -586,7 +596,7 @@ impl<'a> Player<'a> {
 
                                         self.inventory[self.holding.unwrap()].decrease_amount(1);
 
-                                        return Some(ShootObject::Can(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
+                                        return Some(ShootObject::Can(Can::new(calc_start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
                                     },
 
                                     _ => ()
@@ -624,7 +634,7 @@ impl<'a> Player<'a> {
 
                                         self.inventory[self.holding.unwrap()].decrease_ammo(1);
 
-                                        return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
+                                        return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, calc_start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
                                     },
 
                                     _ => ()

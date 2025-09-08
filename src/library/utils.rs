@@ -509,9 +509,33 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
 } 
 
 pub fn is_in_circle<'a>(center: Position, radius: f32, object: &impl GameObject<'a>) -> bool {
-    let (start, end) = object.get_calc_position();
+    let obj_position = object.get_position();
+    let obj_size = object.get_size();
 
-    length_of_line(&start, &center) <= radius || length_of_line(&end, &center) <= radius
+    let 
+    (
+        top_left, 
+        top_right,
+        bottom_right,
+        bottom_left
+    ) = (
+        &obj_position,
+        Position {
+            x: obj_position.x + obj_size.width,
+            y: obj_position.y
+        },
+        obj_position + obj_size,
+        Position {
+            x: obj_position.x,
+            y: obj_position.y + obj_size.height
+        }
+    );
+
+
+    length_of_line(&top_left, &center) <= radius ||
+    length_of_line(&top_right, &center) <= radius ||
+    length_of_line(&bottom_right, &center) <= radius ||
+    length_of_line(&bottom_left, &center) <= radius
 }
 
 pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) -> isize {

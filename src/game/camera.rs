@@ -147,7 +147,6 @@ impl<'a> Camera<'a> {
             }
         }
 
-        print!("repeat_interval: {:?}\n", self.repeat_interval);
         if self.repeat && self.last_updated_time.elapsed() >= self.repeat_interval.unwrap() {
             self.flip = !self.flip;
 
@@ -227,7 +226,6 @@ impl<'a> Camera<'a> {
                 if notoriety_level == 4 {
                     self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 25));
                 } else {
-                    print!("here!");
                     self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 50));
                 }
             }

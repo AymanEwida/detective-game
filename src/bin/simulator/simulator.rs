@@ -354,7 +354,7 @@ impl<'a> Simulator<'a> {
         }
 
         player.set_notoriety_camera_disturb_lifttime(self.notoriety_level);
-        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
+        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), render);
         if let Some(object) = shooted_object {
             match object {
                 ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
@@ -453,16 +453,6 @@ impl<'a> Simulator<'a> {
                     }
                 }
 
-                if !is_object_colliding {
-                    for enemy in self.enemies.iter_mut() {
-                        if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode()) {
-                            is_object_colliding = true;
-
-                            enemy.search(SearchingMode::TrickCanHitSearch, can.get_start_position());
-                        }
-                    }
-                }
-                
                 if is_object_colliding {
                     can.set_is_finished(true);
                 }

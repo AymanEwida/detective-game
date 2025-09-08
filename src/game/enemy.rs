@@ -1084,7 +1084,7 @@ impl<'a> Enemy<'a> {
                                 self.move_interval = notority_move_interval;
                                 self.move_enemy_in_path(Some(notority_move_interval));
                             } else {
-                                if self.last_move_time.elapsed() >= Duration::from_millis(3000) {
+                                if self.last_move_time.elapsed() >= Duration::from_millis(player.get_enemy_wait_time_on_trict_can()) {
                                     self.reset_search_props();
 
                                     self.mode = EnemyMode::Regular;
@@ -1769,7 +1769,7 @@ impl<'a> Enemy<'a> {
 
             player.set_status(PlayerStatus::Detectit);
             player.set_is_detected_by_enemy(true);
-            player.set_is_seen_by_enemy(true);
+            player.add_seen_enemy(self.id);
 
             let is_available = if self.attached_detect_teleport_door.is_some() {
                 self.attached_detect_teleport_door.unwrap().0
@@ -1821,7 +1821,7 @@ impl<'a> Enemy<'a> {
                 }
             }
 
-            player.set_is_seen_by_enemy(false);
+            player.remove_seen_enemy(self.id);
         }
 
         current_notoriety_level
