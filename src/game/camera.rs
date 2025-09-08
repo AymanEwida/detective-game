@@ -207,6 +207,7 @@ impl<'a> Camera<'a> {
             assert!(disturb_duration != None, "disturb_duration can not be None");
 
             self.disturb_duration = disturb_duration;
+            self.last_updated_time = Instant::now();
         } else {
             self.disturb_duration = None;
         }

@@ -153,425 +153,431 @@ impl<'a> GameLevel<'a> {
 
         display_holding_item(Position { x: 50.0, y:  900.0 }, holding_item, 0.8, render)?;
 
-        for wall in self.walls.iter() {
-            if player.collide(wall) {
-                player.move_to_prev_position();
+        render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 900.0 }, 0.8, None, Color::White)?;
+
+        if self.get_status() == &LevelStatus::ReLoadLevel {
+            self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
+        // } else if self.get_status() == &LevelStatus::Lose {
+        //     render.display_text("Lost", Position { x: 750.0, y: 20.0 }, 1.5, None, Color::Red)?;
+        } else {
+            for wall in self.walls.iter() {
+                if player.collide(wall) {
+                    player.move_to_prev_position();
+                }
+
+                wall.draw(render)?;
             }
 
-            wall.draw(render)?;
-        }
 
+            for door in self.doors.iter_mut() {
+                let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | enemy.collide(door)).collect();
 
-        for door in self.doors.iter_mut() {
-            let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | enemy.collide(door)).collect();
-
-            match door.get_door_type() {
-                &DoorType::Regular => {
-                    if player.collide(door) || collided_enemies.len() > 0 {
-                        door.open();
-                    } else {
-                        door.close();
-                    }
-                },
-
-                &DoorType::Coded | &DoorType::Locked => {
-                    if collided_enemies.len() > 0 {
-                        door.open();
-                    } else {
-                        door.close();
-                    }
-
-                    if door.is_locked() {
-                        if player.collide(door) {
-                            if player.can_open_door(door) {
-                                door.unlock();
-                            } else {
-                                player.move_to_prev_position();
-                            }
-                        }
-                    } else {
-                        if player.collide(door) {
+                match door.get_door_type() {
+                    &DoorType::Regular => {
+                        if player.collide(door) || collided_enemies.len() > 0 {
                             door.open();
                         } else {
                             door.close();
                         }
-                    }
-                },
-
-                _ => ()
-            }
-
-            door.draw(render)?;
-        }
-
-        for teleport_door in self.teleport_doors.iter() {
-            let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | {
-                if enemy.get_want_to_teleport_id().is_none() {
-                    return false;
-                }
-
-                !enemy.get_is_teleported() && enemy.get_want_to_teleport_id().unwrap() == teleport_door.get_id() && enemy.collide(teleport_door)
-            }).collect();
-            
-            if want_to_teleport_enemies.len() > 0 {
-                for enemy in want_to_teleport_enemies {
-                    teleport_door.teleport(enemy);
-
-                    enemy.set_is_teleported(true);
-                    enemy.set_want_to_teleport_id(None);
-                    enemy.set_move_to_teleport_id(Some(teleport_door.get_move_to_id()));
-                    
-                    if enemy.get_mode() != &EnemyMode::Regular {
-                        if enemy.get_should_attach_teleport_door() {
-                            enemy.attach_teleport_door(teleport_door.get_id(), teleport_door.get_move_to_id(), teleport_door.get_character_move_position());
-                        } else {
-                            enemy.set_should_attach_teleport_door(true);
-                        }
-                    }
-                }
-            }           
-
-            if player.is_colliding_with_object(teleport_door) {
-                if let Some(player_interaction) = player.get_interaction() {
-                    if !player.get_is_teleported() && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
-                        teleport_door.teleport(player);
-                        player.set_is_teleported(true);
-                    }
-                }
-            }
-
-            teleport_door.draw(render)?;
-        }
-
-        for enemy in self.enemies.iter_mut() {
-            if enemy.get_is_teleported() {
-                enemy.set_is_teleported(false);
-            }
-        }
-
-        for door_collectable in self.door_collectables.iter_mut() {
-            if !door_collectable.is_collected() && player.collide(door_collectable) {
-                player.add_door_collectable(door_collectable.get_id(), door_collectable.opens());
-
-                door_collectable.set_is_collected(true);
-            }
-
-            door_collectable.draw(render)?;
-        }
-
-        for coin in self.coins.iter_mut() {
-            if !coin.is_collected() && player.collide(coin) {
-                player.add_coin();
-                
-                coin.set_is_collected(true);
-            }
-
-
-            coin.draw(render)?;
-        }
-
-        // Exit Door Logic (TODO: mabye add interaction with the exit door)
-        assert!(self.exit_door != None, "exit_door must not be null");
-
-        let exit_door = self.exit_door.as_ref().unwrap();
-        exit_door.draw(render)?;
-
-        if player.get_status() == &PlayerStatus::NotHidden && player.collide(exit_door) {
-            self.status = LevelStatus::Win;
-        }
-
-        for hide_place in self.hide_places.iter() {
-            if player.is_colliding_with_object(hide_place) {
-                if let Some(player_interaction) = player.get_interaction() {
-                    let player_status = player.get_status();
-
-                    if (!player.get_is_detected_by_enemy() || (player.get_is_detected_by_enemy() && !player.get_is_seen_by_enemy()) || player_status != &PlayerStatus::Detectit) && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
-                        if player.get_status() == &PlayerStatus::Hidden {
-                            player.set_status(PlayerStatus::NotHidden);
-                        } else {
-                            player.set_status(PlayerStatus::Hidden);
-                        }
-                    }
-                }
-            }
-
-            hide_place.draw(render)?;
-        }
-
-        for camera in self.cameras.iter_mut() {
-            camera.draw(render)?;
-
-            let (
-                new_notoriety_level,
-                enemy_id,
-                detected_player_position
-            ) = camera.detect_player(
-                self.notoriety_level,
-                player,
-                &self.walls,
-                &self.doors,
-                &self.enemies
-            );
-            self.notoriety_level = new_notoriety_level;
-
-            camera.set_new_repeat_interval(self.notoriety_level);
-
-            if let Some(enemy_id) = enemy_id {
-                self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap(), AttachedType::CameraDetect));
-            }
-        }
-
-        for _ in 0..self.detecting_ranges.len() {
-            let detect_range = self.detecting_ranges.remove(0);
-
-            let mut enemies_in_detect_area = Vec::new();
-
-            for enemy in &self.enemies {
-                if !enemy.get_is_searching_detect_area() && detect_range.is_in_range(enemy) {
-                    enemies_in_detect_area.push(enemy);
-                }
-            }
-
-            if enemies_in_detect_area.len() > 0 {
-                let mut start_position = round_position_to_full_numbers(detect_range.get_center_position(), DEFAULT_MOVEMENT_VALUE, true, true);
-
-                let enemy = enemies_in_detect_area[0];
-                let movement_grid = enemy.get_grid().as_ref().unwrap();
-
-                start_position = get_correct_start_position(start_position, movement_grid, enemy.get_movement_value());
-
-                let nearest_enemy_id = get_nearest_enemy_id(start_position, &enemies_in_detect_area);
-
-                if nearest_enemy_id != -1 {
-                    self.attached_enemies_ids.push((nearest_enemy_id as usize, start_position, AttachedType::DetectRangeSearch));
-                }
-            }
-        }
-
-        for enemy in self.enemies.iter_mut() {
-            let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
-            if idx != -1 {
-                let (.., attached_position, attached_type) = &self.attached_enemies_ids[idx as usize];
-
-                match attached_type {
-                    AttachedType::CameraDetect => {
-                        enemy.attach_camera(*attached_position);
                     },
 
-                    AttachedType::DetectRangeSearch => {
-                        enemy.search(SearchingMode::TrickCanSearch, *attached_position);
-                    }
-                }
-
-                self.attached_enemies_ids.remove(idx as usize);
-            }
-
-            let mut is_enemy_colliding_with_a_wall = false;
-
-            for wall in self.walls.iter() {
-                if enemy.collide(wall) {
-                    is_enemy_colliding_with_a_wall = true;
-
-                    break;
-                }
-            }
-
-            if enemy.is_off_window(render.get_size())
-                || enemy.is_off_border(
-                Some(self.border_top_left + DEFAULT_SIZE),
-                Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) }
-            ) || is_enemy_colliding_with_a_wall {
-                enemy.set_is_colliding(true);
-                enemy.move_to_prev_position();
-            } else {
-                enemy.set_is_colliding(false);
-            }
-
-            if enemy.collide_with_player(&player) {
-                player.decrease_life();
-
-                if player.get_lifes() == 0 {
-                    self.status = LevelStatus::Lose;
-                } else {
-                    self.status = LevelStatus::ReLoadLevel;
-                }
-
-                // render.display_text("Lost", Position { x: 600.0, y: 400.0 }, 1.5, None, Color::Red)?;
-            }
-
-            if player.get_is_using_ability() {
-                let center = Position {
-                    x: player.get_position().x + player.get_size().width / 2.0,
-                    y: player.get_position().y + player.get_size().height / 2.0,
-                };
-
-                let is_in = is_in_circle(center, player.get_ability_radius(), enemy);
-
-                enemy.set_draw_detect_traingle(is_in);
-
-                if is_in && player.get_track_path_ability() {
-                    enemy.set_draw_move_path(true);
-                } else {
-                    enemy.set_draw_move_path(false);
-                }
-            } else {
-                enemy.set_draw_detect_traingle(false);
-                enemy.set_draw_move_path(false);
-            }
-
-            enemy.draw(render)?;
-
-            self.notoriety_level = enemy.move_enemy(
-                player, 
-                self.notoriety_level, 
-                self.border_top_left + DEFAULT_SIZE, 
-                Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
-                &self.walls,
-                &self.doors,
-                &self.teleport_doors,
-                &self.hide_places
-            );
-        }
-
-        if player.get_is_teleported() {
-            player.set_is_teleported(false);
-        }
-
-        player.set_notoriety_camera_disturb_lifttime(self.notoriety_level);
-        let shooted_object = player.shoot(
-            self.border_top_left + DEFAULT_SIZE, 
-            Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
-            render
-        );
-        if let Some(object) = shooted_object {
-            match object {
-                ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
-                ShootObject::Bullet(bullet) => { self.bullets.add(bullet).unwrap(); },
-            }
-        }
-
-        for _ in 0..self.bullets.size() {
-            let mut bullet = self.bullets.remove().unwrap();
-
-            if !bullet.get_is_finished() {
-                let mut is_object_colliding = bullet.is_off_border(None, render.get_size());
-
-                if !is_object_colliding {
-                    for camera in self.cameras.iter_mut() {
-                        if bullet.collide_with_camera(camera) {
-                            if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
-                                camera.set_is_disturbed(true, Some(player.get_notoriety_camera_disturb_lifttime()));
-                            } else if bullet.get_bullet_type() == &BulletType::Other {
-                                camera.destroy();
-                            } 
-
-                            is_object_colliding = true;
+                    &DoorType::Coded | &DoorType::Locked => {
+                        if collided_enemies.len() > 0 {
+                            door.open();
+                        } else {
+                            door.close();
                         }
-                    }
-                }
 
-                if !is_object_colliding {
-                    for wall in self.walls.iter() {
-                        if bullet.collide(wall) {
-                            is_object_colliding = true;
-
-                            break;
-                        }
-                    }
-                }
-                
-                if !is_object_colliding {
-                    for door in self.doors.iter() {
-                        if bullet.collide(door) && door.is_closed() {
-                            is_object_colliding = true;
-
-                            break;
-                        }
-                    }
-                }
-
-                if !is_object_colliding {
-                    for enemy in self.enemies.iter_mut() {
-                        if bullet.collide(enemy) {
-                            if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
-                                // TODO: see if want to implement this in game
-                                // enemy.damage(bullet.get_damage_on_enemy());
-                                //
-                                // if !enemy.get_is_dead() {
-                                //     enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
-                                // }
-
-                                enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                        if door.is_locked() {
+                            if player.collide(door) {
+                                if player.can_open_door(door) {
+                                    door.unlock();
+                                } else {
+                                    player.move_to_prev_position();
+                                }
                             }
+                        } else {
+                            if player.collide(door) {
+                                door.open();
+                            } else {
+                                door.close();
+                            }
+                        }
+                    },
 
-                            is_object_colliding = true;
+                    _ => ()
+                }
+
+                door.draw(render)?;
+            }
+
+            for teleport_door in self.teleport_doors.iter() {
+                let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | {
+                    if enemy.get_want_to_teleport_id().is_none() {
+                        return false;
+                    }
+
+                    !enemy.get_is_teleported() && enemy.get_want_to_teleport_id().unwrap() == teleport_door.get_id() && enemy.collide(teleport_door)
+                }).collect();
+
+                if want_to_teleport_enemies.len() > 0 {
+                    for enemy in want_to_teleport_enemies {
+                        teleport_door.teleport(enemy);
+
+                        enemy.set_is_teleported(true);
+                        enemy.set_want_to_teleport_id(None);
+                        enemy.set_move_to_teleport_id(Some(teleport_door.get_move_to_id()));
+
+                        if enemy.get_mode() != &EnemyMode::Regular {
+                            if enemy.get_should_attach_teleport_door() {
+                                enemy.attach_teleport_door(teleport_door.get_id(), teleport_door.get_move_to_id(), teleport_door.get_character_move_position());
+                            } else {
+                                enemy.set_should_attach_teleport_door(true);
+                            }
+                        }
+                    }
+                }           
+
+                if player.is_colliding_with_object(teleport_door) {
+                    if let Some(player_interaction) = player.get_interaction() {
+                        if !player.get_is_teleported() && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                            teleport_door.teleport(player);
+                            player.set_is_teleported(true);
                         }
                     }
                 }
 
-                
-                if is_object_colliding {
-                    bullet.set_is_finished(true);
+                teleport_door.draw(render)?;
+            }
+
+            for enemy in self.enemies.iter_mut() {
+                if enemy.get_is_teleported() {
+                    enemy.set_is_teleported(false);
                 }
             }
 
-            bullet.draw(render)?;
+            for door_collectable in self.door_collectables.iter_mut() {
+                if !door_collectable.is_collected() && player.collide(door_collectable) {
+                    player.add_door_collectable(door_collectable.get_id(), door_collectable.opens());
 
-            if !bullet.get_is_finished() {
-                bullet.calc_next_position();
+                    door_collectable.set_is_collected(true);
+                }
 
-                self.bullets.add(bullet).unwrap();
+                door_collectable.draw(render)?;
             }
-        }
 
-        for _ in 0..self.cans.size() {
-            let mut can = self.cans.remove().unwrap(); 
+            for coin in self.coins.iter_mut() {
+                if !coin.is_collected() && player.collide(coin) {
+                    player.add_coin();
 
-            if !can.get_is_finished() {
-                let mut is_object_colliding = false;
+                    coin.set_is_collected(true);
+                }
+
+
+                coin.draw(render)?;
+            }
+
+            // Exit Door Logic (TODO: mabye add interaction with the exit door)
+            assert!(self.exit_door != None, "exit_door must not be null");
+
+            let exit_door = self.exit_door.as_ref().unwrap();
+            exit_door.draw(render)?;
+
+            if player.get_status() == &PlayerStatus::NotHidden && player.collide(exit_door) {
+                self.status = LevelStatus::Win;
+            }
+
+            for hide_place in self.hide_places.iter() {
+                if player.is_colliding_with_object(hide_place) {
+                    if let Some(player_interaction) = player.get_interaction() {
+                        let player_status = player.get_status();
+
+                        if (!player.get_is_detected_by_enemy() || (player.get_is_detected_by_enemy() && !player.get_is_seen_by_enemy()) || player_status != &PlayerStatus::Detectit) && player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                            if player.get_status() == &PlayerStatus::Hidden {
+                                player.set_status(PlayerStatus::NotHidden);
+                            } else {
+                                player.set_status(PlayerStatus::Hidden);
+                            }
+                        }
+                    }
+                }
+
+                hide_place.draw(render)?;
+            }
+
+            for camera in self.cameras.iter_mut() {
+                camera.draw(render)?;
+
+                let (
+                    new_notoriety_level,
+                    enemy_id,
+                    detected_player_position
+                ) = camera.detect_player(
+                    self.notoriety_level,
+                    player,
+                    &self.walls,
+                    &self.doors,
+                    &self.enemies
+                );
+                self.notoriety_level = new_notoriety_level;
+
+                camera.set_new_repeat_interval(self.notoriety_level);
+
+                if let Some(enemy_id) = enemy_id {
+                    self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap(), AttachedType::CameraDetect));
+                }
+            }
+
+            for _ in 0..self.detecting_ranges.len() {
+                let detect_range = self.detecting_ranges.remove(0);
+
+                let mut enemies_in_detect_area = Vec::new();
+
+                for enemy in &self.enemies {
+                    if !enemy.get_is_searching_detect_area() && detect_range.is_in_range(enemy) {
+                        enemies_in_detect_area.push(enemy);
+                    }
+                }
+
+                if enemies_in_detect_area.len() > 0 {
+                    let mut start_position = round_position_to_full_numbers(detect_range.get_center_position(), DEFAULT_MOVEMENT_VALUE, true, true);
+
+                    let enemy = enemies_in_detect_area[0];
+                    let movement_grid = enemy.get_grid().as_ref().unwrap();
+
+                    start_position = get_correct_start_position(start_position, movement_grid, enemy.get_movement_value());
+
+                    let nearest_enemy_id = get_nearest_enemy_id(start_position, &enemies_in_detect_area);
+
+                    if nearest_enemy_id != -1 {
+                        self.attached_enemies_ids.push((nearest_enemy_id as usize, start_position, AttachedType::DetectRangeSearch));
+                    }
+                }
+            }
+
+            for enemy in self.enemies.iter_mut() {
+                let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
+                if idx != -1 {
+                    let (.., attached_position, attached_type) = &self.attached_enemies_ids[idx as usize];
+
+                    match attached_type {
+                        AttachedType::CameraDetect => {
+                            enemy.attach_camera(*attached_position);
+                        },
+
+                        AttachedType::DetectRangeSearch => {
+                            enemy.search(SearchingMode::TrickCanSearch, *attached_position);
+                        }
+                    }
+
+                    self.attached_enemies_ids.remove(idx as usize);
+                }
+
+                let mut is_enemy_colliding_with_a_wall = false;
 
                 for wall in self.walls.iter() {
-                    if can.collide(wall) {
-                        is_object_colliding = true;
+                    if enemy.collide(wall) {
+                        is_enemy_colliding_with_a_wall = true;
 
                         break;
                     }
                 }
-                
-                if !is_object_colliding {
-                    for door in self.doors.iter() {
-                        if can.collide(door) && door.is_closed() {
+
+                if enemy.is_off_window(render.get_size())
+                || enemy.is_off_border(
+                    Some(self.border_top_left + DEFAULT_SIZE),
+                    Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) }
+                ) || is_enemy_colliding_with_a_wall {
+                    enemy.set_is_colliding(true);
+                    enemy.move_to_prev_position();
+                } else {
+                    enemy.set_is_colliding(false);
+                }
+
+                if enemy.collide_with_player(&player) && (self.status != LevelStatus::ReLoadLevel || self.status != LevelStatus::Lose) {
+                    player.decrease_life();
+
+                    if player.get_lifes() == 0 {
+                        self.status = LevelStatus::Lose;
+                    } else {
+                        self.status = LevelStatus::ReLoadLevel;
+                    }
+                }
+
+                if player.get_is_using_ability() {
+                    let center = Position {
+                        x: player.get_position().x + player.get_size().width / 2.0,
+                        y: player.get_position().y + player.get_size().height / 2.0,
+                    };
+
+                    let is_in = is_in_circle(center, player.get_ability_radius(), enemy);
+
+                    enemy.set_draw_detect_traingle(is_in);
+
+                    if is_in && player.get_track_path_ability() {
+                        enemy.set_draw_move_path(true);
+                    } else {
+                        enemy.set_draw_move_path(false);
+                    }
+                } else {
+                    enemy.set_draw_detect_traingle(false);
+                    enemy.set_draw_move_path(false);
+                }
+
+                enemy.draw(render)?;
+
+                self.notoriety_level = enemy.move_enemy(
+                    player, 
+                    self.notoriety_level, 
+                    self.border_top_left + DEFAULT_SIZE, 
+                    Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
+                    &self.walls,
+                    &self.doors,
+                    &self.teleport_doors,
+                    &self.hide_places
+                );
+            }
+
+            if player.get_is_teleported() {
+                player.set_is_teleported(false);
+            }
+
+            player.set_notoriety_camera_disturb_lifttime(self.notoriety_level);
+            let shooted_object = player.shoot(
+                self.border_top_left + DEFAULT_SIZE, 
+                Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
+                render
+            );
+            if let Some(object) = shooted_object {
+                match object {
+                    ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
+                    ShootObject::Bullet(bullet) => { self.bullets.add(bullet).unwrap(); },
+                }
+            }
+
+            for _ in 0..self.bullets.size() {
+                let mut bullet = self.bullets.remove().unwrap();
+
+                if !bullet.get_is_finished() {
+                    let mut is_object_colliding = bullet.is_off_border(Some(self.get_boder_start_position()), self.get_boder_size());
+
+                    if !is_object_colliding {
+                        for camera in self.cameras.iter_mut() {
+                            if bullet.collide_with_camera(camera) {
+                                if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
+                                    camera.set_is_disturbed(true, Some(player.get_notoriety_camera_disturb_lifttime()));
+                                } else if bullet.get_bullet_type() == &BulletType::Other {
+                                    camera.destroy();
+                                } 
+
+                                is_object_colliding = true;
+                            }
+                        }
+                    }
+
+                    if !is_object_colliding {
+                        for wall in self.walls.iter() {
+                            if bullet.collide(wall) {
+                                is_object_colliding = true;
+
+                                break;
+                            }
+                        }
+                    }
+
+                    if !is_object_colliding {
+                        for door in self.doors.iter() {
+                            if bullet.collide(door) && door.is_closed() {
+                                is_object_colliding = true;
+
+                                break;
+                            }
+                        }
+                    }
+
+                    if !is_object_colliding {
+                        for enemy in self.enemies.iter_mut() {
+                            if bullet.collide(enemy) {
+                                if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
+                                    // TODO: see if want to implement this in game
+                                    // enemy.damage(bullet.get_damage_on_enemy());
+                                    //
+                                    // if !enemy.get_is_dead() {
+                                    //     enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                                    // }
+
+                                    enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                                }
+
+                                is_object_colliding = true;
+                            }
+                        }
+                    }
+
+
+                    if is_object_colliding {
+                        bullet.set_is_finished(true);
+                    }
+                }
+
+                bullet.draw(render)?;
+
+                if !bullet.get_is_finished() {
+                    bullet.calc_next_position();
+
+                    self.bullets.add(bullet).unwrap();
+                }
+            }
+
+            for _ in 0..self.cans.size() {
+                let mut can = self.cans.remove().unwrap(); 
+
+                if !can.get_is_finished() {
+                    let mut is_object_colliding = false;
+
+                    for wall in self.walls.iter() {
+                        if can.collide(wall) {
                             is_object_colliding = true;
 
                             break;
                         }
                     }
+
+                    if !is_object_colliding {
+                        for door in self.doors.iter() {
+                            if can.collide(door) && door.is_closed() {
+                                is_object_colliding = true;
+
+                                break;
+                            }
+                        }
+                    }
+
+                    if is_object_colliding {
+                        can.set_is_finished(true);
+                    }
                 }
 
-                if is_object_colliding {
-                    can.set_is_finished(true);
+                can.draw(render)?;
+
+                if !can.get_is_finished() {
+                    can.calc_next_position();
+                } else {
+                    if !can.get_added_detect_range() {
+                        self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), can.get_calc_position().0));
+
+                        can.set_added_detect_range(true);
+                    }
+                }
+
+                if !can.get_done() {
+                    self.cans.add(can).unwrap();
                 }
             }
 
-            can.draw(render)?;
-
-            if !can.get_is_finished() {
-                can.calc_next_position();
-            } else {
-                if !can.get_added_detect_range() {
-                    self.detecting_ranges.push(DetectRange::new(player.get_can_detecting_radius(), can.get_calc_position().0));
-
-                    can.set_added_detect_range(true);
-                }
-            }
-
-            if !can.get_done() {
-                self.cans.add(can).unwrap();
-            }
+            player.draw(render)?;
+            player.switch_items();
         }
-
-        player.draw(render)?;
-        player.switch_items();
 
         Ok(())
     }
@@ -665,7 +671,9 @@ impl<'a> GameLevel<'a> {
     pub fn load_level(&mut self, player: &mut Player<'a>) -> std::result::Result<(), String> {
         self.notoriety_level = 0;
 
-        self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
+        if self.status == LevelStatus::Lose || self.status == LevelStatus::NotDetermine {
+            self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
+        }
 
         self.enemies.clear();
         self.walls.clear();
@@ -681,6 +689,10 @@ impl<'a> GameLevel<'a> {
         self.status = LevelStatus::NotDetermine;
 
         player.set_status(PlayerStatus::NotHidden);
+
+        if self.status == LevelStatus::Lose {
+            player.set_lifes_to_original_lifes();
+        }
 
         match self.current_level {
             1 => {
@@ -889,8 +901,8 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 620.0 }, "52r/3500 52l/4000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 620.0 }, "11u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1270.0, y: 240.0 }, "11l/5500 2r/0 17d/4500 9r/0 17u/0", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 240.0 }, "10r/4500 8d/6500 10l/0 8u/0", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1270.0, y: 240.0 }, "11l/7000 2r/1000 17d/4000 9r/0 17u/0", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 240.0 }, "10r/4500 8d/6500 10l/0 8u/2500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 840.0, y: 615.0 }, "19u/0 2r/6000 2l/0 19d/0 2l/5500 2r/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 615.0 }, "35r/5000 35l/3500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 513.0 }, "21r/4500 21l/5500", false));
@@ -948,12 +960,12 @@ impl<'a> GameLevel<'a> {
                 self.insert_door(Door::new(0,DoorType::Regular, Position { x: 1065.0, y: 390.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1050.0, y: 240.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 970.0, y: 240.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 980.0, y: 327.0 }, None));
-                self.insert_coin(Coin::new(Position { x: 960.0, y: 250.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1105.0, y: 320.0 }, false, None, None));
+                self.insert_coin(Coin::new(Position { x: 1050.0, y: 320.0 }, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1030.0, y: 422.0 }, Some(0.98)));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 985.0, y: 395.0 }, false, None, None, Some(4000)));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 985.0, y: 395.0 }, false, None, None, Some(6000)));
 
                 self.insert_wall(Wall::new(Position { x: 605.0, y: 390.0 }, Size { width: 315.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_wall(Wall::new(Position { x: 780.0, y: 420.0 }, Size { width: DEFAULT_SIZE, height: 187.0 }, None, None));

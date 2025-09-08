@@ -198,6 +198,7 @@ pub struct Player<'a> {
     track_path_ability: bool,
     enemy_wait_time_on_trict_can: u64, // milliseconds
     lifes: u8,
+    original_lifes: u8,
 }
 
 impl Player<'_> {
@@ -218,7 +219,7 @@ impl Player<'_> {
             door_collectable_inventory: Vec::new(),
             inventory: vec![
                 InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
-                InventoryItem::new(InventoryItemType::Weapon, 1, Some(20), "assets/game/camera-gun.webp", String::from("Camera Gun"))
+                InventoryItem::new(InventoryItemType::Weapon, 1, Some(30), "assets/game/camera-gun.webp", String::from("Camera Gun"))
             ],
             holding: None,
             camera_disturb_lifttime: Duration::from_secs(10),
@@ -233,6 +234,7 @@ impl Player<'_> {
             track_path_ability: false,
             enemy_wait_time_on_trict_can: 6000,
             lifes: 5,
+            original_lifes: 5,
         }
     }
 }
@@ -473,6 +475,18 @@ impl<'a> Player<'a> {
         }
     }
 
+    pub fn set_lifes_to_original_lifes(&mut self) {
+        self.lifes = self.original_lifes;
+    }
+
+    pub fn get_original_lifes(&self) -> u8 {
+        self.original_lifes
+    }
+
+    pub fn set_original_lifes(&mut self, new_val: u8) {
+        self.original_lifes = new_val;
+    }
+
     fn set_calc_position(&mut self) {
         self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
     }
@@ -610,34 +624,36 @@ impl<'a> Player<'a> {
                     InventoryItemType::Weapon => {
                         match mouse_interaction.get_mouse_button() {
                             &MouseButton::Button1 => {
-                                match mouse_interaction.get_action() {
-                                    &Action::Press => {
-                                        if length > 150.0 {
-                                            let direction = (end_position - start_position).normalize(&window_start);
+                                if self.status != PlayerStatus::Hidden {
+                                    match mouse_interaction.get_action() {
+                                        &Action::Press => {
+                                            if length > 150.0 {
+                                                let direction = (end_position - start_position).normalize(&window_start);
 
-                                            end_position = start_position + (direction * 150.0);
-                                        }
+                                                end_position = start_position + (direction * 150.0);
+                                            }
 
-                                        render.draw_line(start_position, end_position, Color::Green, None, None, None);
-                                    },
+                                            render.draw_line(start_position, end_position, Color::Green, None, None, None);
+                                        },
 
-                                    &Action::Release => {
-                                        if item.ammo.is_none() {
-                                            return None;
-                                        }
+                                        &Action::Release => {
+                                            if item.ammo.is_none() {
+                                                return None;
+                                            }
 
-                                        let ammo = item.ammo.unwrap();
+                                            let ammo = item.ammo.unwrap();
 
-                                        if ammo == 0 {
-                                            return None;
-                                        }
+                                            if ammo == 0 {
+                                                return None;
+                                            }
 
-                                        self.inventory[self.holding.unwrap()].decrease_ammo(1);
+                                            self.inventory[self.holding.unwrap()].decrease_ammo(1);
 
-                                        return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, calc_start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
-                                    },
+                                            return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
+                                        },
 
-                                    _ => ()
+                                        _ => ()
+                                    }
                                 }
                             },
 
