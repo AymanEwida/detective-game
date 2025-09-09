@@ -95,7 +95,9 @@ pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size { width: 40.0, heigh
 #[derive(Debug, Clone)]
 pub struct InventoryItem<'a> {
     item_type: InventoryItemType,
-    amount: u32, 
+    original_amount: u32,
+    amount: u32,
+    original_ammo: Option<usize>,
     ammo: Option<usize>,
     image: &'a str,
     name: String,
@@ -105,7 +107,9 @@ impl<'a> InventoryItem<'a> {
     pub fn new(item_type: InventoryItemType, amount: u32, ammo: Option<usize>, image: &'a str, name: String) -> Self {
         Self {
             item_type,
+            original_amount: amount,
             amount,
+            original_ammo: ammo,
             ammo,
             image,
             name
@@ -163,6 +167,14 @@ impl<'a> InventoryItem<'a> {
             }
         }
     }
+
+    pub fn set_amount_to_original(&mut self) {
+        self.amount = self.original_amount;
+    }
+
+    pub fn set_ammo_to_original(&mut self) {
+        self.ammo = self.original_ammo;
+    }
 }
 
 #[derive(Debug)]
@@ -216,7 +228,8 @@ impl Player<'_> {
             status: PlayerStatus::NotHidden,
             interaction: None,
             mouse_interaction: None,
-            door_collectable_inventory: Vec::new(),
+            // door_collectable_inventory: Vec::new(),
+            door_collectable_inventory: vec![DoorCollectableInventory { id: 1, opens: vec![1, 5, 6, 7] }],
             inventory: vec![
                 InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
                 InventoryItem::new(InventoryItemType::Weapon, 1, Some(30), "assets/game/camera-gun.webp", String::from("Camera Gun"))
@@ -516,6 +529,27 @@ impl<'a> Player<'a> {
             (holding - 1) % self.inventory.len()
         } else {
             0
+        }
+    }
+
+    pub fn reset_inventory_amounts(&mut self) {
+        for item in self.inventory.iter_mut() {
+            item.set_amount_to_original();
+            item.set_ammo_to_original();
+        }
+    }
+
+    pub fn add_inventory_amounts(&mut self, num: usize) {
+        for item in self.inventory.iter_mut() {
+            match item.get_item_type() {
+                InventoryItemType::TrickCan => {
+                    item.increase_amount(num as u32);
+                },
+                
+                InventoryItemType::Weapon => {
+                    item.increase_ammo(num);
+                }
+            }
         }
     }
 

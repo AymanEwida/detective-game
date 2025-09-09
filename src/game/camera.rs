@@ -225,9 +225,9 @@ impl<'a> Camera<'a> {
         if let Some(original_repeat_interval) = self.original_repeat_interval {
             if notoriety_level >= 4 {
                 if notoriety_level == 4 {
-                    self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 25));
+                    self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 150));
                 } else {
-                    self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 50));
+                    self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 300));
                 }
             }
         }
