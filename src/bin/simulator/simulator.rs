@@ -433,7 +433,7 @@ impl<'a> Simulator<'a> {
             let mut can = self.cans.remove().unwrap(); 
 
             if !can.get_is_finished() {
-                let mut is_object_colliding = false;
+                let mut is_object_colliding = can.is_off_border(None, render.get_size());
 
                 for wall in self.walls.iter() {
                     if can.collide(wall) {

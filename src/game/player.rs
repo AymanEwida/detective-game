@@ -228,8 +228,7 @@ impl Player<'_> {
             status: PlayerStatus::NotHidden,
             interaction: None,
             mouse_interaction: None,
-            // door_collectable_inventory: Vec::new(),
-            door_collectable_inventory: vec![DoorCollectableInventory { id: 1, opens: vec![1, 5, 6, 7] }],
+            door_collectable_inventory: Vec::new(),
             inventory: vec![
                 InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
                 InventoryItem::new(InventoryItemType::Weapon, 1, Some(30), "assets/game/camera-gun.webp", String::from("Camera Gun"))
@@ -628,10 +627,14 @@ impl<'a> Player<'a> {
                                             }
                                         }
 
-                                        if end_position.x > calc_start_position.x {
+                                        if end_position.x > start_position.x {
                                             calc_start_position.x = self.position.x + self.size.width;
-                                        } else if end_position.x < calc_start_position.x {
+                                        } else if end_position.x < start_position.x {
                                             calc_start_position.x = self.position.x;
+                                        }
+
+                                        if end_position.y > start_position.y {
+                                            calc_start_position.y = self.position.y + self.size.height;
                                         }
 
                                         render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
