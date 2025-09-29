@@ -21,7 +21,7 @@ pub trait GameObject<'a> {
     fn get_calc_position(&self) -> EndStartPositions;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum LevelStatus {
     Lose,
     Win,
@@ -57,7 +57,9 @@ pub struct GameLevel<'a> {
     challenges: Vec<String>,
     notoriety_level: u64,
     status: LevelStatus,
+    prev_status: LevelStatus,
     add_amount_after_lost: usize,
+    player_start_info: (Position, bool)
 }
 
 impl Default for GameLevel<'_> {
@@ -87,7 +89,9 @@ impl Default for GameLevel<'_> {
             challenges: Vec::new(),
             notoriety_level: 0,
             status: LevelStatus::NotDetermine,
+            prev_status: LevelStatus::NotDetermine,
             add_amount_after_lost: 5,
+            player_start_info: (Position { x: 0.0, y: 0.0 }, false)
         }
     }
 }
@@ -124,6 +128,8 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
+        // self.prev_status = self.status;
+
         for (idx , challenge) in self.challenges.iter().enumerate() {
             render.display_text(challenge, Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, Color::White).expect("Unable to display text");
         }
@@ -398,8 +404,8 @@ impl<'a> GameLevel<'a> {
                 } else {
                     enemy.set_is_colliding(false);
                 }
-
-                if enemy.collide_with_player(&player) && (self.status != LevelStatus::ReLoadLevel || self.status != LevelStatus::Lose) {
+                
+                if enemy.collide_with_player(&player) && (self.status != LevelStatus::ReLoadLevel || self.status != LevelStatus::Lose) && self.prev_status != LevelStatus::ReLoadLevel { 
                     player.decrease_life();
 
                     if player.get_lifes() == 0 {
@@ -583,6 +589,8 @@ impl<'a> GameLevel<'a> {
 
             player.draw(render)?;
             player.switch_items();
+
+            self.prev_status = self.status;
         }
 
         Ok(())
@@ -590,6 +598,10 @@ impl<'a> GameLevel<'a> {
     
     pub fn get_status(&self) -> &LevelStatus {
         &self.status
+    }
+
+    pub fn get_prev_status(&self) -> &LevelStatus {
+        &self.prev_status
     }
 
     fn set_initial_object_position(&mut self, object: &mut impl GameObject<'a>) {
@@ -612,48 +624,80 @@ impl<'a> GameLevel<'a> {
 
 
     fn insert_wall(&mut self, mut wall: Wall<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut wall);
 
         self.walls.push(wall);
     }
 
     fn insert_door(&mut self, mut door: Door<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut door);
 
         self.doors.push(door);
     }
 
     fn insert_door_collectable(&mut self, mut door_collectable: DoorCollectable<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut door_collectable);
 
         self.door_collectables.push(door_collectable);
     }
 
     fn insert_teleport_door(&mut self, mut teleport_door: TeleportDoor<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut teleport_door);
 
         self.teleport_doors.push(teleport_door);
     }
 
     fn insert_exit_door(&mut self, mut exit_door: ExitDoor<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut exit_door);
 
         self.exit_door = Some(exit_door);
     }
 
     fn insert_hide_place(&mut self, mut hide_place: HidePlace<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut hide_place);
 
         self.hide_places.push(hide_place);
     }
 
     fn insert_coin(&mut self, mut coin: Coin<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         self.set_initial_object_position(&mut coin);
 
         self.coins.push(coin);
     }
 
     fn insert_camera(&mut self, mut camera: Camera<'a>) {
+        if self.status == LevelStatus::ReLoadLevel {
+            return;
+        }
+
         let start_position = self.get_boder_start_position();
 
         let camera_position = camera.get_position();
@@ -674,14 +718,8 @@ impl<'a> GameLevel<'a> {
         self.current_level += 1;
     }
 
-    pub fn load_level(&mut self, player: &mut Player<'a>) -> std::result::Result<(), String> {
-        if self.status != LevelStatus::ReLoadLevel {
-            self.notoriety_level = 0;
-        }
-
-        if self.status == LevelStatus::Lose || self.status == LevelStatus::NotDetermine {
-            self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
-        }
+    pub fn clear_level_objects(&mut self) {
+        self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
 
         self.enemies.clear();
         self.walls.clear();
@@ -693,21 +731,31 @@ impl<'a> GameLevel<'a> {
         self.cameras.clear();
 
         self.exit_door = None;
+    }
 
-        player.set_status(PlayerStatus::NotHidden);
-
-        if self.status == LevelStatus::Lose || self.status == LevelStatus::Win {
-            player.set_lifes_to_original_lifes();
-            player.reset_inventory_amounts();
-        } else if self.status == LevelStatus::ReLoadLevel {
+    pub fn load_level(&mut self, player: &mut Player<'a>) -> std::result::Result<(), String> {
+        if self.status == LevelStatus::ReLoadLevel {
             player.add_inventory_amounts(self.add_amount_after_lost);
+        } else {
+            self.notoriety_level = 0;
+
+            self.clear_level_objects();
+
+            if self.status == LevelStatus::Lose || self.status == LevelStatus::Win {
+                player.reset_props_for_new_level();
+            }
         }
 
-        self.status = LevelStatus::NotDetermine;
+        player.reset_props();
 
+        if self.status == LevelStatus::ReLoadLevel {
+            self.enemies.clear();
+        }
+        
         match self.current_level {
             1 => {
-                player.move_to(Position { x: 90.0, y: 180.0 }, true);
+                self.player_start_info = (Position { x: 90.0, y: 180.0 }, true);
+                player.move_to(self.player_start_info.0, self.player_start_info.1);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 140.0, y: 10.0 }, "18d/0 13l/3000 13r/0 18u/0 6r/3000 6l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 100.0, y: 295.0 }, "9l/6000 20r/3000 11l/0", false));
@@ -908,7 +956,8 @@ impl<'a> GameLevel<'a> {
             },
 
             2 => {
-                player.move_to(Position { x: 1780.0, y: 790.0 }, false);
+                self.player_start_info = (Position { x: 1780.0, y: 790.0 }, false);
+                player.move_to(self.player_start_info.0, self.player_start_info.1);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 620.0 }, "52r/3500 52l/4000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 620.0 }, "11u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0", false));
@@ -1145,7 +1194,8 @@ impl<'a> GameLevel<'a> {
             },
 
             3 => {
-                player.move_to(Position { x: 1790.0, y: 170.0 }, false);
+                self.player_start_info = (Position { x: 1790.0, y: 170.0 }, false);
+                player.move_to(self.player_start_info.0, self.player_start_info.1);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1525.0, y: 0.0 }, "13d/0 15r/0 1d/3500 1u/0 15l/0 13u/0 5r/6000 5l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1680.0, y: 480.0 }, "25u/5500 25d/0 2l/3500 2r/0", false));
@@ -1407,7 +1457,8 @@ impl<'a> GameLevel<'a> {
             },
 
             4 => {
-                player.move_to(Position { x: 90.0, y: 790.0 }, true);
+                self.player_start_info = (Position { x: 90.0, y: 790.0 }, true);
+                player.move_to(self.player_start_info.0, self.player_start_info.1);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 132.0, y: 615.0 }, "34r/4000 34l/6000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 587.0, y: 615.0 }, "29r/4500 29l/6500", false));
@@ -1663,7 +1714,8 @@ impl<'a> GameLevel<'a> {
             },
 
             5 => {
-                player.move_to(Position { x: 930.0, y: 460.0 }, false);
+                self.player_start_info = (Position { x: 930.0, y: 460.0 }, false);
+                player.move_to(self.player_start_info.0, self.player_start_info.1);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 883.0, y: 615.0 }, "3l/0 21u/5500 21d/0 3r/3500", true));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 615.0 }, "27r/4000 27l/6000", false));
@@ -2008,6 +2060,8 @@ impl<'a> GameLevel<'a> {
 
             _ => ()
         }
+
+        self.status = LevelStatus::NotDetermine;
 
         Ok(())
     }

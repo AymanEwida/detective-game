@@ -499,6 +499,22 @@ impl<'a> Player<'a> {
         self.original_lifes = new_val;
     }
 
+    pub fn reset_props(&mut self) {
+        self.seen_by_enemies = Vec::new();
+        self.is_teleported = false;
+        self.is_using_ability = false;
+        self.is_detected_by_enemy = false;
+        self.set_status(PlayerStatus::NotHidden);
+    }
+
+    pub fn reset_props_for_new_level(&mut self) {
+        self.set_lifes_to_original_lifes();
+        self.reset_inventory_amounts();
+
+        self.door_collectable_inventory = Vec::new();
+        self.holding = None;
+    }
+
     fn set_calc_position(&mut self) {
         self.calc_position = calculate_calc_position(self.position, self.size, self.movement_value);
     }
@@ -772,17 +788,27 @@ impl<'a> Player<'a> {
         }
 
         let is_collide = | movement_val: f32 | {
-            (start_player_position.y == start_object_position.y
-                && (
+            // (start_player_position.y == start_object_position.y
+            //     && (
+            //         (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
+            //         || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x)
+            //     ))
+            // || (start_player_position.x == start_object_position.x
+            //     && (
+            //         (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
+            //         || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y)
+            //     )
+            
+            let covers_object_x = 
                     (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
-                    || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x)
-                ))
-            || (start_player_position.x == start_object_position.x
-                && (
+                    || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x);
+
+            let covers_object_y = 
                     (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
-                    || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y)
-                )
-            )
+                    || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y);
+
+            ((start_player_position.y == start_object_position.y || covers_object_y) && covers_object_x)
+                || ((start_player_position.x == start_object_position.x || covers_object_x) && covers_object_y)
         };
 
         let is_colliding = is_collide(self.movement_value);

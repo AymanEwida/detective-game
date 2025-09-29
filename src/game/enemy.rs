@@ -141,26 +141,26 @@ impl<'a> Enemy<'a> {
                 Self {
                     id: unsafe { enemies_count },
                     start_position,
-                    position: start_position,
-                    prev_position: None,
+                    position: start_position, // need
+                    prev_position: None, // need
                     calc_start_position,
                     calc_position: calc_start_position,
                     size,
                     image: "assets/game/regular-enemy.png",
                     flip,
                     movement_value: DEFAULT_MOVEMENT_VALUE,
-                    last_move_time: Instant::now(),
-                    move_interval: DEFAULT_MOVE_INTERVAL,
+                    last_move_time: Instant::now(), // need
+                    move_interval: DEFAULT_MOVE_INTERVAL, // need
                     original_moves_path: path,
                     original_moves_path_vec: moves_path.clone(),
-                    current_moves_path: moves_path,
-                    moves_count: 0,
-                    moving_towards: first_direction,
+                    current_moves_path: moves_path, // need
+                    moves_count: 0, // need
+                    moving_towards: first_direction, // need
                     detect_traingle: calc_equidistant_points(Position { x: start_position.x + 27.5, y: start_position.y + 20.0 }, 30.0, 150.0, first_direction),
-                    detect_player_position: None,
-                    mode: EnemyMode::Regular,
-                    prev_mode: EnemyMode::Regular,
-                    already_detected_player: false,
+                    detect_player_position: None, // need
+                    mode: EnemyMode::Regular, // need
+                    prev_mode: EnemyMode::Regular, // need
+                    already_detected_player: false, // need
                     start_searching_position: None,
                     default_search_path: None,
                     movement_grid: None,
@@ -174,16 +174,16 @@ impl<'a> Enemy<'a> {
                     is_done_with_hide_places: false,
                     is_done_with_teleport_door: false,
                     is_searching_detect_area: false,
-                    is_colliding: false,
-                    collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
-                    want_to_teleport_door_id: None,
-                    move_to_teleport_id: None,
+                    is_colliding: false, // need
+                    collide_info: (0, None, DEFAULT_MOVEMENT_VALUE), // need
+                    want_to_teleport_door_id: None, // need
+                    move_to_teleport_id: None, // need
                     should_attach_teleport_door: true,
-                    is_teleported: false,
-                    attached_teleport_doors: Vec::new(),
-                    attached_detect_teleport_door: None,
-                    draw_detect_traingle: false,
-                    draw_move_path: false,
+                    is_teleported: false, // need
+                    attached_teleport_doors: Vec::new(), // need
+                    attached_detect_teleport_door: None, // need
+                    draw_detect_traingle: false, // need
+                    draw_move_path: false, // need
                     health: 100,
                     is_dead: false
                 }
@@ -399,6 +399,43 @@ impl<'a> Enemy<'a> {
 
     pub fn get_is_dead(&self) -> bool {
         self.is_dead
+    }
+
+    pub fn reset_props(&mut self) {
+        if self.is_dead {
+            return;
+        }
+
+        self.position = self.start_position;
+        self.prev_position = None;
+
+        self.last_move_time = Instant::now();
+        self.move_interval = DEFAULT_MOVE_INTERVAL;
+
+        let first_direction = self.original_moves_path_vec[0].1;
+        self.current_moves_path = self.original_moves_path_vec.clone();
+        self.moves_count = 0;
+        self.moving_towards = first_direction;
+
+        self.detect_player_position = None;
+        self.already_detected_player = false;
+
+        self.mode = EnemyMode::Regular;
+        self.prev_mode = EnemyMode::Regular;
+
+        self.is_colliding = false;
+        self.collide_info = (0, None, DEFAULT_MOVEMENT_VALUE);
+
+        self.want_to_teleport_door_id = None;
+        self.move_to_teleport_id = None;
+        self.is_teleported = false;
+        self.attached_teleport_doors = Vec::new();
+        self.attached_detect_teleport_door = None;
+
+        self.draw_detect_traingle = false;
+        self.draw_move_path = false;
+        
+        self.reset_search_props();
     }
 
     pub fn get_calc_start_position(&self) -> EndStartPositions {
