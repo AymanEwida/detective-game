@@ -1408,7 +1408,6 @@ impl<'a> GameLevel<'a> {
 
             4 => {
                 player.move_to(Position { x: 90.0, y: 790.0 }, true);
-                // player.move_to(Position { x: 590.0, y: 610.0 } + self.get_boder_start_position(), true);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 132.0, y: 615.0 }, "34r/4000 34l/6000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 587.0, y: 615.0 }, "29r/4500 29l/6500", false));
@@ -1668,34 +1667,28 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 883.0, y: 615.0 }, "3l/0 21u/5500 21d/0 3r/3500", true));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 615.0 }, "27r/4000 27l/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1369.0, y: 615.0 }, "31r/3000 31l/5000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1647.0, y: 401.0 }, "5r/0 11d/4000 11u/0 5l/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1492.0, y: 520.0 }, "2r/0 12u/0 3r/6000 3l/0 12d/0 2l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1369.0, y: 615.0 }, "31r/5000 31l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1490.0, y: 520.0 }, "2r/0 12u/0 19r/2000 11d/4000 11u/0 19l/0 12d/0 2l/4000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 977.0, y: 510.0 }, "1d/0 40r/6500 40l 1u/4500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1280.0, y: 420.0 }, "28l/5500 28r/3500", true));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1098.0, y: 261.0 }, "4d/0 11l/5000 11r/0 4u/3000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1193.0, y: 151.0 }, "10r/0 4u/2000 2l/0 2u/0 18l/0 6d/2500 10l/0 4u/2000 2r/0 2u/0 18r/0 6d/2500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1290.0, y: 301.0 }, "10l/0 4u/5500 4d/0 10r/3500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1400.0, y: 301.0 }, "13r/0 10u/0 11l/3000 11r/0 10d/0 1r/3500 14l/5500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1408.0, y: 90.0 }, "12r/4000 12l/4000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1650.0, y: 301.0 }, "2r/0 7u/4000 7d/0 2l/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1705.0, y: 100.0 }, "2d/0 3l/0 4d/4000 4u/0 3r/0 2u/6000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1364.0, y: 0.0 }, "32r/6500 32l/4500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 0.0 }, "27r/5000 27l/3000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 988.0, y: 301.0 }, "11r/0 14u/0 11l/0 7u/2000 11r/4000 11l/0 7d/0 11r/0 14d/0 11l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1193.0, y: 101.0 }, "11r/2000 6d/0 11l/0 14d/0 11r/3000 11l/0 14u/0 11r/0 6u/0 11l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1400.0, y: 301.0 }, "13r/0 10u/0 11l/2500 11u/0 11r/2500 21d/0 1r/3500 14l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1650.0, y: 301.0 }, "2r/0 19u/0 3r/0 2u/4000 2d/0 3l/0 19d/0 2l/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1364.0, y: 0.0 }, "32r/5500 32l/4500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 0.0 }, "28r/5000 28l/3000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 485.0, y: 0.0 }, "28r/5500 28l/3500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 315.0, y: 60.0 }, "3r/0 6u/0 4r/6000 4l/0 6d/0 3l/5000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 155.0, y: 0.0 }, "3r/0 6d/0 4r/5500 4l/0 6u/0 3l/4500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 698.0, y: 291.0 }, "2l/0 16d/0 4r/0 6d/3500 6u/0 4l/0 16u/0 2r/5500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 488.0, y: 615.0 }, "20r/6000 20l/4000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 478.0, y: 510.0 }, "8r/0 3u/3000 3l/0 2u/0 17l/0 2d/3500 2u/0 12r/0 5d/3000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 325.0, y: 615.0 }, "2r/0 6u/3500 6d/0 2l/5500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 155.0, y: 0.0 }, "3r/0 6d/0 14r/0 6u/0 6r/4000 6l/0 6d/0 14l/0 6u/0 3l/4000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 698.0, y: 291.0 }, "2l/0 22d/4000 22u/0 2r/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 488.0, y: 615.0 }, "20r/5000 20l/7000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 320.0, y: 615.0 }, "2r/0 16u/0 22r/2000 7d/0 8l/3500 7u/0 14l/0 16d/0 2l/5500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 615.0 }, "21r/5500 21l/3500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 0.0, y: 380.0 }, "13d/3500 5r/0 1d/0 1r/3500 13u/0 6l/0 1u/3500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 0.0, y: 380.0 }, "13d/3500 5r/0 1d/0 1r/3500 13u/0 6l/0 1u/7000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 160.0, y: 520.0 }, "3r/0 15u/0 24r/3500 24l/0 15d/0 3l/5500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 815.0, y: 90.0 }, "3r/0 9d/6000 9u/0 3l/3500", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 705.0, y: 90.0 }, "21l/4500 21r/6500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 815.0, y: 90.0 }, "3r/0 9d/7500 9u/0 3l/3500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 705.0, y: 90.0 }, "21l/5000 21r/6500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 483.0, y: 191.0 }, "21r/4000 21l/5000", false));
-                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 323.0, y: 150.0 }, "1r/0 3d/0 5r/3500 2l/0 10d/0 2r/3000 5l/0 13u/0 1l/3500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 323.0, y: 150.0 }, "1r/0 3d/0 5r/3500 2l/0 10d/0 2r/3000 5l/2500 13u/0 1l/3500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 162.0, y: 280.0 }, "3r/0 13u/0 3r/5500 3l/0 13d/0 3l/3500", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 0.0, y: 100.0 }, "17d/3500 5r/0 1d/0 1r/3500 1l/0 15u/0 5l/0 3u/3500", false));
 
@@ -1739,12 +1732,13 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 999.5, y: 615.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1129.125, y: 615.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1258.75, y: 615.0 }, None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 1131.125, y: 585.0 }, false, None, None, None));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1070.0, y: 585.0 }, false, None, None, None));
                 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1323.75, y: 610.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
                 
                 self.insert_hide_place(HidePlace::new(Position { x: 1388.75, y: 615.0 }, None));
-                self.insert_hide_place(HidePlace::new(Position { x: 1630.0, y: 615.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 1600.0, y: 615.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 1700.0, y: 615.0 }, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1453.75, y: 585.0 }, true, None, None));
                 self.insert_coin(Coin::new(Position { x: 1533.75, y: 630.0 }, None));
                 
@@ -1778,8 +1772,8 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1052.0, y: 415.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1280.0, y: 415.0 }, None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 1160.0, y: 376.0 }, false, None, None, Some(4500)));
-                self.insert_coin(Coin::new(Position { x: 1190.0, y: 430.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 1180.0, y: 415.0 }, None));
+                self.insert_coin(Coin::new(Position { x: 1120.0, y: 430.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 947.5, y: 90.0 }, Size { width: DEFAULT_SIZE, height: 161.0 }, None, None));
                 
@@ -1793,6 +1787,7 @@ impl<'a> GameLevel<'a> {
                 
                 self.insert_hide_place(HidePlace::new(Position { x: 1007.5, y: 296.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1107.5, y: 261.0 }, None));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1055.0, y: 226.0 }, true, None, None, Some(4000)));
 
                 self.insert_wall(Wall::new(Position { x: 977.5, y: 221.0 }, Size { width: 110.0, height: DEFAULT_SIZE }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1090.0, y: 221.0 }, Size { width: 60.0, height: DEFAULT_SIZE }, false, None, None, None)?);
@@ -1812,7 +1807,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1182.5, y: 221.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 1250.0, y: 221.0 }, Size { width: 110.0, height: DEFAULT_SIZE }, None, None));
 
-                self.insert_hide_place(HidePlace::new(Position { x: 1277.5, y: 251.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 1297.5, y: 296.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1182.5, y: 296.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 1357.5, y: 90.0 }, Size { width: DEFAULT_SIZE, height: 201.0 }, None, None));
@@ -1847,11 +1842,11 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1640.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1505.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1363.75, y: 0.0 }, None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 1510.0, y: -25.0 }, false, None, None, Some(4000)));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1580.0, y: -25.0 }, false, None, None, Some(4000)));
 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 944.5, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
 
-                self.insert_hide_place(HidePlace::new(Position { x: 1203.75, y: 0.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 1193.75, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 989.5, y: 0.0 }, None));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1140.0, y: -25.0 }, false, None, None));
                 self.insert_coin(Coin::new(Position { x: 1080.0, y: 10.0 }, None));
@@ -1865,19 +1860,21 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 764.5, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 629.5, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 489.5, y: 0.0 }, None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 634.5, y: -25.0 }, false, None, None, Some(4000)));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 704.5, y: -25.0 }, false, None, None, Some(4000)));
                 self.insert_coin(Coin::new(Position { x: 564.5, y: 10.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 442.5, y: 60.0 }, Size { width: DEFAULT_SIZE, height: 90.0 }, None, None));
                 self.insert_wall(Wall::new(Position { x: 150.0, y: 120.0 }, Size { width: 292.5, height: DEFAULT_SIZE }, None, None));
 
-                self.insert_hide_place(HidePlace::new(Position { x: 373.25, y: 58.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 375.0, y: 0.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 320.0, y: 58.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 321.25, y: 10.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 281.25, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 60.0 }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 278.25, y: 60.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
 
-                self.insert_hide_place(HidePlace::new(Position { x: 160.0, y: 58.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 230.0, y: 58.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 160.0, y: 0.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 231.25, y: 10.0 }, None));
 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 117.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
@@ -1901,7 +1898,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 697.5, y: 615.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 487.5, y: 615.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 595.5, y: 615.0 }, None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 597.5, y: 585.0 }, false, None, None, Some(3500)));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 545.0, y: 585.0 }, false, None, None, Some(4000)));
                 
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 467.5, y: 580.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
                 self.insert_wall(Wall::new(Position { x: 522.5, y: 580.0 }, Size { width: 100.0, height: DEFAULT_SIZE }, None, None));
@@ -1967,10 +1964,9 @@ impl<'a> GameLevel<'a> {
                 self.insert_wall(Wall::new(Position { x: 580.0, y: 150.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 714.5, y: 85.0 }, None));
-                self.insert_hide_place(HidePlace::new(Position { x: 587.5, y: 85.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 580.0, y: 85.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 472.5, y: 100.0 }, None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 664.5, y: 65.0 }, true, None, None, Some(6000)));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 537.5, y: 65.0 }, false, None, None));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 664.5, y: 65.0 }, true, None, None, Some(4000)));
 
                 self.insert_wall(Wall::new(Position { x: 442.5, y: 150.0 }, Size { width: DEFAULT_SIZE, height: 31.0 }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 439.5, y: 181.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 70.0 }, false, None, None, None)?);
@@ -1979,7 +1975,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 492.5, y: 186.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 607.5, y: 186.0 }, None));
                 self.insert_door_collectable(DoorCollectable::new(3, DoorCollectableType::Key, Position { x: 722.5, y: 201.0 }, vec![3], None));
-                self.insert_camera(Camera::new_with_repeat(Position { x: 672.5, y: 155.0 }, false, None, None, Some(3500)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 672.5, y: 155.0 }, true, None, None));
 
                 self.insert_door(Door::new(3, DoorType::Locked, Position { x: 434.5, y: 277.0 }, Size { width: DEFAULT_SIZE + 20.0, height: 65.0 }, true, Some(3), None, None)?);
 
@@ -1997,6 +1993,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_hide_place(HidePlace::new(Position { x: 193.25, y: 150.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 226.25, y: 275.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 160.0, y: 275.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 150.0, y: 225.0 }, None));
                 
                 self.insert_teleport_door(TeleportDoor::new(4, Position { x: 65.0, y: 275.0 }, Position { x: 140.0, y: 450.0 }, 4, None, None));

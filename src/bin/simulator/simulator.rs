@@ -332,9 +332,6 @@ impl<'a> Simulator<'a> {
                 enemy.set_draw_move_path(false);
             }
 
-            // TODO: remove this later
-            // enemy.set_draw_detect_traingle(true);
-
             enemy.draw(render)?;
             
             self.notoriety_level = enemy.move_enemy(
