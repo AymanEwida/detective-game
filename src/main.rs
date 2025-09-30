@@ -14,7 +14,7 @@ use detective_game::library::constants::{
     WIDTH
 };
 use detective_game::game::{character::Direction, level::GameLevel, player::Player};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use detective_game::renderer::{render::Render, styles::Size, vertice::Position};
 
 fn main() {
     let mut glfw = glfw::init(fail_on_errors).expect("Failed on init.");

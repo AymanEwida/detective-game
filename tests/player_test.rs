@@ -1,4 +1,4 @@
-use detective_game::{game::{character::{Character, Direction}, door::TeleportDoor, hide_place::HidePlace, level::GameObject, player::*, wall::Wall}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::{Character, Direction}, door::TeleportDoor, hide_place::HidePlace, level::GameObject, player::*, wall::Wall}, renderer::{styles::Size, vertice::Position}};
 
 #[test]
 fn test_move_player_up() {
@@ -233,7 +233,7 @@ fn test_is_colliding_with_object_x_axis_test1() {
 
     assert_eq!(actual_true, expected_true);
 
-    let input_object_true = TeleportDoor::new(Position { x: 60.0, y: 80.0 }, Position { x: 0.0, y: 0.0 }, None, None);
+    let input_object_true = TeleportDoor::new(1, Position { x: 60.0, y: 80.0 }, Position { x: 0.0, y: 0.0 }, 2, None, None);
     let actual_true = player.is_colliding_with_object(&input_object_true);
     let expected_true = true;
 
@@ -256,7 +256,7 @@ fn test_is_colliding_with_object_x_axis_test2() {
 
     assert_eq!(actual_true, expected_true);
 
-    let input_object_false = TeleportDoor::new(Position { x: 60.0, y: 80.0 }, Position { x: 0.0, y: 0.0 }, None, None);
+    let input_object_false = TeleportDoor::new(1, Position { x: 60.0, y: 80.0 }, Position { x: 0.0, y: 0.0 }, 2, None, None);
     let actual_false = player.is_colliding_with_object(&input_object_false);
     let expected_false = false;
 

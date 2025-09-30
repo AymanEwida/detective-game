@@ -1,4 +1,4 @@
-use detective_game::{game::{character::{Character, Direction}, door::{Door, DoorType}, enemy::*, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::Player, wall::Wall}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::{Character, Direction}, door::{Door, DoorType}, enemy::*, hide_place::HidePlace, level::{GameObject, DEFAULT_SIZE}, player::Player, wall::Wall}, renderer::{styles::Size, vertice::Position}};
 
 #[test]
 fn test_is_detecting_player_without_obstacles_left() {
@@ -381,53 +381,41 @@ fn test_enemy_is_off_border_false() {
 
 #[test]
 fn test_get_near_hide_places_positions_up_to_three_hide_places() {
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 80.0, y: 80.0 }, "1u/0 1d/0", false);
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 80.0, y: 80.0 }, "1u/0 1d/0", false);
+    enemy.set_movement_grid(Some(enemy.get_movement_grid(Position { x: 0.0, y: 0.0 }, Size { width: 150.0, height: 150.0 }, &[])));
 
-    let mut input_hide_places_one = vec![HidePlace::new(Position { x: 0.0, y: 0.0 }, None)];
-    let actual = enemy.get_near_hide_places_positions(None, &mut input_hide_places_one);
+    let input_hide_places_one = vec![HidePlace::new(Position { x: 0.0, y: 0.0 }, None)];
+    let actual = enemy.get_near_hide_places_positions(None, &input_hide_places_one);
     let expected = vec![Position { x: 0.0, y: 0.0 }];
 
     assert_eq!(actual, expected);
 
-    let mut input_hide_places_two = vec![HidePlace::new(Position { x: 0.0, y: 0.0 }, None), HidePlace::new(Position { x: 100.0, y: 20.0 }, None)];
-    let actual = enemy.get_near_hide_places_positions(None, &mut input_hide_places_two);
+    let input_hide_places_two = vec![HidePlace::new(Position { x: 0.0, y: 0.0 }, None), HidePlace::new(Position { x: 100.0, y: 20.0 }, None)];
+    let actual = enemy.get_near_hide_places_positions(None, &input_hide_places_two);
     let expected = vec![Position { x: 100.0, y: 20.0 }, Position { x: 0.0, y: 0.0 }];
 
     assert_eq!(actual, expected);
 
-    let mut input_hide_places_three = vec![HidePlace::new(Position { x: 0.0, y: 0.0 }, None), HidePlace::new(Position { x: 100.0, y: 20.0 }, None), HidePlace::new(Position { x: 50.0, y: 100.0 }, None)];
-    let actual = enemy.get_near_hide_places_positions(None, &mut input_hide_places_three);
-    let expected = vec![Position { x: 50.0, y: 100.0 }, Position { x: 100.0, y: 20.0 }, Position { x: 0.0, y: 0.0 }];
+    let input_hide_places_three = vec![HidePlace::new(Position { x: 0.0, y: 0.0 }, None), HidePlace::new(Position { x: 100.0, y: 20.0 }, None), HidePlace::new(Position { x: 50.0, y: 100.0 }, None)];
+    let actual = enemy.get_near_hide_places_positions(None, &input_hide_places_three);
+    let expected = vec![Position { x: 100.0, y: 20.0 }, Position { x: 50.0, y: 100.0 }, Position { x: 0.0, y: 0.0 }];
 
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn test_get_near_hide_places_positions_more_than_three_hide_places() {
-    let enemy = Enemy::new(EnemyType::Regular, Position { x: 80.0, y: 80.0 }, "1u/0 1d/0", false);
+    let mut enemy = Enemy::new(EnemyType::Regular, Position { x: 80.0, y: 80.0 }, "1u/0 1d/0", false);
+    enemy.set_movement_grid(Some(enemy.get_movement_grid(Position { x: 0.0, y: 0.0 }, Size { width: 150.0, height: 150.0 }, &[])));
 
-    let mut input_hide_places_small = vec![
+    let input_hide_places = vec![
         HidePlace::new(Position { x: 0.0, y: 0.0 }, None),
         HidePlace::new(Position { x: 100.0, y: 20.0 }, None),
         HidePlace::new(Position { x: 50.0, y: 100.0 }, None),
         HidePlace::new(Position { x: 90.0, y: 90.0 }, None)
     ];
-    let actual = enemy.get_near_hide_places_positions(None, &mut input_hide_places_small);
-    let expected = vec![Position { x: 90.0, y: 90.0 }, Position { x: 50.0, y: 100.0 }, Position { x: 100.0, y: 20.0 }];
-
-    assert_eq!(actual, expected);
-
-    let mut input_hide_places_large = vec![
-        HidePlace::new(Position { x: 0.0, y: 0.0 }, None),
-        HidePlace::new(Position { x: 100.0, y: 20.0 }, None),
-        HidePlace::new(Position { x: 50.0, y: 100.0 }, None),
-        HidePlace::new(Position { x: 90.0, y: 90.0 }, None),
-        HidePlace::new(Position { x: 100.0, y: 100.0 }, None),
-        HidePlace::new(Position { x: 80.0, y: 90.0 }, None),
-        HidePlace::new(Position { x: 80.0, y: 0.0 }, None)
-    ];
-    let actual = enemy.get_near_hide_places_positions(None, &mut input_hide_places_large);
-    let expected = vec![Position { x: 80.0, y: 90.0 }, Position { x: 90.0, y: 90.0 }, Position { x: 100.0, y: 100.0 }];
+    let actual = enemy.get_near_hide_places_positions(None, &input_hide_places);
+    let expected = vec![Position { x: 100.0, y: 20.0 }, Position { x: 50.0, y: 100.0 }, Position { x: 0.0, y: 0.0 }, Position { x: 90.0, y: 90.0 }];
 
     assert_eq!(actual, expected);
 }

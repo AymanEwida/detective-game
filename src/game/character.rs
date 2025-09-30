@@ -1,4 +1,4 @@
-use crate::renderer::{render::Size, vertice::Position};
+use crate::renderer::{styles::Size, vertice::Position};
 
 use super::level::GameObject;
 

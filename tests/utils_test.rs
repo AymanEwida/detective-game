@@ -1,4 +1,4 @@
-use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}}, library::{constants::HALF_PI, utils::*}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}}, library::{constants::HALF_PI, utils::*}, renderer::{styles::{Padding, Size}, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -685,4 +685,53 @@ fn test_is_in_circle_out() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_calc_button_text_info_with_padding_both_0() {
+    let input_position = Position { x: 10.0, y: 60.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding { x: 0.0, y: 0.0 };
+
+    let actual = calc_button_text_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (input_position, input_size.width);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_button_text_info_with_padding_x_0() {
+    let input_position = Position { x: 10.0, y: 10.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding { x: 0.0, y: 10.0 };
+
+    let actual = calc_button_text_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (Position { y: 20.0, ..input_position }, input_size.width);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_button_text_info_with_padding_y_0() {
+    let input_position = Position { x: 10.0, y: 10.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding { x: 10.0, y: 0.0 };
+
+    let actual = calc_button_text_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (Position { x: 20.0, ..input_position }, 90.0);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_button_text_info_with_padding_none_0() {
+    let input_position = Position { x: 10.0, y: 10.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding { x: 30.0, y: 20.0 };
+
+    let actual = calc_button_text_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (Position { x: 40.0, y: 30.0 }, 70.0);
+
+    assert_eq!(actual, expected);
+}
+
 

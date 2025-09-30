@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_control_point_game_coordinate_system, calculate_calc_position, length_of_line}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_control_point_game_coordinate_system, calculate_calc_position, length_of_line}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
 
 use super::{level::{EndStartPositions, GameObject}, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
 

@@ -3,7 +3,7 @@ use std::path::Path;
 use gl::types::*;
 use image::EncodableLayout;
 
-use super::{error::{Error, Result}, render::Size};
+use super::{error::{Error, Result}, styles::Size};
 
 #[derive(Debug, PartialEq)]
 pub struct Texture {

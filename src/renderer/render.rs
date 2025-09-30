@@ -1,30 +1,12 @@
-use std::{collections::HashMap, ops::Div, path::Path, ptr};
+use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
+use glfw::{Action, MouseButton};
 
-use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
+use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, is_cursor_in_button, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Size<T=f32> {
-    pub width: T,
-    pub height: T
-}
-
-impl Div<f32> for Size {
-    type Output = Self;
-    
-    fn div(self, rhs: f32) -> Self::Output {
-        assert!(rhs != 0.0, "can not divide by zero!");
-
-        Self {
-            width: self.width / rhs,
-            height: self.width / rhs,
-        }
-    }
-}
+use super::{buffer::Buffer, button::Button, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::Size, text::{calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 struct Object<'a> {
@@ -127,6 +109,22 @@ impl Default for Background {
     }
 }
 
+pub struct MouseInteraction {
+    pub cursor_position: Position,
+    pub mouse_button: MouseButton,
+    pub action: Action
+}
+
+impl MouseInteraction {
+    pub fn new(cursor_position: Position, mouse_button: MouseButton, action: Action) -> Self {
+        Self {
+            cursor_position,
+            mouse_button,
+            action
+        }
+    }
+}
+
 pub struct Render<'a> {
     size: Size,
     vertices_program: Program,
@@ -138,7 +136,9 @@ pub struct Render<'a> {
     characters: HashMap<char, Character>,
     images: HashMap<&'a str, Texture>,
     objects: Vec<Object<'a>>,
-    renderable_characters: Vec<RenderableCharacter>
+    renderable_characters: Vec<RenderableCharacter>,
+    buttons: Vec<Button>,
+    mouse_interaction: Option<MouseInteraction>,
 }
 
 impl Render<'_> {
@@ -185,6 +185,8 @@ impl Render<'_> {
                 images: HashMap::new(),
                 objects: Vec::new(),
                 renderable_characters: Vec::new(),
+                buttons: Vec::new(),
+                mouse_interaction: None,
             })
         }
     }
@@ -253,6 +255,10 @@ impl<'a> Render<'a> {
         }
 
         Ok(())
+    }
+
+    pub fn set_mouse_interaction(&mut self, interaction: Option<MouseInteraction>) {
+        self.mouse_interaction = interaction;
     }
 
     pub fn draw_triangle(&mut self, first_point: Vertice, second_point: Vertice, third_point: Vertice, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
@@ -625,18 +631,52 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn draw_equidistant_from_angle_and_length(&mut self, apex: Position, angle: f32, line_length: f32, angle_direction: Direction) {
+    pub fn draw_equidistant_from_angle_and_length(&mut self, apex: Position, angle: f32, line_length: f32, angle_direction: Direction, color: Color) {
         let (first_point, second_point, apex) = calc_equidistant_points(apex, angle, line_length, angle_direction);
 
-        self.draw_line(apex, first_point, Color::Red, None, None, None);
-        self.draw_line(apex, second_point, Color::Red, None, None, None);
-        self.draw_line(first_point, second_point, Color::Red, None, None, None); 
+        self.draw_line(apex, first_point, color, None, None, None);
+        self.draw_line(apex, second_point, color, None, None, None);
+        self.draw_line(first_point, second_point, color, None, None, None); 
+    }
+
+    // TODO: find a way to draw the buttons and to return a button instance to mutate
+    pub fn insert_button(&mut self, button: Button) -> &Button {
+        self.buttons.push(button);
+
+        &self.buttons[self.buttons.len() - 1]
+    }
+
+    pub fn handle_buttons(&mut self, real_cursor_position: Position) -> Result<()> {
+        for button in self.buttons.iter() {
+            // print!("cursor_position: {:?}\n", real_cursor_position);
+
+            if is_cursor_in_button(button.get_position(), button.get_size(), real_cursor_position) {
+                print!("here inside\n");
+
+                button.hover_call();
+
+                if let Some(mouse_interaction) = &self.mouse_interaction {
+                    if mouse_interaction.mouse_button == MouseButton::Button1 {
+                        if mouse_interaction.action == Action::Release {
+                            button.click_call();
+                        }
+                    }
+                }
+            }
+
+            // button.draw(self)?;
+
+            // self.draw_rectangle(button.get_position(), button.get_size(), button.get_bg_color(), None, None, None);
+            // self.display_text(button.get_text(), button.get_text_info().0, button.get_text_scale(), Some(button.get_text_info().1), button.get_text_color())?;
+        }
+
+        Ok(())
     }
 
     pub fn render(&mut self) -> Result<()> {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            
+
             if let Some(background_image) = &self.background.image {
                 self.texture_program.apply();
                 background_image.vertex_array.bind();
@@ -654,32 +694,6 @@ impl<'a> Render<'a> {
             let (red, green, blue, alpha) = self.background.color;
 
             gl::ClearColor(red, green, blue, alpha);
-
-            for randerable_character in self.renderable_characters.iter() {
-                assert!(self.characters.get(&randerable_character.character) != None, "character must exist");
-
-                self.texture_program.apply();
-                self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
-                self.texture_program.set_bool_uniform("isText", 1)?;
-                self.texture_program.set_color_data_uniform("textColor", randerable_character.color)?;
-
-                self.vertex_array.bind();
-
-                self.vertex_buffer.set_data(&randerable_character.vertices, gl::DYNAMIC_DRAW);
-                self.index_buffer.set_data(&randerable_character.indices, gl::DYNAMIC_DRAW);
-
-                let character = self.characters.get(&randerable_character.character).unwrap();
-
-                self.texture_program.set_int_uniform("texture0", 0)?;
-                character.texture.activate(gl::TEXTURE0);
-
-                gl::DrawElements(gl::TRIANGLES, randerable_character.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
-                
-                self.vertex_buffer.unbind();
-                self.index_buffer.unbind();
-                Texture::unbind_all();
-                VertexArray::unbind();
-            }
 
             for object in self.objects.iter() {
                 self.vertex_array.bind();
@@ -710,6 +724,34 @@ impl<'a> Render<'a> {
                     gl::DrawArrays(object.mode, 0, object.vertices.len() as i32);
                 }
 
+                self.vertex_buffer.unbind();
+                self.index_buffer.unbind();
+                Texture::unbind_all();
+                VertexArray::unbind();
+            }
+
+            for randerable_character in self.renderable_characters.iter() {
+                assert!(self.characters.get(&randerable_character.character) != None, "character must exist");
+
+                self.texture_program.apply();
+                self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
+                self.texture_program.set_bool_uniform("isText", 1)?;
+                self.texture_program.set_color_data_uniform("textColor", randerable_character.color)?;
+
+                self.vertex_array.bind();
+
+                self.vertex_buffer.set_data(&randerable_character.vertices, gl::DYNAMIC_DRAW);
+                self.index_buffer.set_data(&randerable_character.indices, gl::DYNAMIC_DRAW);
+
+                let character = self.characters.get(&randerable_character.character).unwrap();
+
+                self.texture_program.set_int_uniform("texture0", 0)?;
+                character.texture.activate(gl::TEXTURE0);
+
+                gl::DrawElements(gl::TRIANGLES, randerable_character.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+
+                self.texture_program.set_bool_uniform("isText", 0)?;
+                
                 self.vertex_buffer.unbind();
                 self.index_buffer.unbind();
                 Texture::unbind_all();

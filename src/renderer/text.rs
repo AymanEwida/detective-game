@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use freetype::{face::LoadFlag, Library};
 
-use super::{error::{Error, Result}, render::Size, texture::Texture, vertice::Position};
+use super::{error::{Error, Result}, styles::Size, texture::Texture, vertice::Position};
 
 #[derive(Debug, PartialEq)]
 pub struct Character {

@@ -1,7 +1,7 @@
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
-use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
 
 use super::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall};
 

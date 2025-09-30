@@ -1,4 +1,4 @@
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position}, renderer::{error::Result, render::{Render, Size}, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position}, renderer::{error::Result, render::Render, styles::Size, vertice::Position}};
 
 use super::{level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}};
 

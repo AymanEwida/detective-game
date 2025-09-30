@@ -1,4 +1,4 @@
-use detective_game::{library::utils::convert_angle_to_radians, renderer::{color::Color, render::Size, vertice::{Position, Vertice, _VerticeData}}};
+use detective_game::{library::utils::convert_angle_to_radians, renderer::{color::Color, styles::Size, vertice::{Position, Vertice, _VerticeData}}};
 
 #[test]
 fn test_to_position_array() {

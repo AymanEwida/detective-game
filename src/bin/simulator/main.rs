@@ -5,10 +5,14 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
+use detective_game::renderer::button::Button;
+use detective_game::renderer::color::Color;
+use detective_game::renderer::render::MouseInteraction;
+use detective_game::renderer::styles::Padding;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::game::{character::Direction, player::Player};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use detective_game::renderer::{render::Render, styles::Size, vertice::Position};
 use simulator::{SimulationStatus, Simulator, SimulatorType};
 
 pub mod simulator;
@@ -40,7 +44,7 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
-    simulator.load_simulation(SimulatorType::EnemySearchLogic).expect("Unable to load simulation");
+    simulator.load_simulation(SimulatorType::Empty).expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
 
@@ -51,6 +55,8 @@ fn main() {
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
     let mut pressed_buttons = HashSet::new(); 
+
+    let _button = render.insert_button(Button::new(Position { x: 0.0, y: 0.0 }, Size { width: 200.0, height: 100.0 }, Padding::new(10.0, 30.0), Color::Red, String::from("Test me"), 1.0, Color::White));
 
     while !window.should_close() {
         
@@ -71,6 +77,7 @@ fn main() {
 
                 WindowEvent::MouseButton(mouse_button, action, _) => {
                     player.set_mouse_interaction(Some(PlayerMouseInteraction::new(mouse_button, action, cursor_position)));
+                    render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, mouse_button, action)));
 
                     match action {
                         Action::Press => {
@@ -172,6 +179,7 @@ fn main() {
 
         for pressed_button in pressed_buttons.iter() {
             player.set_mouse_interaction(Some(PlayerMouseInteraction::new(*pressed_button, Action::Press, cursor_position)));
+            render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, *pressed_button, Action::Press)));
         }
 
         let now = Instant::now();
@@ -186,12 +194,17 @@ fn main() {
 
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
+            // button.draw(&mut render);
+
+            render.handle_buttons(cursor_position).expect("Unable to handle all buttons");
+
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();
 
             player.set_interaction(None);
             player.set_mouse_interaction(None);
+            render.set_mouse_interaction(None);
         }
     }
 }
