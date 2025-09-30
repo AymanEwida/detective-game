@@ -57,7 +57,6 @@ pub struct GameLevel<'a> {
     challenges: Vec<String>,
     notoriety_level: u64,
     status: LevelStatus,
-    prev_status: LevelStatus,
     add_amount_after_lost: usize,
     player_start_info: (Position, bool)
 }
@@ -89,7 +88,6 @@ impl Default for GameLevel<'_> {
             challenges: Vec::new(),
             notoriety_level: 0,
             status: LevelStatus::NotDetermine,
-            prev_status: LevelStatus::NotDetermine,
             add_amount_after_lost: 5,
             player_start_info: (Position { x: 0.0, y: 0.0 }, false)
         }
@@ -128,8 +126,6 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
-        // self.prev_status = self.status;
-
         for (idx , challenge) in self.challenges.iter().enumerate() {
             render.display_text(challenge, Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, Color::White).expect("Unable to display text");
         }
@@ -405,7 +401,7 @@ impl<'a> GameLevel<'a> {
                     enemy.set_is_colliding(false);
                 }
                 
-                if enemy.collide_with_player(&player) && (self.status != LevelStatus::ReLoadLevel || self.status != LevelStatus::Lose) && self.prev_status != LevelStatus::ReLoadLevel { 
+                if enemy.collide_with_player(&player) && (self.status != LevelStatus::ReLoadLevel || self.status != LevelStatus::Lose) { 
                     player.decrease_life();
 
                     if player.get_lifes() == 0 {
@@ -589,8 +585,6 @@ impl<'a> GameLevel<'a> {
 
             player.draw(render)?;
             player.switch_items();
-
-            self.prev_status = self.status;
         }
 
         Ok(())
@@ -598,10 +592,6 @@ impl<'a> GameLevel<'a> {
     
     pub fn get_status(&self) -> &LevelStatus {
         &self.status
-    }
-
-    pub fn get_prev_status(&self) -> &LevelStatus {
-        &self.prev_status
     }
 
     fn set_initial_object_position(&mut self, object: &mut impl GameObject<'a>) {

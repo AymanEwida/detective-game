@@ -157,6 +157,7 @@ pub struct Render<'a> {
     was_hovering_on_button: (bool, Option<usize>),
 }
 
+// TODO: build a function to make buttons
 impl Render<'_> {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
@@ -598,7 +599,7 @@ impl<'a> Render<'a> {
                     }
                 }
 
-                assert!(self.characters.get(&ch) != None, "character must exist, provided: {ch}");
+                assert!(self.characters.get(&ch) != None, "character must exist, provided: {}", ch);
 
                 let character = self.characters.get(&ch).unwrap();
 

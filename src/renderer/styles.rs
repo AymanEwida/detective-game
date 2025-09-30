@@ -14,7 +14,7 @@ impl Div<f32> for Size {
 
         Self {
             width: self.width / rhs,
-            height: self.width / rhs,
+            height: self.height / rhs,
         }
     }
 }
