@@ -6,7 +6,7 @@ use glfw::{Action, MouseButton};
 
 use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, is_cursor_in_button, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, button::Button, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
+use super::{buffer::Buffer, button::{Button, OnHoverStyles}, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 struct Object<'a> {
@@ -126,6 +126,7 @@ impl MouseInteraction {
 }
 
 pub struct ButtonProps<'a> {
+    pub id: usize,
     pub position: Position,
     pub size: Size,
     pub padding: Padding,
@@ -133,7 +134,9 @@ pub struct ButtonProps<'a> {
     pub text: String,
     pub text_scale: f32,
     pub text_color: Color,
+    pub on_hover_styles: OnHoverStyles,
     pub on_hover: Box<dyn FnMut() + 'a>,
+    pub on_hover_release: Box<dyn FnMut() + 'a>,
     pub on_click: Box<dyn FnMut() + 'a>
 }
 
@@ -151,6 +154,7 @@ pub struct Render<'a> {
     renderable_characters: Vec<RenderableCharacter>,
     buttons: Vec<Button<'a>>,
     mouse_interaction: Option<MouseInteraction>,
+    was_hovering_on_button: (bool, Option<usize>),
 }
 
 impl Render<'_> {
@@ -199,6 +203,7 @@ impl Render<'_> {
                 renderable_characters: Vec::new(),
                 buttons: Vec::new(),
                 mouse_interaction: None,
+                was_hovering_on_button: (false, None),
             })
         }
     }
@@ -655,20 +660,20 @@ impl<'a> Render<'a> {
     // width and height
     pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
         let mut button = Button::new(
+            button_props.id,
             button_props.position,
             button_props.size,
             button_props.padding,
             button_props.bg_color,
             button_props.text,
             button_props.text_scale,
-            button_props.text_color
+            button_props.text_color,
+            button_props.on_hover_styles
         );
         button.on_hover(button_props.on_hover);
+        button.on_hover_release(button_props.on_hover_release);
         button.on_click(button_props.on_click);
-
-        self.draw_rectangle(button.get_position(), button.get_size(), button.get_bg_color(), None, None, None);
-        self.display_text(button.get_text(), button.get_text_info().0, button.get_text_scale(), Some(button.get_text_info().1), button.get_text_color())?;
-
+        
         self.buttons.push(button);
 
         Ok(())
@@ -676,7 +681,14 @@ impl<'a> Render<'a> {
 
     pub fn handle_buttons_events(&mut self, real_cursor_position: Position) -> Result<()> {
         for button in self.buttons.iter_mut() {
+            print!("here inside the loop\n");
+
             if is_cursor_in_button(button.get_position(), button.get_size(), real_cursor_position) {
+                print!("here hovering\n");
+
+                self.was_hovering_on_button = (true, Some(button.get_id()));
+                button.set_is_hovering(true);
+                
                 button.hover_call();
 
                 if let Some(mouse_interaction) = &self.mouse_interaction {
@@ -686,9 +698,30 @@ impl<'a> Render<'a> {
                         }
                     }
                 }
+            } else {
+                print!("here!!\n");
+
+                if self.was_hovering_on_button.0 && self.was_hovering_on_button.1 == Some(button.get_id()) {
+                    print!("was hovering!!\n");
+
+                    button.on_hover_release_call();
+                }
+
+                self.was_hovering_on_button = (false, None);
+                button.set_is_hovering(false);
             }
         }
 
+       for i in 0..self.buttons.len() {
+            let button_ptr = &self.buttons[i] as *const Button;
+
+            unsafe {
+                let button = &*button_ptr;
+
+                button.draw(self)?;
+            }
+        }
+ 
         Ok(())
     }
 

@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
+use detective_game::renderer::button::OnHoverStylesBuilder;
 use detective_game::renderer::color::Color;
 use detective_game::renderer::render::{ButtonProps, MouseInteraction};
 use detective_game::renderer::styles::Padding;
@@ -195,6 +196,7 @@ fn main() {
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
             render.display_button(ButtonProps {
+                id: 1,
                 position: Position { x: 0.0, y: 0.0 },
                 size: Size { width: 250.0, height: 100.0 },
                 padding: Padding { x: 10.0, y: 30.0 },
@@ -202,7 +204,11 @@ fn main() {
                 bg_color: Color::Red,
                 text_color: Color::White,
                 text_scale: 1.0,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                    .bg_color(Color::RGBA(255, 0, 0, 150))
+                    .build(),
                 on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| { print!("here hover release\n") }),
                 on_click: {
                     let counter = Rc::clone(&counter);
                     Box::new(move || {
