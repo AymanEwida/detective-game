@@ -487,6 +487,7 @@ impl<'a> Simulator<'a> {
 
     pub fn load_simulation(&mut self, simulator_type: SimulatorType) -> SimulationResult<()> {
         self.clear_all();
+        self.load_type = simulator_type.clone();
 
         match simulator_type {
             SimulatorType::EnemyLogic => {

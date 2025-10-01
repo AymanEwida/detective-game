@@ -6,7 +6,7 @@ use glfw::{Action, MouseButton};
 
 use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, is_cursor_in_button, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, button::Button, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::Size, text::{calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
+use super::{buffer::Buffer, button::Button, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 struct Object<'a> {
@@ -125,6 +125,18 @@ impl MouseInteraction {
     }
 }
 
+pub struct ButtonProps<'a> {
+    pub position: Position,
+    pub size: Size,
+    pub padding: Padding,
+    pub bg_color: Color,
+    pub text: String,
+    pub text_scale: f32,
+    pub text_color: Color,
+    pub on_hover: Box<dyn FnMut() + 'a>,
+    pub on_click: Box<dyn FnMut() + 'a>
+}
+
 pub struct Render<'a> {
     size: Size,
     vertices_program: Program,
@@ -137,7 +149,7 @@ pub struct Render<'a> {
     images: HashMap<&'a str, Texture>,
     objects: Vec<Object<'a>>,
     renderable_characters: Vec<RenderableCharacter>,
-    buttons: Vec<Button>,
+    buttons: Vec<Button<'a>>,
     mouse_interaction: Option<MouseInteraction>,
 }
 
@@ -639,20 +651,32 @@ impl<'a> Render<'a> {
         self.draw_line(first_point, second_point, color, None, None, None); 
     }
 
-    // TODO: find a way to draw the buttons and to return a button instance to mutate
-    pub fn insert_button(&mut self, button: Button) -> &Button {
+    // TODO: fix the cursor position bug and change the button size to be dynamic based on the text
+    // width and height
+    pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
+        let mut button = Button::new(
+            button_props.position,
+            button_props.size,
+            button_props.padding,
+            button_props.bg_color,
+            button_props.text,
+            button_props.text_scale,
+            button_props.text_color
+        );
+        button.on_hover(button_props.on_hover);
+        button.on_click(button_props.on_click);
+
+        self.draw_rectangle(button.get_position(), button.get_size(), button.get_bg_color(), None, None, None);
+        self.display_text(button.get_text(), button.get_text_info().0, button.get_text_scale(), Some(button.get_text_info().1), button.get_text_color())?;
+
         self.buttons.push(button);
 
-        &self.buttons[self.buttons.len() - 1]
+        Ok(())
     }
 
-    pub fn handle_buttons(&mut self, real_cursor_position: Position) -> Result<()> {
-        for button in self.buttons.iter() {
-            // print!("cursor_position: {:?}\n", real_cursor_position);
-
+    pub fn handle_buttons_events(&mut self, real_cursor_position: Position) -> Result<()> {
+        for button in self.buttons.iter_mut() {
             if is_cursor_in_button(button.get_position(), button.get_size(), real_cursor_position) {
-                print!("here inside\n");
-
                 button.hover_call();
 
                 if let Some(mouse_interaction) = &self.mouse_interaction {
@@ -663,11 +687,6 @@ impl<'a> Render<'a> {
                     }
                 }
             }
-
-            // button.draw(self)?;
-
-            // self.draw_rectangle(button.get_position(), button.get_size(), button.get_bg_color(), None, None, None);
-            // self.display_text(button.get_text(), button.get_text_info().0, button.get_text_scale(), Some(button.get_text_info().1), button.get_text_color())?;
         }
 
         Ok(())
@@ -761,6 +780,7 @@ impl<'a> Render<'a> {
 
         self.objects.clear();
         self.renderable_characters.clear();
+        self.buttons.clear();
         
         Ok(())
     }    

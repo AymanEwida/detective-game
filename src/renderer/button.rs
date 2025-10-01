@@ -2,11 +2,11 @@ use derivative::Derivative;
 
 use crate::library::utils::calc_button_text_info_with_padding;
 
-use super::{color::Color, error::Result, render::Render, styles::{Padding, Size}, vertice::Position};
+use super::{color::Color, styles::{Padding, Size}, vertice::Position};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct Button {
+pub struct Button<'a> {
     position: Position,
     size: Size,
     padding: Padding,
@@ -18,13 +18,13 @@ pub struct Button {
     text_color: Color,
 
     #[derivative(Debug="ignore")]
-    on_hover: Box<dyn Fn()>,
+    on_hover: Box<dyn FnMut() + 'a>,
 
     #[derivative(Debug="ignore")]
-    on_click: Box<dyn Fn()>
+    on_click: Box<dyn FnMut() + 'a>
 }
 
-impl Button {
+impl Button<'_> {
     pub fn new(position: Position, size: Size, padding: Padding, bg_color: Color, text: String, text_scale: f32, text_color: Color) -> Self {
         let (text_start_position, text_max_width) = calc_button_text_info_with_padding(&position, &size, &padding);
 
@@ -39,44 +39,37 @@ impl Button {
             text_max_width,
             text_start_position,
             on_hover: Box::new(|| {}),
-            on_click: Box::new(|| { print!("here working!!\n") }) 
+            on_click: Box::new(|| {}) 
         }
     }
 }
 
-impl Button {
-    pub fn draw(&self, render: &mut Render<'_>) -> Result<()> {
-        render.draw_rectangle(self.get_position(), self.get_size(), self.get_bg_color(), None, None, None);
-        render.display_text(self.get_text(), self.text_start_position, self.get_text_scale(), Some(self.text_max_width), self.get_text_color())?;
-
-        Ok(())
-    }
-
+impl<'a> Button<'a> {
     pub fn on_hover<F>(&mut self, func: F)
-        where F: Fn() + 'static
+        where F: FnMut() + 'a
     {
         self.on_hover = Box::new(func);
     }
 
-    pub fn on_hover_func(&self) -> &dyn Fn() {
+    pub fn on_hover_func(&self) -> &dyn FnMut() {
         &*self.on_hover
     }
 
-    pub fn hover_call(&self) {
+    pub fn hover_call(&mut self) {
         (self.on_hover)();
     }
 
     pub fn on_click<F>(&mut self, func: F)
-        where F: Fn() + 'static
+        where F: FnMut() + 'a
     {
         self.on_click = Box::new(func);
     }
 
-    pub fn on_click_func(&self) -> &dyn Fn() {
+    pub fn on_click_func(&self) -> &dyn FnMut() {
         &*self.on_click
     }
 
-    pub fn click_call(&self) {
+    pub fn click_call(&mut self) {
         (self.on_click)();
     }
 

@@ -1,13 +1,14 @@
 extern crate glfw;
 extern crate detective_game;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
-use detective_game::renderer::button::Button;
 use detective_game::renderer::color::Color;
-use detective_game::renderer::render::MouseInteraction;
+use detective_game::renderer::render::{ButtonProps, MouseInteraction};
 use detective_game::renderer::styles::Padding;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
@@ -55,11 +56,10 @@ fn main() {
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
     let mut pressed_buttons = HashSet::new(); 
-
-    let _button = render.insert_button(Button::new(Position { x: 0.0, y: 0.0 }, Size { width: 200.0, height: 100.0 }, Padding::new(10.0, 30.0), Color::Red, String::from("Test me"), 1.0, Color::White));
+    
+    let counter = Rc::new(RefCell::new(0));
 
     while !window.should_close() {
-        
         let (window_width, window_height) = window.get_framebuffer_size();
         let render_size = render.get_size();
 
@@ -194,9 +194,25 @@ fn main() {
 
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
-            // button.draw(&mut render);
+            render.display_button(ButtonProps {
+                position: Position { x: 0.0, y: 0.0 },
+                size: Size { width: 250.0, height: 100.0 },
+                padding: Padding { x: 10.0, y: 30.0 },
+                text: format!("counter: {}", *counter.borrow()),
+                bg_color: Color::Red,
+                text_color: Color::White,
+                text_scale: 1.0,
+                on_hover: Box::new(|| {}),
+                on_click: {
+                    let counter = Rc::clone(&counter);
+                    Box::new(move || {
+                        let mut value = counter.borrow_mut();
+                        *value += 1;
+                    })
+                },
+            }).expect("Unable to display button");
 
-            render.handle_buttons(cursor_position).expect("Unable to handle all buttons");
+            render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
 
             render.render().expect("Uable to render object on window");
             
