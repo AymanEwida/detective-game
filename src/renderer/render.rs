@@ -213,14 +213,12 @@ impl<'a> Render<'a> {
         self.size
     }
 
-    pub fn resize(&mut self, new_size: Size) -> Result<()> {
+    pub fn resize(&mut self, new_size: Size) {
         self.size = new_size;
 
         unsafe {
             gl::Viewport(0, 0, self.size.width as i32, self.size.height as i32);
         }
-
-        Ok(())
     }
 
     pub fn fill_with_color(&mut self, color: Color) {
@@ -658,8 +656,7 @@ impl<'a> Render<'a> {
         self.draw_line(first_point, second_point, color, None, None, None); 
     }
 
-    // TODO: fix the cursor position bug and change the button size to be dynamic based on the text
-    // width and height
+    // TODO: change the button size to be dynamic based on the text width and height
     pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
         let mut button = Button::new(
             self.buttons.len() + 1,

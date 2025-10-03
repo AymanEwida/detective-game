@@ -58,10 +58,12 @@ fn main() {
     
     while !window.should_close() {
         
-        let (window_width, window_height) = window.get_framebuffer_size();
+        let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
+        let (window_width, window_height) = window.get_size(); 
+
         let render_size = render.get_size();
 
-        if (window_width as f32 != render_size.width) || (window_height as f32 != render_size.height) {
+        if (fb_window_width as f32 != render_size.width) || (fb_window_height as f32 != render_size.height) {
             render.resize(Size { width: window_width as f32, height: window_height as f32});
         }
 
@@ -70,7 +72,10 @@ fn main() {
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::CursorPos(x, y) => {
-                    cursor_position = Position { x: x as f32, y: y as f32 };
+                    cursor_position = Position {
+                        x: x as f32 * (fb_window_width as f32 / window_width as f32),
+                        y: y as f32 * (fb_window_height as f32 / window_height as f32)
+                    };
                 },
 
                 WindowEvent::MouseButton(mouse_button, action, _) => {
