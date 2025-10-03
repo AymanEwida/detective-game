@@ -21,38 +21,39 @@ impl Div<f32> for Size {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Padding {
-    pub x: f32,
-    pub y: f32
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32
 }
 
 impl Default for Padding {
     fn default() -> Self {
         Self {
-            x: 0.0,
-            y: 0.0
+            left: 0.0,
+            right: 0.0,
+            top: 0.0,
+            bottom: 0.0
         }
     }
 }
 
 impl Padding {
-    pub fn new(x: f32, y: f32) -> Self {
+    pub fn new(left: f32, top: f32, right: f32, bottom: f32) -> Self {
         Self {
-            x,
-            y
+            left,
+            right,
+            top,
+            bottom
         }
     }
 
-    pub fn new_padding_x(x: f32) -> Self {
+    pub fn new_padding_x_y(x: f32, y: f32) -> Self {
         Self {
-            x,
-            y: 0.0
-        }
-    }
-
-    pub fn new_padding_y(y: f32) -> Self {
-        Self {
-            x: 0.0,
-            y
+            left: x,
+            right: x,
+            top: y,
+            bottom: y
         }
     }
 }

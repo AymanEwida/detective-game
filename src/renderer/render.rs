@@ -6,7 +6,7 @@ use glfw::{Action, MouseButton};
 
 use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, is_cursor_in_button, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, button::{Button, OnHoverStyles}, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
+use super::{buffer::Buffer, button::{Button, OnHoverStyles}, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_text_size, calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 struct Object<'a> {
@@ -127,7 +127,8 @@ impl MouseInteraction {
 
 pub struct ButtonProps<'a> {
     pub position: Position,
-    pub size: Size,
+    pub width: Option<f32>,
+    pub height: Option<f32>,
     pub padding: Padding,
     pub bg_color: Color,
     pub text: String,
@@ -532,11 +533,19 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, max_width: Option<f32>, color: Color) -> Result<()> {
+    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, text_max_width: Option<f32>, color: Color) -> Result<Size> {
         assert!(scale > 0.0, "scale must be a positive number");
         
+        let mut min_y = start_position.y;
+
         let start_position = convert_coordinates(start_position, &self.size);
-        let max_width = (max_width.unwrap_or(0.0) * 2.0) / self.size.width;
+
+        let mut text_size = Size { width: 0.0, height: 0.0 };
+        if let Some(width) = text_max_width {
+            text_size.width = width;
+        }
+
+        let max_width = (text_max_width.unwrap_or(0.0) * 2.0) / self.size.width;
 
         let (r, g, b, ..) = color.get_color_in_f32();
 
@@ -545,6 +554,7 @@ impl<'a> Render<'a> {
         let mut line_height = 0.0;
 
         for line in lines {
+            let mut line_width = 0.0;
             let mut width_offset = 0.0;
             let mut max_height = 0.0;
             let mut prev_height = 0.0;
@@ -554,6 +564,7 @@ impl<'a> Render<'a> {
             for (idx, ch) in line.chars().enumerate() {
                 if ch == ' ' {
                     width_offset += 0.03 * scale;
+                    line_width += (0.03 * self.size.width * scale) / 2.0;
                     is_new_word = true;
                     
                     continue;
@@ -625,6 +636,16 @@ impl<'a> Render<'a> {
 
                 let character_start_position = Position { x: start_position.x + width_offset, y: start_position.y - line_height - height_offset - offset_y };
 
+                let characher_start_y = (character_start_position.y * self.size.height) / 2.0;
+                if min_y > characher_start_y {
+                    min_y = characher_start_y;
+                }
+
+                let character_end_y = characher_start_y + character.size.height;
+                if text_size.height < (character_end_y - min_y) {
+                    text_size.height = character_end_y - min_y;
+                }
+
                 let vertices_data = [
                     _VerticeData(character_start_position.to_position_array(), [0.0, 0.0, 0.0, 0.0]),
                     _VerticeData(character_start_position.get_position_from_size(&Size { width: character_size.width, height: 0.0 }).to_position_array(), [1.0, 0.0, 0.0, 0.0]),
@@ -636,16 +657,22 @@ impl<'a> Render<'a> {
 
                 width_offset += ((character.size.width as f32 + character.offset.x) * scale * 2.0) / self.size.width;
                 prev_height = character_size.height;
+
+                line_width += (character.size.width + character.offset.x) * scale;
                 
                 if is_new_word {
                     is_new_word = false;
                 }
             }
 
+            if text_max_width.is_none() && text_size.width < line_width {
+                text_size.width = line_width;
+            }
+
             line_height += max_height + 0.08;
         }
 
-        Ok(())
+        Ok(text_size)
     }
 
     pub fn draw_equidistant_from_angle_and_length(&mut self, apex: Position, angle: f32, line_length: f32, angle_direction: Direction, color: Color) {
@@ -656,12 +683,13 @@ impl<'a> Render<'a> {
         self.draw_line(first_point, second_point, color, None, None, None); 
     }
 
-    // TODO: change the button size to be dynamic based on the text width and height
     pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
         let mut button = Button::new(
             self.buttons.len() + 1,
             button_props.position,
-            button_props.size,
+            button_props.width,
+            button_props.height,
+            calculate_text_size(&self.characters, &button_props.text, button_props.position, button_props.width, button_props.text_scale, self.size),
             button_props.padding,
             button_props.bg_color,
             button_props.text,
@@ -680,7 +708,7 @@ impl<'a> Render<'a> {
 
     pub fn handle_buttons_events(&mut self, real_cursor_position: Position) -> Result<()> {
         for button in self.buttons.iter_mut() {
-            if is_cursor_in_button(button.get_position(), button.get_size(), real_cursor_position) {
+            if is_cursor_in_button(button.get_position_with_padding(), button.get_size(), real_cursor_position) {
                 self.was_hovering_on_button = (true, Some(button.get_id()));
                 button.set_is_hovering(true);
                 
@@ -703,9 +731,9 @@ impl<'a> Render<'a> {
                 button.set_is_hovering(false);
             }
         }
-
+ 
        for i in 0..self.buttons.len() {
-            let button_ptr = &self.buttons[i] as *const Button;
+            let button_ptr = &mut self.buttons[i] as *const Button;
 
             unsafe {
                 let button = &*button_ptr;
@@ -713,7 +741,7 @@ impl<'a> Render<'a> {
                 button.draw(self)?;
             }
         }
- 
+
         Ok(())
     }
 

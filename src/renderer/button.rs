@@ -1,12 +1,13 @@
 use derivative::Derivative;
 
-use crate::library::utils::calc_button_text_info_with_padding;
+use crate::library::utils::calc_button_info_with_padding;
 
 use super::{color::Color, error::Result, render::Render, styles::{Padding, Size}, vertice::Position};
 
 #[derive(Debug)]
 pub struct OnHoverStyles {
-    pub size: Option<Size>,
+    pub width: Option<f32>,
+    pub height: Option<f32>,
     pub padding: Option<Padding>,
     pub bg_color: Option<Color>,
     pub text_scale: Option<f32>,
@@ -16,7 +17,8 @@ pub struct OnHoverStyles {
 impl Default for OnHoverStyles {
     fn default() -> Self {
         Self {
-            size: None,
+            width: None,
+            height: None,
             padding: None,
             bg_color: None,
             text_scale: None,
@@ -38,8 +40,14 @@ impl OnHoverStylesBuilder {
 }
 
 impl OnHoverStylesBuilder {
-    pub fn size(mut self, size: Size) -> Self {
-        self.inner.size = Some(size);
+    pub fn width(mut self, width: f32) -> Self {
+        self.inner.width = Some(width);
+
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.inner.height = Some(height);
 
         self
     }
@@ -78,7 +86,9 @@ impl OnHoverStylesBuilder {
 pub struct Button<'a> {
     id: usize,
     position: Position,
-    size: Size,
+    text_size: Size,
+    width: Option<f32>,
+    height: Option<f32>,
     padding: Padding,
     bg_color: Color,
     text: String,
@@ -98,11 +108,13 @@ pub struct Button<'a> {
 }
 
 impl Button<'_> {
-    pub fn new(id: usize, position: Position, size: Size, padding: Padding, bg_color: Color, text: String, text_scale: f32, text_color: Color, on_hover_styles: OnHoverStyles) -> Self {
+    pub fn new(id: usize, position: Position, width: Option<f32>, height: Option<f32>, text_size: Size, padding: Padding, bg_color: Color, text: String, text_scale: f32, text_color: Color, on_hover_styles: OnHoverStyles) -> Self {
         Self {
             id,
             position,
-            size,
+            text_size,
+            width,
+            height,
             padding,
             bg_color,
             text,
@@ -119,10 +131,28 @@ impl Button<'_> {
 
 impl<'a> Button<'a> {
     pub fn draw(&self, render: &mut Render<'_>) -> Result<()> {
-        let text_info = calc_button_text_info_with_padding(&self.get_position(), &self.get_size(), &self.get_padding());
+        let mut size = Size { width: 0.0, height: 0.0 };
 
-        render.draw_rectangle(self.get_position(), self.get_size(), self.get_bg_color(), None, None, None);
-        render.display_text(self.get_text(), text_info.0, self.get_text_scale(), Some(text_info.1), self.get_text_color())?;
+        let style_size = self.get_style_size();
+        if let Some(style_width) = style_size.width {
+            size.width = style_width;
+        }
+        if let Some(style_height) = style_size.height {
+            size.height = style_height;
+        }
+
+        let text_size = render.display_text(self.get_text(), self.get_position(), self.get_text_scale(), style_size.width, self.get_text_color())?;
+        
+        if style_size.width.is_none() { 
+            size.width = text_size.width;
+        }
+
+        if style_size.height.is_none() {
+            size.height = text_size.height;
+        }
+
+        let (button_position, button_size) = calc_button_info_with_padding(&self.get_position(), &size, &self.get_padding());
+        render.draw_rectangle(button_position, button_size, self.get_bg_color(), None, None, None);
 
         Ok(())
     }
@@ -177,18 +207,55 @@ impl<'a> Button<'a> {
         self.position
     }
 
+    pub fn get_position_with_padding(&self) -> Position {
+        let size = self.get_size_without_padding();
+        
+        let (button_position, ..) = calc_button_info_with_padding(&self.get_position(), &size, &self.get_padding()); 
+        button_position
+    }
+
     pub fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
     }
 
-    pub fn get_size(&self) -> Size {
+    pub fn get_style_size(&self) -> Size<Option<f32>> {
         if self.get_is_hovering() {
-            if let Some(hover_size) = self.on_hover_styles.size {
-                return hover_size;
-            }
+            return Size { width: self.on_hover_styles.width, height: self.on_hover_styles.height };
         }
 
-        self.size
+        Size { width: self.width, height: self.height }
+    }
+
+    pub fn get_size_without_padding(&self) -> Size {
+        let style_size = self.get_style_size();
+
+        let mut size = Size { width: style_size.width.unwrap_or(0.0), height: style_size.height.unwrap_or(0.0) };
+        if style_size.width.is_none() { 
+            size.width = self.text_size.width;
+        }
+
+        if style_size.height.is_none() {
+            size.height = self.text_size.height;
+        }
+
+        size
+    }
+
+    pub fn get_size(&self) -> Size {
+        let style_size = self.get_style_size();
+
+        let mut size = Size { width: style_size.width.unwrap_or(0.0), height: style_size.height.unwrap_or(0.0) };
+        if style_size.width.is_none() { 
+            size.width = self.text_size.width;
+        }
+
+        if style_size.height.is_none() {
+            size.height = self.text_size.height;
+        }
+
+        let (_, button_size) = calc_button_info_with_padding(&self.get_position(), &size, &self.get_padding());
+
+        button_size
     }
 
     pub fn get_padding(&self) -> Padding {

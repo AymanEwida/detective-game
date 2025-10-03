@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use freetype::{face::LoadFlag, Library};
 
+use crate::library::utils::{convert_coordinates, convert_size};
+
 use super::{error::{Error, Result}, styles::Size, texture::Texture, vertice::Position};
 
 #[derive(Debug, PartialEq)]
@@ -79,3 +81,124 @@ pub fn calculate_word_width(characters: &HashMap<char, Character>, word: &str, s
 
     sum_width
 }
+
+pub fn calculate_text_size(characters: &HashMap<char, Character>, text: &str, start_position: Position, max_width: Option<f32>, scale: f32, window_size: Size) -> Size {
+    let mut min_y = start_position.y;
+
+    let mut text_size = Size { width: max_width.unwrap_or(0.0), height: 0.0 };
+
+    let text_max_width = max_width.unwrap_or(0.0);
+    let text_start_position = convert_coordinates(start_position, &window_size);
+
+    let lines: Vec<&str> = text.split('\n').collect();
+
+    let mut line_height = 0.0;
+
+    for line in lines {
+        let mut line_width = 0.0;
+        let mut max_height = 0.0;
+        let mut prev_height = 0.0;
+        let mut height_offset = 0.0;
+        let mut is_new_word = false;
+
+        for (idx, ch) in line.chars().enumerate() {
+            if ch == ' ' {
+                line_width += (0.03 * window_size.width * scale) / 2.0;
+                is_new_word = true;
+                
+                continue;
+            }
+
+            if text_max_width > 0.0 && is_new_word {
+                if let Some(found_index) = line[idx..].find(' ') {
+                    let found_index = found_index + idx;
+
+                    let word_width = (calculate_word_width(&characters, &line[idx..found_index], scale, window_size.width) * window_size.width) / 2.0;
+                    
+                    if start_position.x + line_width + word_width >= start_position.x + text_max_width {
+                        line_height += max_height + 0.09;
+                        line_width = 0.0;
+                        max_height = 0.0;
+                        prev_height = 0.0;
+                        height_offset = 0.0;
+                        is_new_word = false;
+                    }
+                } else {
+                    let word_width = (calculate_word_width(&characters, &line[idx..], scale, window_size.width) * window_size.width) / 2.0;
+
+                    if start_position.x + line_width + word_width >= start_position.x + text_max_width {
+                        line_height += max_height + 0.09;
+                        line_width = 0.0;
+                        max_height = 0.0;
+                        prev_height = 0.0;
+                        height_offset = 0.0;
+                        is_new_word = false;
+                    }
+                }
+            }
+
+            assert!(characters.get(&ch) != None, "character must exist, provided: {}", ch);
+
+            let character = characters.get(&ch).unwrap();
+
+            let character_size = convert_size(Size { width: character.size.width * scale, height: character.size.height * scale }, &window_size);
+
+            let offset_y = ((character.size.height - character.offset.y) * scale * 2.0) / window_size.height;
+            
+            if max_height == 0.0 {
+                max_height = character_size.height;
+            } else {
+                if (character.size.height - character.offset.y) > 0.0 {
+                    if max_height < (character_size.height - offset_y) {
+                        max_height = character_size.height - offset_y;
+                    }
+                } else {
+                    if max_height < character_size.height {
+                        max_height = character_size.height;
+                    }
+                }
+            }
+
+            if prev_height == 0.0 {
+                prev_height = character_size.height;
+            }
+            
+            if is_new_word {
+                if max_height == character_size.height {
+                    height_offset += prev_height - max_height;
+                } else {
+                    height_offset += prev_height - character_size.height;
+                }
+            } else {
+                height_offset += prev_height - character_size.height;
+            }
+
+            let character_start_y = ((text_start_position.y - line_height - height_offset - offset_y) * window_size.height) / 2.0;
+            if min_y > character_start_y {
+                min_y = character_start_y;
+            }
+
+            let character_end_y = character_start_y + character.size.height;
+            if text_size.height < (character_end_y - min_y) {
+                text_size.height = character_end_y - min_y;
+            }
+
+            prev_height = character_size.height;
+
+            line_width += (character.size.width + character.offset.x) * scale;
+            
+            if is_new_word {
+                is_new_word = false;
+            }
+        }
+
+        if max_width.is_none() && text_size.width < line_width {
+            text_size.width = line_width;
+        }
+
+        line_height += max_height + 0.08;
+    }
+
+    text_size
+}
+

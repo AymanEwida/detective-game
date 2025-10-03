@@ -620,15 +620,18 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
     position
 }
 
-pub fn calc_button_text_info_with_padding(button_position: &Position, button_size: &Size, padding: &Padding) -> (Position, f32) {
-    let text_position = Position {
-        x: button_position.x + padding.x,
-        y: button_position.y + padding.y
+pub fn calc_button_info_with_padding(button_position: &Position, button_size: &Size, padding: &Padding) -> (Position, Size) {
+    let new_position = Position {
+        x: button_position.x - padding.left,
+        y: button_position.y - padding.top
     };
 
-    let text_max_width = button_size.width - padding.x;
+    let new_size = Size {
+        width: button_size.width + padding.right,
+        height: button_size.height + padding.bottom
+    };
 
-    (text_position, text_max_width)
+    (new_position, new_size)
 }
 
 pub fn is_cursor_in_button(button_start: Position, button_size: Size, cursor_position: Position) -> bool {

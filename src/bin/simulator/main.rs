@@ -203,8 +203,9 @@ fn main() {
 
             render.display_button(ButtonProps {
                 position: Position { x: 200.0, y: 300.0 },
-                size: Size { width: 250.0, height: 100.0 },
-                padding: Padding { x: 10.0, y: 30.0 },
+                width: None,
+                height: None,
+                padding: Padding::new(10.0, 20.0, 20.0, 20.0),
                 text: format!("counter: {}", *counter.borrow()),
                 bg_color: Color::Red,
                 text_color: Color::White,
@@ -225,8 +226,9 @@ fn main() {
 
             render.display_button(ButtonProps {
                 position: Position { x: 500.0, y: 300.0 },
-                size: Size { width: 250.0, height: 100.0 },
-                padding: Padding { x: 10.0, y: 30.0 },
+                width: None,
+                height: None,
+                padding: Padding::new_padding_x_y(10.0, 10.0),
                 text: if *text_toggle.borrow() { String::from("Click me!") } else { String::from("test me!") },
                 bg_color: Color::Green,
                 text_color: Color::White,
