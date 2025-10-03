@@ -59,13 +59,16 @@ fn main() {
     let mut pressed_buttons = HashSet::new(); 
     
     let counter = Rc::new(RefCell::new(0));
+    let text_toggle = Rc::new(RefCell::new(false));
 
     while !window.should_close() {
-        let (window_width, window_height) = window.get_framebuffer_size();
+        let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
+        let (window_width, window_height) = window.get_size(); 
+
         let render_size = render.get_size();
 
-        if (window_width as f32 != render_size.width) || (window_height as f32 != render_size.height) {
-            render.resize(Size { width: window_width as f32, height: window_height as f32});
+        if (fb_window_width as f32 != render_size.width) || (fb_window_height as f32 != render_size.height) {
+            render.resize(Size { width: window_width as f32, height: window_height as f32}).expect("Unable to resize");
         }
 
         glfw.poll_events();
@@ -73,7 +76,10 @@ fn main() {
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::CursorPos(x, y) => {
-                    cursor_position = Position { x: x as f32, y: y as f32 };
+                    cursor_position = Position {
+                        x: x as f32 * (fb_window_width as f32 / window_width as f32),
+                        y: y as f32 * (fb_window_height as f32 / window_height as f32)
+                    };
                 }
 
                 WindowEvent::MouseButton(mouse_button, action, _) => {
@@ -196,8 +202,7 @@ fn main() {
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
             render.display_button(ButtonProps {
-                id: 1,
-                position: Position { x: 0.0, y: 0.0 },
+                position: Position { x: 200.0, y: 300.0 },
                 size: Size { width: 250.0, height: 100.0 },
                 padding: Padding { x: 10.0, y: 30.0 },
                 text: format!("counter: {}", *counter.borrow()),
@@ -208,12 +213,34 @@ fn main() {
                     .bg_color(Color::RGBA(255, 0, 0, 150))
                     .build(),
                 on_hover: Box::new(|| {}),
-                on_hover_release: Box::new(|| { print!("here hover release\n") }),
+                on_hover_release: Box::new(|| { print!("here hover release 1\n") }),
                 on_click: {
                     let counter = Rc::clone(&counter);
                     Box::new(move || {
                         let mut value = counter.borrow_mut();
                         *value += 1;
+                    })
+                },
+            }).expect("Unable to display button");
+
+            render.display_button(ButtonProps {
+                position: Position { x: 500.0, y: 300.0 },
+                size: Size { width: 250.0, height: 100.0 },
+                padding: Padding { x: 10.0, y: 30.0 },
+                text: if *text_toggle.borrow() { String::from("Click me!") } else { String::from("test me!") },
+                bg_color: Color::Green,
+                text_color: Color::White,
+                text_scale: 1.0,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                    .bg_color(Color::RGBA(0, 255, 0, 150))
+                    .build(),
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| { print!("here hover release 2\n") }),
+                on_click: {
+                    let text_toggle = Rc::clone(&text_toggle);
+                    Box::new(move || {
+                        let mut value = text_toggle.borrow_mut();
+                        *value = !*value;
                     })
                 },
             }).expect("Unable to display button");

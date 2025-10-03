@@ -126,7 +126,6 @@ impl MouseInteraction {
 }
 
 pub struct ButtonProps<'a> {
-    pub id: usize,
     pub position: Position,
     pub size: Size,
     pub padding: Padding,
@@ -214,12 +213,14 @@ impl<'a> Render<'a> {
         self.size
     }
 
-    pub fn resize(&mut self, new_size: Size) {
+    pub fn resize(&mut self, new_size: Size) -> Result<()> {
         self.size = new_size;
 
         unsafe {
             gl::Viewport(0, 0, self.size.width as i32, self.size.height as i32);
         }
+
+        Ok(())
     }
 
     pub fn fill_with_color(&mut self, color: Color) {
@@ -235,6 +236,7 @@ impl<'a> Render<'a> {
             _TextureVerticeData([1.0, -1.0], [1.0, 1.0]),
             _TextureVerticeData([-1.0, -1.0], [0.0, 1.0]),
         ];
+
         let background_indices: [i32; 6] = [0, 1, 2, 2, 3, 0];
 
         if self.background.image.is_none() {
@@ -660,7 +662,7 @@ impl<'a> Render<'a> {
     // width and height
     pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
         let mut button = Button::new(
-            button_props.id,
+            self.buttons.len() + 1,
             button_props.position,
             button_props.size,
             button_props.padding,
@@ -681,11 +683,7 @@ impl<'a> Render<'a> {
 
     pub fn handle_buttons_events(&mut self, real_cursor_position: Position) -> Result<()> {
         for button in self.buttons.iter_mut() {
-            print!("here inside the loop\n");
-
             if is_cursor_in_button(button.get_position(), button.get_size(), real_cursor_position) {
-                print!("here hovering\n");
-
                 self.was_hovering_on_button = (true, Some(button.get_id()));
                 button.set_is_hovering(true);
                 
@@ -699,15 +697,12 @@ impl<'a> Render<'a> {
                     }
                 }
             } else {
-                print!("here!!\n");
-
                 if self.was_hovering_on_button.0 && self.was_hovering_on_button.1 == Some(button.get_id()) {
-                    print!("was hovering!!\n");
-
                     button.on_hover_release_call();
+
+                    self.was_hovering_on_button = (false, None);
                 }
 
-                self.was_hovering_on_button = (false, None);
                 button.set_is_hovering(false);
             }
         }
