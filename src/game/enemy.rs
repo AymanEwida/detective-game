@@ -3,7 +3,7 @@ use std::{cmp::Ordering, collections::{BinaryHeap, HashMap, HashSet}, time::{Dur
 
 use queues::{IsQueue, Queue};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::{GridPosition, Position}}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::{GridPosition, Position}}};
 
 use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, TeleportDoor}, hide_place::HidePlace, level::{EndStartPositions, GameObject}, player::{Player, PlayerStatus}, wall::Wall};
 
@@ -508,6 +508,10 @@ impl<'a> Enemy<'a> {
         }
 
         (window_start_position, grid)
+    }
+
+    pub fn set_movement_grid(&mut self, movement_gird: Option<(Position, Vec<Vec<bool>>)>) {
+        self.movement_grid = movement_gird;
     }
 
     pub fn find_optimal_path(&self, target_position: Position, grid_start_position: Position, grid: &Vec<Vec<bool>>) -> Option<PathVec> {

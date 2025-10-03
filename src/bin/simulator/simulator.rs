@@ -1,4 +1,4 @@
-use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType, SearchingMode}, hide_place::HidePlace, level::{display_holding_item, AttachedType, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{get_attached_enemy_index, get_correct_start_position, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::{Render, Size}, vertice::Position}};
+use detective_game::{game::{bullet::{Bullet, BulletType}, camera::Camera, can::Can, character::Character, collectable::{DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, TeleportDoor}, enemy::{Enemy, EnemyMode, EnemyType, SearchingMode}, hide_place::HidePlace, level::{display_holding_item, AttachedType, GameObject, DEFAULT_SIZE}, player::{Player, PlayerStatus, ShootObject}, wall::Wall}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{get_attached_enemy_index, get_correct_start_position, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
@@ -21,7 +21,7 @@ impl std::fmt::Display for SimulationError {
 
 impl std::error::Error for SimulationError {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimulatorType {
     EnemyLogic,
     EnemySearchLogic,
@@ -29,6 +29,7 @@ pub enum SimulatorType {
     CameraLogic,
     DoorLogic,
     PlayerLogic,
+    Empty,
     Other
 }
 
@@ -52,6 +53,7 @@ pub struct Simulator<'a> {
     bullets: Queue<Bullet<'a>>,
     detecting_ranges: Vec<DetectRange>,
     status: SimulationStatus,
+    load_type: SimulatorType,
     notoriety_level: u64, 
 }
 
@@ -70,6 +72,7 @@ impl Simulator<'_> {
             bullets: Queue::new(),
             detecting_ranges: Vec::new(),
             status: SimulationStatus::NotDetermine,
+            load_type: SimulatorType::Other,
             notoriety_level: 0,
         }
     }
@@ -78,6 +81,10 @@ impl Simulator<'_> {
 impl<'a> Simulator<'a> {
     pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
         render.fill_with_image("assets/game/background.jpg")?;
+
+        if self.load_type == SimulatorType::Empty {
+            return Ok(());
+        }
         
         render.display_text(&format!("status: {}", player.get_status()), Position { x: 400.0, y: 500.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
         render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 10.0, y: 560.0 }, 1.0, None, Color::White).expect("Unable to display text"); 
@@ -480,6 +487,7 @@ impl<'a> Simulator<'a> {
 
     pub fn load_simulation(&mut self, simulator_type: SimulatorType) -> SimulationResult<()> {
         self.clear_all();
+        self.load_type = simulator_type.clone();
 
         match simulator_type {
             SimulatorType::EnemyLogic => {
@@ -610,7 +618,7 @@ impl<'a> Simulator<'a> {
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
             }
 
-            SimulatorType::Other => () 
+            SimulatorType::Other | SimulatorType::Empty => () 
         }
 
         Ok(())

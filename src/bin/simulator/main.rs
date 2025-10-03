@@ -1,14 +1,20 @@
 extern crate glfw;
 extern crate detective_game;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
+use detective_game::renderer::button::OnHoverStylesBuilder;
+use detective_game::renderer::color::Color;
+use detective_game::renderer::render::{ButtonProps, MouseInteraction};
+use detective_game::renderer::styles::Padding;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::game::{character::Direction, player::Player};
-use detective_game::renderer::{render::{Render, Size}, vertice::Position};
+use detective_game::renderer::{render::Render, styles::Size, vertice::Position};
 use simulator::{SimulationStatus, Simulator, SimulatorType};
 
 pub mod simulator;
@@ -40,7 +46,7 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
-    simulator.load_simulation(SimulatorType::EnemySearchLogic).expect("Unable to load simulation");
+    simulator.load_simulation(SimulatorType::Empty).expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
 
@@ -51,13 +57,17 @@ fn main() {
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
     let mut pressed_buttons = HashSet::new(); 
+    
+    let counter = Rc::new(RefCell::new(0));
+    let text_toggle = Rc::new(RefCell::new(false));
 
     while !window.should_close() {
-        
-        let (window_width, window_height) = window.get_framebuffer_size();
+        let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
+        let (window_width, window_height) = window.get_size(); 
+
         let render_size = render.get_size();
 
-        if (window_width as f32 != render_size.width) || (window_height as f32 != render_size.height) {
+        if (fb_window_width as f32 != render_size.width) || (fb_window_height as f32 != render_size.height) {
             render.resize(Size { width: window_width as f32, height: window_height as f32});
         }
 
@@ -66,11 +76,15 @@ fn main() {
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::CursorPos(x, y) => {
-                    cursor_position = Position { x: x as f32, y: y as f32 };
+                    cursor_position = Position {
+                        x: x as f32 * (fb_window_width as f32 / window_width as f32),
+                        y: y as f32 * (fb_window_height as f32 / window_height as f32)
+                    };
                 }
 
                 WindowEvent::MouseButton(mouse_button, action, _) => {
                     player.set_mouse_interaction(Some(PlayerMouseInteraction::new(mouse_button, action, cursor_position)));
+                    render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, mouse_button, action)));
 
                     match action {
                         Action::Press => {
@@ -172,6 +186,7 @@ fn main() {
 
         for pressed_button in pressed_buttons.iter() {
             player.set_mouse_interaction(Some(PlayerMouseInteraction::new(*pressed_button, Action::Press, cursor_position)));
+            render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, *pressed_button, Action::Press)));
         }
 
         let now = Instant::now();
@@ -186,12 +201,61 @@ fn main() {
 
             simulator.draw(&mut player, &mut render).expect("Unable to draw player");
 
+            render.display_button(ButtonProps {
+                position: Position { x: 200.0, y: 300.0 },
+                width: None,
+                height: None,
+                padding: Padding::new(10.0, 20.0, 20.0, 20.0),
+                text: format!("counter: {}", *counter.borrow()),
+                bg_color: Color::Red,
+                text_color: Color::White,
+                text_scale: 1.0,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                    .bg_color(Color::RGBA(255, 0, 0, 150))
+                    .build(),
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| { print!("here hover release 1\n") }),
+                on_click: {
+                    let counter = Rc::clone(&counter);
+                    Box::new(move || {
+                        let mut value = counter.borrow_mut();
+                        *value += 1;
+                    })
+                },
+            }).expect("Unable to display button");
+
+            render.display_button(ButtonProps {
+                position: Position { x: 500.0, y: 300.0 },
+                width: None,
+                height: None,
+                padding: Padding::new_padding_x_y(10.0, 10.0),
+                text: if *text_toggle.borrow() { String::from("Click me!") } else { String::from("test me!") },
+                bg_color: Color::Green,
+                text_color: Color::White,
+                text_scale: 1.0,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                    .bg_color(Color::RGBA(0, 255, 0, 150))
+                    .build(),
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| { print!("here hover release 2\n") }),
+                on_click: {
+                    let text_toggle = Rc::clone(&text_toggle);
+                    Box::new(move || {
+                        let mut value = text_toggle.borrow_mut();
+                        *value = !*value;
+                    })
+                },
+            }).expect("Unable to display button");
+
+            render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
+
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();
 
             player.set_interaction(None);
             player.set_mouse_interaction(None);
+            render.set_mouse_interaction(None);
         }
     }
 }

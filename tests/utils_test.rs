@@ -1,4 +1,4 @@
-use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}}, library::{constants::HALF_PI, utils::*}, renderer::{render::Size, vertice::Position}};
+use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}}, library::{constants::HALF_PI, utils::*}, renderer::{styles::{Padding, Size}, vertice::Position}};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -685,4 +685,58 @@ fn test_is_in_circle_out() {
 
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn test_calc_button_info_with_padding_all_0() {
+    let input_position = Position { x: 10.0, y: 60.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding::default();
+
+    let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (input_position, input_size);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_button_info_with_padding_x_0() {
+    let input_position = Position { x: 10.0, y: 20.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding::new_padding_x_y(0.0, 10.0);
+
+    let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (Position { y: 10.0, ..input_position }, Size { height: 60.0, ..input_size });
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_button_info_with_padding_y_0() {
+    let input_position = Position { x: 20.0, y: 10.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding::new_padding_x_y(10.0, 0.0);
+
+    let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (Position { x: 10.0, ..input_position }, Size { width: 110.0, ..input_size });
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_calc_button_info_with_padding_none_0() {
+    let input_position = Position { x: 100.0, y: 100.0 };
+    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_padding = Padding {
+        left: 30.0,
+        right: 20.0,
+        top: 10.0,
+        bottom: 15.0
+    };
+
+    let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
+    let expected = (Position { x: 70.0, y: 90.0 }, Size { width: 120.0, height: 65.0 });
+
+    assert_eq!(actual, expected);
+}
+
 

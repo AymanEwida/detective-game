@@ -1,30 +1,12 @@
-use std::{collections::HashMap, ops::Div, path::Path, ptr};
+use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
 use glam::{Mat4, Vec3};
+use glfw::{Action, MouseButton};
 
-use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, length_of_line}}, set_attribute};
+use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, is_cursor_in_button, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, color::{Color, ColorType}, text::{calculate_word_width, generated_characters_bitmap}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, text::Character, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Size<T=f32> {
-    pub width: T,
-    pub height: T
-}
-
-impl Div<f32> for Size {
-    type Output = Self;
-    
-    fn div(self, rhs: f32) -> Self::Output {
-        assert!(rhs != 0.0, "can not divide by zero!");
-
-        Self {
-            width: self.width / rhs,
-            height: self.width / rhs,
-        }
-    }
-}
+use super::{buffer::Buffer, button::{Button, OnHoverStyles}, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_text_size, calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 struct Object<'a> {
@@ -127,6 +109,37 @@ impl Default for Background {
     }
 }
 
+pub struct MouseInteraction {
+    pub cursor_position: Position,
+    pub mouse_button: MouseButton,
+    pub action: Action
+}
+
+impl MouseInteraction {
+    pub fn new(cursor_position: Position, mouse_button: MouseButton, action: Action) -> Self {
+        Self {
+            cursor_position,
+            mouse_button,
+            action
+        }
+    }
+}
+
+pub struct ButtonProps<'a> {
+    pub position: Position,
+    pub width: Option<f32>,
+    pub height: Option<f32>,
+    pub padding: Padding,
+    pub bg_color: Color,
+    pub text: String,
+    pub text_scale: f32,
+    pub text_color: Color,
+    pub on_hover_styles: OnHoverStyles,
+    pub on_hover: Box<dyn FnMut() + 'a>,
+    pub on_hover_release: Box<dyn FnMut() + 'a>,
+    pub on_click: Box<dyn FnMut() + 'a>
+}
+
 pub struct Render<'a> {
     size: Size,
     vertices_program: Program,
@@ -138,7 +151,10 @@ pub struct Render<'a> {
     characters: HashMap<char, Character>,
     images: HashMap<&'a str, Texture>,
     objects: Vec<Object<'a>>,
-    renderable_characters: Vec<RenderableCharacter>
+    renderable_characters: Vec<RenderableCharacter>,
+    buttons: Vec<Button<'a>>,
+    mouse_interaction: Option<MouseInteraction>,
+    was_hovering_on_button: (bool, Option<usize>),
 }
 
 impl Render<'_> {
@@ -185,6 +201,9 @@ impl Render<'_> {
                 images: HashMap::new(),
                 objects: Vec::new(),
                 renderable_characters: Vec::new(),
+                buttons: Vec::new(),
+                mouse_interaction: None,
+                was_hovering_on_button: (false, None),
             })
         }
     }
@@ -216,6 +235,7 @@ impl<'a> Render<'a> {
             _TextureVerticeData([1.0, -1.0], [1.0, 1.0]),
             _TextureVerticeData([-1.0, -1.0], [0.0, 1.0]),
         ];
+
         let background_indices: [i32; 6] = [0, 1, 2, 2, 3, 0];
 
         if self.background.image.is_none() {
@@ -253,6 +273,10 @@ impl<'a> Render<'a> {
         }
 
         Ok(())
+    }
+
+    pub fn set_mouse_interaction(&mut self, interaction: Option<MouseInteraction>) {
+        self.mouse_interaction = interaction;
     }
 
     pub fn draw_triangle(&mut self, first_point: Vertice, second_point: Vertice, third_point: Vertice, scale: Option<f32>, translate: Option<Position>, rotate: Option<f32>) {
@@ -509,11 +533,19 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, max_width: Option<f32>, color: Color) -> Result<()> {
+    pub fn display_text(&mut self, text: &str, start_position: Position, scale: f32, text_max_width: Option<f32>, color: Color) -> Result<Size> {
         assert!(scale > 0.0, "scale must be a positive number");
         
+        let mut min_y = start_position.y;
+
         let start_position = convert_coordinates(start_position, &self.size);
-        let max_width = (max_width.unwrap_or(0.0) * 2.0) / self.size.width;
+
+        let mut text_size = Size { width: 0.0, height: 0.0 };
+        if let Some(width) = text_max_width {
+            text_size.width = width;
+        }
+
+        let max_width = (text_max_width.unwrap_or(0.0) * 2.0) / self.size.width;
 
         let (r, g, b, ..) = color.get_color_in_f32();
 
@@ -522,6 +554,7 @@ impl<'a> Render<'a> {
         let mut line_height = 0.0;
 
         for line in lines {
+            let mut line_width = 0.0;
             let mut width_offset = 0.0;
             let mut max_height = 0.0;
             let mut prev_height = 0.0;
@@ -531,6 +564,7 @@ impl<'a> Render<'a> {
             for (idx, ch) in line.chars().enumerate() {
                 if ch == ' ' {
                     width_offset += 0.03 * scale;
+                    line_width += (0.03 * self.size.width * scale) / 2.0;
                     is_new_word = true;
                     
                     continue;
@@ -602,6 +636,16 @@ impl<'a> Render<'a> {
 
                 let character_start_position = Position { x: start_position.x + width_offset, y: start_position.y - line_height - height_offset - offset_y };
 
+                let characher_start_y = (character_start_position.y * self.size.height) / 2.0;
+                if min_y > characher_start_y {
+                    min_y = characher_start_y;
+                }
+
+                let character_end_y = characher_start_y + character.size.height;
+                if text_size.height < (character_end_y - min_y) {
+                    text_size.height = character_end_y - min_y;
+                }
+
                 let vertices_data = [
                     _VerticeData(character_start_position.to_position_array(), [0.0, 0.0, 0.0, 0.0]),
                     _VerticeData(character_start_position.get_position_from_size(&Size { width: character_size.width, height: 0.0 }).to_position_array(), [1.0, 0.0, 0.0, 0.0]),
@@ -613,30 +657,98 @@ impl<'a> Render<'a> {
 
                 width_offset += ((character.size.width as f32 + character.offset.x) * scale * 2.0) / self.size.width;
                 prev_height = character_size.height;
+
+                line_width += (character.size.width + character.offset.x) * scale;
                 
                 if is_new_word {
                     is_new_word = false;
                 }
             }
 
+            if text_max_width.is_none() && text_size.width < line_width {
+                text_size.width = line_width;
+            }
+
             line_height += max_height + 0.08;
+        }
+
+        Ok(text_size)
+    }
+
+    pub fn draw_equidistant_from_angle_and_length(&mut self, apex: Position, angle: f32, line_length: f32, angle_direction: Direction, color: Color) {
+        let (first_point, second_point, apex) = calc_equidistant_points(apex, angle, line_length, angle_direction);
+
+        self.draw_line(apex, first_point, color, None, None, None);
+        self.draw_line(apex, second_point, color, None, None, None);
+        self.draw_line(first_point, second_point, color, None, None, None); 
+    }
+
+    pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
+        let mut button = Button::new(
+            self.buttons.len() + 1,
+            button_props.position,
+            button_props.width,
+            button_props.height,
+            calculate_text_size(&self.characters, &button_props.text, button_props.position, button_props.width, button_props.text_scale, self.size),
+            button_props.padding,
+            button_props.bg_color,
+            button_props.text,
+            button_props.text_scale,
+            button_props.text_color,
+            button_props.on_hover_styles
+        );
+        button.on_hover(button_props.on_hover);
+        button.on_hover_release(button_props.on_hover_release);
+        button.on_click(button_props.on_click);
+        
+        self.buttons.push(button);
+
+        Ok(())
+    }
+
+    pub fn handle_buttons_events(&mut self, real_cursor_position: Position) -> Result<()> {
+        for button in self.buttons.iter_mut() {
+            if is_cursor_in_button(button.get_position_with_padding(), button.get_size(), real_cursor_position) {
+                self.was_hovering_on_button = (true, Some(button.get_id()));
+                button.set_is_hovering(true);
+                
+                button.hover_call();
+
+                if let Some(mouse_interaction) = &self.mouse_interaction {
+                    if mouse_interaction.mouse_button == MouseButton::Button1 {
+                        if mouse_interaction.action == Action::Release {
+                            button.click_call();
+                        }
+                    }
+                }
+            } else {
+                if self.was_hovering_on_button.0 && self.was_hovering_on_button.1 == Some(button.get_id()) {
+                    button.on_hover_release_call();
+
+                    self.was_hovering_on_button = (false, None);
+                }
+
+                button.set_is_hovering(false);
+            }
+        }
+ 
+       for i in 0..self.buttons.len() {
+            let button_ptr = &mut self.buttons[i] as *const Button;
+
+            unsafe {
+                let button = &*button_ptr;
+
+                button.draw(self)?;
+            }
         }
 
         Ok(())
     }
 
-    pub fn draw_equidistant_from_angle_and_length(&mut self, apex: Position, angle: f32, line_length: f32, angle_direction: Direction) {
-        let (first_point, second_point, apex) = calc_equidistant_points(apex, angle, line_length, angle_direction);
-
-        self.draw_line(apex, first_point, Color::Red, None, None, None);
-        self.draw_line(apex, second_point, Color::Red, None, None, None);
-        self.draw_line(first_point, second_point, Color::Red, None, None, None); 
-    }
-
     pub fn render(&mut self) -> Result<()> {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            
+
             if let Some(background_image) = &self.background.image {
                 self.texture_program.apply();
                 background_image.vertex_array.bind();
@@ -654,32 +766,6 @@ impl<'a> Render<'a> {
             let (red, green, blue, alpha) = self.background.color;
 
             gl::ClearColor(red, green, blue, alpha);
-
-            for randerable_character in self.renderable_characters.iter() {
-                assert!(self.characters.get(&randerable_character.character) != None, "character must exist");
-
-                self.texture_program.apply();
-                self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
-                self.texture_program.set_bool_uniform("isText", 1)?;
-                self.texture_program.set_color_data_uniform("textColor", randerable_character.color)?;
-
-                self.vertex_array.bind();
-
-                self.vertex_buffer.set_data(&randerable_character.vertices, gl::DYNAMIC_DRAW);
-                self.index_buffer.set_data(&randerable_character.indices, gl::DYNAMIC_DRAW);
-
-                let character = self.characters.get(&randerable_character.character).unwrap();
-
-                self.texture_program.set_int_uniform("texture0", 0)?;
-                character.texture.activate(gl::TEXTURE0);
-
-                gl::DrawElements(gl::TRIANGLES, randerable_character.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
-                
-                self.vertex_buffer.unbind();
-                self.index_buffer.unbind();
-                Texture::unbind_all();
-                VertexArray::unbind();
-            }
 
             for object in self.objects.iter() {
                 self.vertex_array.bind();
@@ -715,10 +801,39 @@ impl<'a> Render<'a> {
                 Texture::unbind_all();
                 VertexArray::unbind();
             }
+
+            for randerable_character in self.renderable_characters.iter() {
+                assert!(self.characters.get(&randerable_character.character) != None, "character must exist");
+
+                self.texture_program.apply();
+                self.texture_program.set_transform_matrix_uniform(Mat4::IDENTITY)?;
+                self.texture_program.set_bool_uniform("isText", 1)?;
+                self.texture_program.set_color_data_uniform("textColor", randerable_character.color)?;
+
+                self.vertex_array.bind();
+
+                self.vertex_buffer.set_data(&randerable_character.vertices, gl::DYNAMIC_DRAW);
+                self.index_buffer.set_data(&randerable_character.indices, gl::DYNAMIC_DRAW);
+
+                let character = self.characters.get(&randerable_character.character).unwrap();
+
+                self.texture_program.set_int_uniform("texture0", 0)?;
+                character.texture.activate(gl::TEXTURE0);
+
+                gl::DrawElements(gl::TRIANGLES, randerable_character.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+
+                self.texture_program.set_bool_uniform("isText", 0)?;
+                
+                self.vertex_buffer.unbind();
+                self.index_buffer.unbind();
+                Texture::unbind_all();
+                VertexArray::unbind();
+            }
         }
 
         self.objects.clear();
         self.renderable_characters.clear();
+        self.buttons.clear();
         
         Ok(())
     }    

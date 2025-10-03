@@ -2,7 +2,7 @@ use std::{hash::Hash, ops::{Add, Mul, Sub}};
 
 use crate::library::utils::{convert_coordinates, length_of_line};
 
-use super::{color::Color, render::Size};
+use super::{color::Color, styles::Size};
 
 pub type PositionType = [f32; 2];
 

@@ -4,7 +4,7 @@ use glam::bool;
 use queues::{IsQueue, Queue};
 use rand::Rng;
 
-use crate::{game::{character::{Direction, DEFAULT_CHARACTER_SIZE}, door::Door, enemy::Enemy, level::{AttachedType, EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, library::constants::DEFAULT_MOVEMENT_VALUE, renderer::{render::Size, vertice::{GridPosition, Position}}};
+use crate::{game::{character::{Direction, DEFAULT_CHARACTER_SIZE}, door::Door, enemy::Enemy, level::{AttachedType, EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, library::constants::DEFAULT_MOVEMENT_VALUE, renderer::{styles::{Padding, Size}, vertice::{GridPosition, Position}}};
 
 use super::constants::GAME_ASSETS_DIR;
 
@@ -618,5 +618,26 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
     }
 
     position
+}
+
+pub fn calc_button_info_with_padding(button_position: &Position, button_size: &Size, padding: &Padding) -> (Position, Size) {
+    let new_position = Position {
+        x: button_position.x - padding.left,
+        y: button_position.y - padding.top
+    };
+
+    let new_size = Size {
+        width: button_size.width + padding.right,
+        height: button_size.height + padding.bottom
+    };
+
+    (new_position, new_size)
+}
+
+pub fn is_cursor_in_button(button_start: Position, button_size: Size, cursor_position: Position) -> bool {
+    let button_end = button_start + button_size;
+
+    cursor_position.x >= button_start.x && cursor_position.x <= button_end.x
+        && cursor_position.y >= button_start.y && cursor_position.y <= button_end.y
 }
 

@@ -1,4 +1,4 @@
-use crate::renderer::{error::Result, render::{Render, Size}, vertice::Position};
+use crate::renderer::{error::Result, render::Render, styles::Size, vertice::Position};
 
 use super::{camera::Camera, level::GameObject, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
 

@@ -1,6 +1,6 @@
 pub type ColorType = (f32, f32, f32, f32);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Color {
     White,
     Black,
