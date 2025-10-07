@@ -6,7 +6,7 @@ use glfw::{Action, MouseButton};
 
 use crate::{game::character::Direction, library::{constants::TWICE_PI, utils::{absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point, calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle, convert_angle_to_radians, convert_coordinates, convert_size, create_translate, is_cursor_in_button, length_of_line}}, set_attribute};
 
-use super::{buffer::Buffer, button::{Button, OnHoverStyles}, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_text_size, calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
+use super::{buffer::Buffer, button::{Button, ButtonAction, OnHoverStyles}, color::{Color, ColorType}, error::Result, program::Program, shader::Shader, source_code::{TEXTURE_FRAGMENT_SHADER_SOURCE, TEXTURE_VERTEX_SHADER_SOURCE, VERTICES_FRAGMENT_SHADER_SOURCE, VERTICES_VERTEX_SHADER_SOURCE}, styles::{Padding, Size}, text::{calculate_text_size, calculate_word_width, generated_characters_bitmap, Character}, texture::Texture, vertex_array::VertexArray, vertice::{Position, Vertice, _TextureVerticeData, _VerticeData}};
 
 #[derive(Debug, PartialEq)]
 struct Object<'a> {
@@ -135,6 +135,7 @@ pub struct ButtonProps<'a> {
     pub text_scale: f32,
     pub text_color: Color,
     pub on_hover_styles: OnHoverStyles,
+    pub click_action: ButtonAction,
     pub on_hover: Box<dyn FnMut() + 'a>,
     pub on_hover_release: Box<dyn FnMut() + 'a>,
     pub on_click: Box<dyn FnMut() + 'a>
@@ -155,9 +156,9 @@ pub struct Render<'a> {
     buttons: Vec<Button<'a>>,
     mouse_interaction: Option<MouseInteraction>,
     was_hovering_on_button: (bool, Option<usize>),
+    button_click_action: ButtonAction
 }
 
-// TODO: build a function to make buttons
 impl Render<'_> {
     pub fn new(size: Size) -> Result<Self> {
         unsafe {
@@ -205,6 +206,7 @@ impl Render<'_> {
                 buttons: Vec::new(),
                 mouse_interaction: None,
                 was_hovering_on_button: (false, None),
+                button_click_action: ButtonAction::None,
             })
         }
     }
@@ -696,7 +698,8 @@ impl<'a> Render<'a> {
             button_props.text,
             button_props.text_scale,
             button_props.text_color,
-            button_props.on_hover_styles
+            button_props.on_hover_styles,
+            button_props.click_action
         );
         button.on_hover(button_props.on_hover);
         button.on_hover_release(button_props.on_hover_release);
@@ -716,6 +719,8 @@ impl<'a> Render<'a> {
                 if let Some(mouse_interaction) = &self.mouse_interaction {
                     if mouse_interaction.mouse_button == MouseButton::Button1 {
                         if mouse_interaction.action == Action::Release {
+                            self.button_click_action = button.get_click_action();
+
                             button.click_call();
                         }
                     }
@@ -742,6 +747,10 @@ impl<'a> Render<'a> {
         }
 
         Ok(())
+    }
+
+    pub fn get_button_click_action(&self) -> ButtonAction {
+        self.button_click_action
     }
 
     pub fn render(&mut self) -> Result<()> {
@@ -833,6 +842,7 @@ impl<'a> Render<'a> {
         self.objects.clear();
         self.renderable_characters.clear();
         self.buttons.clear();
+        self.button_click_action = ButtonAction::None;
         
         Ok(())
     }    

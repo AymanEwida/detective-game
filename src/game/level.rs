@@ -1,7 +1,7 @@
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
-use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::OnHoverStylesBuilder, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
+use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::{ButtonAction, OnHoverStylesBuilder}, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
 
 use super::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, store::StoreItem, wall::Wall};
 
@@ -58,7 +58,6 @@ pub struct GameLevel<'a> {
     notoriety_level: u64,
     status: LevelStatus,
     add_amount_after_lost: usize,
-    player_start_info: (Position, bool)
 }
 
 impl Default for GameLevel<'_> {
@@ -89,7 +88,6 @@ impl Default for GameLevel<'_> {
             notoriety_level: 0,
             status: LevelStatus::NotDetermine,
             add_amount_after_lost: 5,
-            player_start_info: (Position { x: 0.0, y: 0.0 }, false)
         }
     }
 }
@@ -126,7 +124,6 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], render: &mut Render<'a>) -> Result<()> {
-        // self.status = LevelStatus::Lose; // TODO: remove this later
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
         } else if self.get_status() == &LevelStatus::Lose {
@@ -143,9 +140,7 @@ impl<'a> GameLevel<'a> {
                 on_hover_styles: OnHoverStylesBuilder::new()
                                 .bg_color(Color::RGBA(0, 255, 0, 150))
                                 .build(),
-                // on_click: Box::new(|| {
-                //     self.load_level(player).expect(&format!("Unable to load level: {}", self.current_level));
-                // }),
+                click_action: ButtonAction::RetryLevel,
                 on_click: Box::new(|| {}),
                 on_hover: Box::new(|| {}),
                 on_hover_release: Box::new(|| {})
@@ -163,6 +158,7 @@ impl<'a> GameLevel<'a> {
                 on_hover_styles: OnHoverStylesBuilder::new()
                                 .bg_color(Color::RGBA(0, 255, 0, 150))
                                 .build(),
+                click_action: ButtonAction::Exit,
                 on_click: Box::new(|| {}),
                 on_hover: Box::new(|| {}),
                 on_hover_release: Box::new(|| {})
@@ -181,12 +177,12 @@ impl<'a> GameLevel<'a> {
             for (idx, store_item) in store_items.iter_mut().enumerate() {
                 render.draw_rectangle(Position { x: 50.0 + (idx as f32 * 200.0), y: 600.0 }, Size { width: 500.0, height: 600.0 }, Color::White, None, None, None);
                 
-                render.load_image(store_item.get_image_path(), Position { x: 60.0 + (idx as f32 * 200.0), y: 610.0 }, Size { width: 490.0, height: 190.0 }, false, None, None, None, None).expect("Unable to load image");
-                render.display_text(store_item.get_title(), Position { x: 200.0 + (idx as f32 * 200.0), y: 800.0 }, 0.7, Some(100.0), Color::Black).expect("Unable to display text");
-                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * 200.0), y: 850.0 }, 0.5, Some(490.0), Color::Black).expect("Unable to display text");
+                render.load_image(store_item.get_image_path(), Position { x: 60.0 + (idx as f32 * 500.0), y: 610.0 }, Size { width: 490.0, height: 190.0 }, false, None, None, None, None).expect("Unable to load image");
+                render.display_text(store_item.get_title(), Position { x: 200.0 + (idx as f32 * 500.0), y: 800.0 }, 0.7, Some(100.0), Color::Black).expect("Unable to display text");
+                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * 500.0), y: 850.0 }, 0.5, Some(490.0), Color::Black).expect("Unable to display text");
 
                 render.display_button(ButtonProps {
-                    position: Position { x: 80.0, y: 1150.0 },
+                    position: Position { x: 80.0 + (idx as f32 * 500.0), y: 1150.0 },
                     bg_color: Color::Blue,
                     width: None,
                     height: None, 
@@ -197,13 +193,18 @@ impl<'a> GameLevel<'a> {
                     on_hover_styles: OnHoverStylesBuilder::new()
                         .bg_color(Color::RGBA(0, 0, 255, 150))
                         .build(),
-                    // on_click: Box::new(|| {
-                    // store_item.buy(player);
-                    // }),
+                    click_action: ButtonAction::BuyStoreItem,
                     on_click: Box::new(|| {}),
                     on_hover: Box::new(|| {}),
                     on_hover_release: Box::new(|| {})
                 });
+
+                if store_item.get_error_message() != "" {
+                    render.display_text(store_item.get_error_message(), Position { x: 60.0 + (idx as f32 * 500.0), y: 1230.0 }, 0.6, None, Color::Red).expect("Unable to display text");
+                }
+
+                render.load_image("assets/game/coin.png", Position { x: 430.0 + (idx as f32 * 500.0), y: 1140.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+                render.display_text(&format!("{}", store_item.get_price()), Position { x: 480.0 + (idx as f32 * 500.0), y: 1150.0 }, 0.6, None, Color::Black)?;
             }
 
             render.display_button(ButtonProps {
@@ -218,6 +219,7 @@ impl<'a> GameLevel<'a> {
                 on_hover_styles: OnHoverStylesBuilder::new()
                                 .bg_color(Color::RGBA(0, 255, 0, 150))
                                 .build(),
+                click_action: ButtonAction::NextLevel,
                 on_click: Box::new(|| {}),
                 on_hover: Box::new(|| {}),
                 on_hover_release: Box::new(|| {})
@@ -376,14 +378,17 @@ impl<'a> GameLevel<'a> {
                 coin.draw(render)?;
             }
 
-            // Exit Door Logic (TODO: mabye add interaction with the exit door)
             assert!(self.exit_door != None, "exit_door must not be null");
 
             let exit_door = self.exit_door.as_ref().unwrap();
             exit_door.draw(render)?;
 
             if player.get_status() == &PlayerStatus::NotHidden && player.collide(exit_door) {
-                self.status = LevelStatus::Win;
+                if let Some(player_interaction) = player.get_interaction() {
+                    if player_interaction.key() == &Key::Space && player_interaction.action() == &Action::Press {
+                        self.status = LevelStatus::Win;
+                    }
+                }
             }
 
             for hide_place in self.hide_places.iter() {
@@ -836,8 +841,7 @@ impl<'a> GameLevel<'a> {
         
         match self.current_level {
             1 => {
-                self.player_start_info = (Position { x: 90.0, y: 180.0 }, true);
-                player.move_to(self.player_start_info.0, self.player_start_info.1);
+                player.move_to(Position { x: 90.0, y: 180.0 }, true);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 140.0, y: 10.0 }, "18d/0 13l/3000 13r/0 18u/0 6r/3000 6l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 100.0, y: 295.0 }, "9l/6000 20r/3000 11l/0", false));
@@ -1038,8 +1042,7 @@ impl<'a> GameLevel<'a> {
             },
 
             2 => {
-                self.player_start_info = (Position { x: 1780.0, y: 790.0 }, false);
-                player.move_to(self.player_start_info.0, self.player_start_info.1);
+                player.move_to(Position { x: 1780.0, y: 790.0 }, false);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 620.0 }, "52r/3500 52l/4000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 620.0 }, "11u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0", false));
@@ -1276,8 +1279,7 @@ impl<'a> GameLevel<'a> {
             },
 
             3 => {
-                self.player_start_info = (Position { x: 1790.0, y: 170.0 }, false);
-                player.move_to(self.player_start_info.0, self.player_start_info.1);
+                player.move_to(Position { x: 1790.0, y: 170.0 }, false);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1525.0, y: 0.0 }, "13d/0 15r/0 1d/3500 1u/0 15l/0 13u/0 5r/6000 5l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1680.0, y: 480.0 }, "25u/5500 25d/0 2l/3500 2r/0", false));
@@ -1539,8 +1541,7 @@ impl<'a> GameLevel<'a> {
             },
 
             4 => {
-                self.player_start_info = (Position { x: 90.0, y: 790.0 }, true);
-                player.move_to(self.player_start_info.0, self.player_start_info.1);
+                player.move_to(Position { x: 90.0, y: 790.0 }, true);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 132.0, y: 615.0 }, "34r/4000 34l/6000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 587.0, y: 615.0 }, "29r/4500 29l/6500", false));
@@ -1796,8 +1797,7 @@ impl<'a> GameLevel<'a> {
             },
 
             5 => {
-                self.player_start_info = (Position { x: 930.0, y: 460.0 }, false);
-                player.move_to(self.player_start_info.0, self.player_start_info.1);
+                player.move_to(Position { x: 930.0, y: 460.0 }, false);
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 883.0, y: 615.0 }, "3l/0 21u/5500 21d/0 3r/3500", true));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 615.0 }, "27r/4000 27l/6000", false));

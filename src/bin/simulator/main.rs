@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
-use detective_game::renderer::button::OnHoverStylesBuilder;
+use detective_game::renderer::button::{ButtonAction, OnHoverStylesBuilder};
 use detective_game::renderer::color::Color;
 use detective_game::renderer::render::{ButtonProps, MouseInteraction};
 use detective_game::renderer::styles::Padding;
@@ -46,7 +46,8 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
-    simulator.load_simulation(SimulatorType::Empty).expect("Unable to load simulation");
+    let simulator_type = SimulatorType::Empty;
+    simulator.load_simulation(simulator_type.clone()).expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
 
@@ -213,6 +214,7 @@ fn main() {
                 on_hover_styles: OnHoverStylesBuilder::new()
                     .bg_color(Color::RGBA(255, 0, 0, 150))
                     .build(),
+                click_action: ButtonAction::None,
                 on_hover: Box::new(|| {}),
                 on_hover_release: Box::new(|| { print!("here hover release 1\n") }),
                 on_click: {
@@ -236,6 +238,7 @@ fn main() {
                 on_hover_styles: OnHoverStylesBuilder::new()
                     .bg_color(Color::RGBA(0, 255, 0, 150))
                     .build(),
+                click_action: ButtonAction::None,
                 on_hover: Box::new(|| {}),
                 on_hover_release: Box::new(|| { print!("here hover release 2\n") }),
                 on_click: {
@@ -248,6 +251,17 @@ fn main() {
             });
 
             render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
+            match render.get_button_click_action() {
+                ButtonAction::RetryLevel => {
+                    simulator.load_simulation(simulator_type.clone()).expect("Unable to load level");
+                },
+                
+                ButtonAction::Exit => {
+                    window.set_should_close(true);
+                },
+
+                ButtonAction::None | ButtonAction::NextLevel | ButtonAction::BuyStoreItem => ()
+            }
 
             render.render().expect("Uable to render object on window");
             

@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use detective_game::game::level::{GameObject, LevelStatus};
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
 use detective_game::game::store::StoreItem;
+use detective_game::renderer::button::ButtonAction;
 use detective_game::renderer::render::MouseInteraction;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
@@ -112,7 +113,7 @@ fn main() {
                         Key::Escape => {
                             match action {
                                 Action::Release => {
-                                    window.set_should_close(true);
+                                    // TODO: Add here menu
                                 },
                                 _ => ()
                             }
@@ -208,6 +209,26 @@ fn main() {
             level.draw(&mut player, &mut store_items, &mut render).expect("Unable to draw level");
             
             render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
+            match render.get_button_click_action() {
+                ButtonAction::RetryLevel => {
+                    level.load_level(&mut player).expect("Unable to load level");
+                },
+
+                ButtonAction::Exit => {
+                    window.set_should_close(true);
+                },
+
+                ButtonAction::NextLevel => {
+                    level.next_level();
+                    level.load_level(&mut player).expect("Unable to load level");
+                },
+
+                ButtonAction::BuyStoreItem => {
+                    store_items[0].buy(&mut player);
+                }
+
+                ButtonAction::None => ()
+            }
 
             render.render().expect("Uable to render object on window");
             

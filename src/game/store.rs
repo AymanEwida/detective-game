@@ -40,16 +40,18 @@ impl<'a> StoreItem<'a> {
         self.error_message = new_msg;
     }
 
-    pub fn buy(&mut self, player: &mut Player<'_>) -> Result<(), String> {
+    pub fn buy(&mut self, player: &mut Player<'_>) {
         if (player.get_coins() as usize) < self.get_price() {
-            return Err(String::from("You do not have coins"));
+            self.error_message = String::from("You do not have enough coins");
+            
+            return;
         }
+
+        self.error_message = String::new();
 
         (self.buy_func)(player);
 
         player.decrease_coins(self.get_price() as u32);
-
-        Ok(())
     }
 }
 
