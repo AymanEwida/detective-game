@@ -684,7 +684,7 @@ impl<'a> Render<'a> {
         self.draw_line(first_point, second_point, color, None, None, None); 
     }
 
-    pub fn display_button(&mut self, button_props: ButtonProps<'a>) -> Result<()> {
+    pub fn display_button(&mut self, button_props: ButtonProps<'a>) {
         let mut button = Button::new(
             self.buttons.len() + 1,
             button_props.position,
@@ -703,8 +703,6 @@ impl<'a> Render<'a> {
         button.on_click(button_props.on_click);
         
         self.buttons.push(button);
-
-        Ok(())
     }
 
     pub fn handle_buttons_events(&mut self, real_cursor_position: Position) -> Result<()> {

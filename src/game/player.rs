@@ -356,6 +356,14 @@ impl<'a> Player<'a> {
         self.coins = self.coins + 1;
     }
 
+    pub fn decrease_coins(&mut self, num: u32) {
+        if self.get_coins() <= num {
+            self.coins = 0;
+        } else {
+            self.coins = self.coins - num;
+        }
+    }
+
     pub fn get_movement_value(&self) -> f32 {
         self.movement_value
     }

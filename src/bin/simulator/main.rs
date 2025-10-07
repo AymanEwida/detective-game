@@ -222,7 +222,7 @@ fn main() {
                         *value += 1;
                     })
                 },
-            }).expect("Unable to display button");
+            });
 
             render.display_button(ButtonProps {
                 position: Position { x: 500.0, y: 300.0 },
@@ -245,7 +245,7 @@ fn main() {
                         *value = !*value;
                     })
                 },
-            }).expect("Unable to display button");
+            });
 
             render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
 

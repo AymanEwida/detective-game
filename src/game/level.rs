@@ -1,9 +1,9 @@
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
-use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::OnHoverStylesBuilder, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
 
-use super::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, wall::Wall};
+use super::{bullet::Bullet, camera::Camera, can::Can, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, store::StoreItem, wall::Wall};
 
 pub const DEFAULT_SIZE: f32 = 30.0;
 pub const DEFAULT_SIZE_FOR_HIDE_PLACE: Size = Size { width: 45.0, height: 65.0 };
@@ -125,48 +125,140 @@ impl<'a> GameLevel<'a> {
         self.border_top_left + DEFAULT_SIZE
     }
 
-    pub fn draw(&mut self, player: &mut Player<'a>, render: &mut Render<'a>) -> Result<()> {
-        for (idx , challenge) in self.challenges.iter().enumerate() {
-            render.display_text(challenge, Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, Color::White).expect("Unable to display text");
-        }
-
-        render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 850.0, y: 60.0 }, 0.8, None, Color::White).expect("Unable to display text");
-
-        render.display_text(&format!("level: {}", self.current_level), Position { x: 1580.0, y: 50.0 }, 0.6, None, Color::White).expect("Unable to display text");
-        render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.7, None, Color::White).expect("Unable to display text");
-
-        render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None, None)?;
-
-        for num in 0..8 {
-            // border top
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
-            
-            // border bottom
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - DEFAULT_SIZE }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
-        }
-
-        for num in 0..2 {
-            // border right
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - DEFAULT_SIZE, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
-
-            // border left
-            render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
-        }
-
-        let holding_item = player.get_holding_item();
-
-        display_holding_item(Position { x: 50.0, y:  900.0 }, holding_item, 0.8, render)?;
-
-        render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 900.0 }, 0.8, None, Color::White)?;
-
-        render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 890.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-        render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 900.0 }, 0.7, None, Color::White)?;
-
+    pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], render: &mut Render<'a>) -> Result<()> {
+        // self.status = LevelStatus::Lose; // TODO: remove this later
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
-        // } else if self.get_status() == &LevelStatus::Lose {
-        //     render.display_text("Lost", Position { x: 750.0, y: 20.0 }, 1.5, None, Color::Red)?;
+        } else if self.get_status() == &LevelStatus::Lose {
+            render.display_text("You Lost!", Position { x: 1200.0, y: 500.0 }, 2.0, None, Color::Red)?;
+            render.display_button(ButtonProps {
+                position: Position { x: 1300.0, y: 630.0 },
+                bg_color: Color::Green,
+                width: None,
+                height: None,
+                text: String::from("Retry Level"),
+                text_scale: 1.0,
+                text_color: Color::Black,
+                padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                on_hover_styles: OnHoverStylesBuilder::new()
+                                .bg_color(Color::RGBA(0, 255, 0, 150))
+                                .build(),
+                // on_click: Box::new(|| {
+                //     self.load_level(player).expect(&format!("Unable to load level: {}", self.current_level));
+                // }),
+                on_click: Box::new(|| {}),
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| {})
+            });
+
+            render.display_button(ButtonProps {
+                position: Position { x: 1310.0, y: 720.0 },
+                bg_color: Color::Green,
+                width: None,
+                height: None,
+                text: String::from("Exit Game"),
+                text_scale: 1.0,
+                text_color: Color::Black,
+                padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                on_hover_styles: OnHoverStylesBuilder::new()
+                                .bg_color(Color::RGBA(0, 255, 0, 150))
+                                .build(),
+                on_click: Box::new(|| {}),
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| {})
+            });
+        } else if self.status == LevelStatus::Win {
+            render.display_text("You Won", Position { x: 1250.0, y: 200.0 }, 2.0, None, Color::Green).expect("Unable to display text");
+        
+            for (idx , challenge) in self.challenges.iter().enumerate() {
+                render.display_text(&format!("Challenge {}: {} - completed +{} coins", idx + 1, challenge, 5), Position { x: 1000.0, y: 330.0 + (idx as f32 * 40.0) }, 0.6, None, Color::Green).expect("Unable to display text");
+            }
+
+            render.display_text("Buy anything from the store", Position { x: 1060.0, y: 480.0 }, 0.6, None, Color::White).expect("Unable to display text");
+            render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 475.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 475.0 }, 1.0, None, Color::White)?;
+
+            for (idx, store_item) in store_items.iter_mut().enumerate() {
+                render.draw_rectangle(Position { x: 50.0 + (idx as f32 * 200.0), y: 600.0 }, Size { width: 500.0, height: 600.0 }, Color::White, None, None, None);
+                
+                render.load_image(store_item.get_image_path(), Position { x: 60.0 + (idx as f32 * 200.0), y: 610.0 }, Size { width: 490.0, height: 190.0 }, false, None, None, None, None).expect("Unable to load image");
+                render.display_text(store_item.get_title(), Position { x: 200.0 + (idx as f32 * 200.0), y: 800.0 }, 0.7, Some(100.0), Color::Black).expect("Unable to display text");
+                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * 200.0), y: 850.0 }, 0.5, Some(490.0), Color::Black).expect("Unable to display text");
+
+                render.display_button(ButtonProps {
+                    position: Position { x: 80.0, y: 1150.0 },
+                    bg_color: Color::Blue,
+                    width: None,
+                    height: None, 
+                    padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                    text: String::from("Buy"),
+                    text_color: Color::White,
+                    text_scale: 0.7,
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(0, 0, 255, 150))
+                        .build(),
+                    // on_click: Box::new(|| {
+                    // store_item.buy(player);
+                    // }),
+                    on_click: Box::new(|| {}),
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
+            }
+
+            render.display_button(ButtonProps {
+                position: Position { x: 1220.0, y: 1320.0 },
+                width: None,
+                height: None,
+                padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                bg_color: Color::Green,
+                text: String::from("Continue to next level"),
+                text_scale: 1.0,
+                text_color: Color::Black,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                                .bg_color(Color::RGBA(0, 255, 0, 150))
+                                .build(),
+                on_click: Box::new(|| {}),
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| {})
+            });
         } else {
+            for (idx , challenge) in self.challenges.iter().enumerate() {
+                render.display_text(challenge, Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, Color::White).expect("Unable to display text");
+            }
+
+            render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 850.0, y: 60.0 }, 0.8, None, Color::White).expect("Unable to display text");
+
+            render.display_text(&format!("level: {}", self.current_level), Position { x: 1580.0, y: 50.0 }, 0.6, None, Color::White).expect("Unable to display text");
+            render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.7, None, Color::White).expect("Unable to display text");
+
+            render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None, None)?;
+
+            for num in 0..8 {
+                // border top
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
+                
+                // border bottom
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - DEFAULT_SIZE }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
+            }
+
+            for num in 0..2 {
+                // border right
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - DEFAULT_SIZE, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
+
+                // border left
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
+            }
+
+            let holding_item = player.get_holding_item();
+
+            display_holding_item(Position { x: 50.0, y:  900.0 }, holding_item, 0.8, render)?;
+
+            render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 900.0 }, 0.8, None, Color::White)?;
+
+            render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 890.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 900.0 }, 0.7, None, Color::White)?;
+
             for wall in self.walls.iter() {
                 if player.collide(wall) {
                     player.move_to_prev_position();
