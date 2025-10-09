@@ -260,7 +260,7 @@ fn main() {
                     window.set_should_close(true);
                 },
 
-                ButtonAction::None | ButtonAction::NextLevel | ButtonAction::BuyStoreItem(_) => ()
+                ButtonAction::None | ButtonAction::NextLevel | ButtonAction::BuyStoreItem(_) | ButtonAction::Unpause => ()
             }
 
             render.render().expect("Uable to render object on window");

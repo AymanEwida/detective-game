@@ -114,7 +114,7 @@ fn main() {
                         Key::Escape => {
                             match action {
                                 Action::Release => {
-                                    // TODO: Add here menu
+                                    level.set_is_paused(!level.get_is_paused());
                                 },
                                 _ => ()
                             }
@@ -218,6 +218,10 @@ fn main() {
                 ButtonAction::Exit => {
                     window.set_should_close(true);
                 },
+
+                ButtonAction::Unpause => {
+                    level.set_is_paused(false);
+                }
 
                 ButtonAction::NextLevel => {
                     level.next_level();

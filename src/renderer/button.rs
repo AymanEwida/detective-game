@@ -10,6 +10,7 @@ pub enum ButtonAction {
     Exit,
     NextLevel,
     BuyStoreItem(usize),
+    Unpause,
     None,
 }
 

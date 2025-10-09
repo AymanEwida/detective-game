@@ -58,6 +58,7 @@ pub struct GameLevel<'a> {
     notoriety_level: u64,
     status: LevelStatus,
     add_amount_after_lost: usize,
+    is_paused: bool
 }
 
 impl Default for GameLevel<'_> {
@@ -88,6 +89,7 @@ impl Default for GameLevel<'_> {
             notoriety_level: 0,
             status: LevelStatus::NotDetermine,
             add_amount_after_lost: 5,
+            is_paused: false,
         }
     }
 }
@@ -231,6 +233,64 @@ impl<'a> GameLevel<'a> {
                 on_hover_release: Box::new(|| {})
             });
         } else {
+            render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None, None)?;
+
+            for num in 0..8 {
+                // border top
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
+                
+                // border bottom
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - DEFAULT_SIZE }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
+            }
+
+            for num in 0..2 {
+                // border right
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - DEFAULT_SIZE, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
+
+                // border left
+                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
+            }
+
+            if self.is_paused {
+                render.display_button(ButtonProps {
+                    position: Position { x: 880.0, y: 430.0 },
+                    bg_color: Color::Green,
+                    width: None,
+                    height: None,
+                    text: String::from("Resume"),
+                    text_scale: 1.0,
+                    text_color: Color::Black,
+                    padding: Padding::new(10.0, 10.0, 10.0, 20.0),
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(0, 255, 0, 150))
+                        .build(),
+                    click_action: ButtonAction::Unpause,
+                    on_click: Box::new(|| {}),
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
+
+                render.display_button(ButtonProps {
+                    position: Position { x: 850.0, y: 520.0 },
+                    bg_color: Color::Red,
+                    width: None,
+                    height: None,
+                    text: String::from("Exit Game"),
+                    text_scale: 1.0,
+                    text_color: Color::Black,
+                    padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(255, 0, 0, 150))
+                        .build(),
+                    click_action: ButtonAction::Exit,
+                    on_click: Box::new(|| {}),
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
+
+                return Ok(())
+            }
+
             for (idx , challenge) in self.challenges.iter_mut().enumerate() {
                 if challenge.get_status() == &ChallengeStatus::NotDetermine {
                     challenge.set_status(challenge.check_challenge(player, false, self.notoriety_level));
@@ -257,24 +317,6 @@ impl<'a> GameLevel<'a> {
 
             render.display_text(&format!("level: {}", self.current_level), Position { x: 1580.0, y: 50.0 }, 0.6, None, Color::White)?;
             render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.7, None, Color::White)?;
-
-            render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None, None)?;
-
-            for num in 0..8 {
-                // border top
-                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
-                
-                // border bottom
-                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + num as f32 * (self.border_size.width / 8.0), y: self.border_top_left.y + self.border_size.height - DEFAULT_SIZE }, Size { width: self.border_size.width / 8.0, height: DEFAULT_SIZE }, false, None, None, None, None)?;
-            }
-
-            for num in 0..2 {
-                // border right
-                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x + self.border_size.width - DEFAULT_SIZE, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
-
-                // border left
-                render.load_image("assets/game/wall.jpg", Position { x: self.border_top_left.x, y: self.border_top_left.y + ((num as f32 - 1.0) * DEFAULT_SIZE).abs() + num as f32 * (self.border_size.height / 2.0) }, Size { width: DEFAULT_SIZE, height: (self.border_size.height - 60.0) / 2.0 }, false, None, None, None, None)?;
-            }
 
             let holding_item = player.get_holding_item();
 
@@ -726,6 +768,14 @@ impl<'a> GameLevel<'a> {
     
     pub fn get_status(&self) -> &LevelStatus {
         &self.status
+    }
+
+    pub fn get_is_paused(&self) -> bool {
+        self.is_paused
+    }
+
+    pub fn set_is_paused(&mut self, new_val: bool) {
+        self.is_paused = new_val;
     }
 
     fn set_initial_object_position(&mut self, object: &mut impl GameObject<'a>) {
