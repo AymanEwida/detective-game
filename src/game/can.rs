@@ -142,13 +142,27 @@ impl<'a> Can<'a> {
     }
 
     pub fn collide(&self, other: &impl GameObject<'a>) -> bool {
-        let (start_position, end_position) = self.get_calc_position();
+        let (start_position, end_position) = (
+            self.current_position,
+            self.current_position + Size { width: 10.0, height: 10.0 }
+        );
         let (other_start_position, other_end_position) = other.get_calc_position();
     
         start_position.x < other_end_position.x &&
         end_position.x > other_start_position.x &&
         start_position.y < other_end_position.y &&
         end_position.y > other_start_position.y
+    }
+
+    pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
+        let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
+
+        self.current_position.x > (start_position.x + size.width) ||
+        (self.current_position.x + self.size.width) > (start_position.x + size.width) ||
+        self.current_position.x < start_position.x ||
+        self.current_position.y > (start_position.y + size.height) ||
+        (self.current_position.y + self.size.height) > (start_position.y + size.height) ||
+        self.current_position.y < start_position.y
     }
 }
 

@@ -21,6 +21,7 @@ pub struct Camera<'a> {
     repeat: bool,
     last_updated_time: Instant,
     repeat_interval: Option<Duration>,
+    original_repeat_interval: Option<Duration>,
     detect_traingle: DetectTraingle,
     looking_to: Direction,
     already_detected_player: bool,
@@ -86,6 +87,7 @@ impl Camera<'_> {
             repeat: false,
             last_updated_time: Instant::now(),
             repeat_interval: None,
+            original_repeat_interval: None,
             detect_traingle: calc_detect_traingle(&position, flip, rotate),
             looking_to,
             already_detected_player: false,
@@ -112,6 +114,7 @@ impl Camera<'_> {
             repeat: true,
             last_updated_time: Instant::now(),
             repeat_interval: Some(interval),
+            original_repeat_interval: Some(interval),
             detect_traingle: calc_detect_traingle(&position, flip, rotate),
             looking_to,
             already_detected_player: false,
@@ -204,6 +207,7 @@ impl<'a> Camera<'a> {
             assert!(disturb_duration != None, "disturb_duration can not be None");
 
             self.disturb_duration = disturb_duration;
+            self.last_updated_time = Instant::now();
         } else {
             self.disturb_duration = None;
         }
@@ -217,6 +221,18 @@ impl<'a> Camera<'a> {
         self.is_destroyed = true;
     }
 
+    pub fn set_new_repeat_interval(&mut self, notoriety_level: u64) {
+        if let Some(original_repeat_interval) = self.original_repeat_interval {
+            if notoriety_level >= 4 {
+                if notoriety_level == 4 {
+                    self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 150));
+                } else {
+                    self.repeat_interval = Some(Duration::from_millis(original_repeat_interval.as_millis() as u64 - 300));
+                }
+            }
+        }
+    }
+
     fn is_detecting_player(&self, player: &Player<'a>, walls: &[Wall<'a>], doors: &[Door<'a>]) -> bool {
         if (player.get_status() == &PlayerStatus::Hidden) || (self.is_disturbed || self.is_destroyed) {
             return false;
@@ -226,13 +242,6 @@ impl<'a> Camera<'a> {
 
         let camera_start = round_position_to_full_numbers(self.position, DEFAULT_MOVEMENT_VALUE, true, true);
         let camera_end = round_position_to_full_numbers(camera_start + self.size, DEFAULT_MOVEMENT_VALUE, true, true);
-
-        if ((player_start.x >= camera_start.x && player_start.x <= camera_end.x) ||
-            (player_end.x >= camera_start.x && player_end.x <= camera_end.x)) &&
-            ((player_start.y >= camera_start.y && player_start.y < camera_end.y) || 
-            (player_end.y > camera_start.y && player_end.y <= camera_end.y)) {
-            return true;
-        }
 
         if simple_object_detect_check(player.get_calc_position(), (camera_start, camera_end), walls) 
             || simple_object_detect_check(player.get_calc_position(), (camera_start, camera_end), doors) {
@@ -323,6 +332,10 @@ impl<'a> Camera<'a> {
             player.set_is_detected_by_enemy(false);
 
             if !self.already_detected_player {
+                player.add_to_detect_count(1);
+            }
+
+            if !self.already_detected_player {
                 self.already_detected_player = true;
 
                 let nearest_enemy_id = self.get_nearest_enemy(&player_start, enemies);
@@ -332,8 +345,8 @@ impl<'a> Camera<'a> {
                     Some(nearest_enemy_id as usize)
                 };
                 
-                if current_notoriety_level >= 3 {
-                    return (3, nearest_enemy, Some(player_start));
+                if current_notoriety_level >= 5 {
+                    return (5, nearest_enemy, Some(player_start));
                 }
     
                 return (current_notoriety_level + 1, nearest_enemy, Some(player_start));

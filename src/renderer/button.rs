@@ -4,6 +4,16 @@ use crate::library::utils::calc_button_info_with_padding;
 
 use super::{color::Color, error::Result, render::Render, styles::{Padding, Size}, vertice::Position};
 
+#[derive(Debug, Clone, Copy)]
+pub enum ButtonAction {
+    RetryLevel,
+    Exit,
+    NextLevel,
+    BuyStoreItem(usize),
+    Unpause,
+    None,
+}
+
 #[derive(Debug)]
 pub struct OnHoverStyles {
     pub width: Option<f32>,
@@ -96,6 +106,7 @@ pub struct Button<'a> {
     text_color: Color,
     on_hover_styles: OnHoverStyles,
     is_hovering: bool,
+    click_action: ButtonAction,
 
     #[derivative(Debug="ignore")]
     on_hover: Box<dyn FnMut() + 'a>,
@@ -108,7 +119,7 @@ pub struct Button<'a> {
 }
 
 impl Button<'_> {
-    pub fn new(id: usize, position: Position, width: Option<f32>, height: Option<f32>, text_size: Size, padding: Padding, bg_color: Color, text: String, text_scale: f32, text_color: Color, on_hover_styles: OnHoverStyles) -> Self {
+    pub fn new(id: usize, position: Position, width: Option<f32>, height: Option<f32>, text_size: Size, padding: Padding, bg_color: Color, text: String, text_scale: f32, text_color: Color, on_hover_styles: OnHoverStyles, click_action: ButtonAction) -> Self {
         Self {
             id,
             position,
@@ -122,6 +133,7 @@ impl Button<'_> {
             text_scale,
             on_hover_styles,
             is_hovering: false,
+            click_action,
             on_hover: Box::new(|| {}),
             on_hover_release: Box::new(|| {}),
             on_click: Box::new(|| {}) 
@@ -197,6 +209,10 @@ impl<'a> Button<'a> {
 
     pub fn click_call(&mut self) {
         (self.on_click)();
+    }
+
+    pub fn get_click_action(&self) -> ButtonAction {
+        self.click_action
     }
 
     pub fn get_id(&self) -> usize {

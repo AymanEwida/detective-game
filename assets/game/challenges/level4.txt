@@ -1,5 +1,5 @@
-Complete the level without taking any key or paper
-Complete the level with out being detectit
-Collect at least 3 coins
-Complete the level only using a pistol
-Destory at least 4 cameras
+Complete the level without taking any key or paper?type=door_collectable&count=0&compare=exact&colletable_type=both&at_complete=true&reward=3
+Complete the level with out being detectit?type=detection&count=0&compare=exact&at_complete=true&reward=3
+Collect at least 3 coins?type=coin_collectable&count=3&compare=at_least&at_complete=false&reward=1
+Complete the level only using a Guns?type=only_guns&at_complete=true&reward=4
+Disturb at least 4 cameras?type=disturb_cameras&count=4&compare=at_least&at_complete=false&reward=1

@@ -11,3 +11,5 @@ pub mod hide_place;
 pub mod can;
 pub mod bullet;
 pub mod detect_range;
+pub mod store;
+pub mod challenge;

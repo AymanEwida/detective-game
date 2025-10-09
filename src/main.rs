@@ -4,8 +4,11 @@ extern crate glfw;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-use detective_game::game::level::LevelStatus;
+use detective_game::game::level::{GameObject, LevelStatus};
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
+use detective_game::game::store::StoreItem;
+use detective_game::renderer::button::ButtonAction;
+use detective_game::renderer::render::MouseInteraction;
 use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
 
 use detective_game::library::constants::{
@@ -38,13 +41,22 @@ fn main() {
 
     let mut player = Player::new(Position { x: 90.0, y: 180.0 }, true);
     let mut level = GameLevel::default();
-    // level.next_level();
-    // level.next_level();
-    // level.next_level();
-    // level.next_level();
-    // level.next_level();
-    level.set_level(2);
+    level.set_level(1);
     level.load_level(&mut player).expect("Unable to load level!");
+
+    let mut store_items = vec![
+        StoreItem {
+            image_path: "assets/game/bullet.png",
+            title: String::from("Test"),
+            description: String::from("test 123 helloo!!"),
+            price: 2,
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                print!("player size is: {:?}\n", player.get_size());
+                Ok(())
+            })
+        }
+    ];
     
     let mut last_update = Instant::now();
 
@@ -80,6 +92,7 @@ fn main() {
 
                 WindowEvent::MouseButton(mouse_button, action, _) => {
                     player.set_mouse_interaction(Some(PlayerMouseInteraction::new(mouse_button, action, cursor_position)));
+                    render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, mouse_button, action)));
 
                     match action {
                         Action::Press => {
@@ -101,7 +114,7 @@ fn main() {
                         Key::Escape => {
                             match action {
                                 Action::Release => {
-                                    window.set_should_close(true);
+                                    level.set_is_paused(!level.get_is_paused());
                                 },
                                 _ => ()
                             }
@@ -181,6 +194,7 @@ fn main() {
 
         for pressed_button in pressed_buttons.iter() {
             player.set_mouse_interaction(Some(PlayerMouseInteraction::new(*pressed_button, Action::Press, cursor_position)));
+            render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, *pressed_button, Action::Press)));
         }
 
         let now = Instant::now();
@@ -193,14 +207,41 @@ fn main() {
                 player.move_to_prev_position();
             }
 
-            level.draw(&mut player, &mut render).expect("Unable to draw level");
+            level.draw(&mut player, &mut store_items, &mut render).expect("Unable to draw level");
             
+            render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
+            match render.get_button_click_action() {
+                ButtonAction::RetryLevel => {
+                    level.load_level(&mut player).expect("Unable to load level");
+                },
+
+                ButtonAction::Exit => {
+                    window.set_should_close(true);
+                },
+
+                ButtonAction::Unpause => {
+                    level.set_is_paused(false);
+                }
+
+                ButtonAction::NextLevel => {
+                    level.next_level();
+                    level.load_level(&mut player).expect("Unable to load level");
+                },
+
+                ButtonAction::BuyStoreItem(idx) => {
+                    store_items[idx].buy(&mut player);
+                }
+
+                ButtonAction::None => ()
+            }
+
             render.render().expect("Uable to render object on window");
             
             window.swap_buffers();
 
             player.set_interaction(None);
             player.set_mouse_interaction(None);
+            render.set_mouse_interaction(None);
         }
     }
 }

@@ -1,10 +1,10 @@
-use std::time::Duration;
+use std::{time::Duration, usize};
 
 use glfw::{Action, Key, MouseButton};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, calculate_calc_position, is_position_in_border, length_of_line, object_in_between_check, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, is_position_in_border, length_of_line, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
 
-use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
+use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, collectable::DoorCollectableType, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -80,11 +80,12 @@ impl PlayerMouseInteraction {
 
 #[derive(Debug)]
 pub struct DoorCollectableInventory {
+    collectable_type: DoorCollectableType,
     id: usize,
     opens: Vec<usize>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InventoryItemType {
     Weapon,
     TrickCan,
@@ -95,7 +96,9 @@ pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size { width: 40.0, heigh
 #[derive(Debug, Clone)]
 pub struct InventoryItem<'a> {
     item_type: InventoryItemType,
-    amount: u32, 
+    original_amount: u32,
+    amount: u32,
+    original_ammo: Option<usize>,
     ammo: Option<usize>,
     image: &'a str,
     name: String,
@@ -105,7 +108,9 @@ impl<'a> InventoryItem<'a> {
     pub fn new(item_type: InventoryItemType, amount: u32, ammo: Option<usize>, image: &'a str, name: String) -> Self {
         Self {
             item_type,
+            original_amount: amount,
             amount,
+            original_ammo: ammo,
             ammo,
             image,
             name
@@ -163,6 +168,14 @@ impl<'a> InventoryItem<'a> {
             }
         }
     }
+
+    pub fn set_amount_to_original(&mut self) {
+        self.amount = self.original_amount;
+    }
+
+    pub fn set_ammo_to_original(&mut self) {
+        self.ammo = self.original_ammo;
+    }
 }
 
 #[derive(Debug)]
@@ -185,16 +198,26 @@ pub struct Player<'a> {
     mouse_interaction: Option<PlayerMouseInteraction>,
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     inventory: Vec<InventoryItem<'a>>,
+    inventory_items_used: Vec<InventoryItemType>,
     holding: Option<usize>,
     camera_disturb_lifttime: Duration,
+    notoriety_camera_disturb_lifttime: Duration,
     coins: u32,
     is_detected_by_enemy: bool,
-    is_seen_by_enemy: bool,
+    seen_by_enemies: Vec<usize>,
     is_teleported: bool,
     can_detecting_radius: f32,
     ability_radius: f32,
     is_using_ability: bool,
     track_path_ability: bool,
+    enemy_wait_time_on_trict_can: u64, // milliseconds
+    lifes: u8,
+    original_lifes: u8,
+    detect_count: isize,
+    disturb_cameras_count: isize,
+    enemies_killed_count: isize,
+    level_tries: isize,
+    enemies_trick_count: isize,
 }
 
 impl Player<'_> {
@@ -215,18 +238,28 @@ impl Player<'_> {
             door_collectable_inventory: Vec::new(),
             inventory: vec![
                 InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
-                InventoryItem::new(InventoryItemType::Weapon, 1, Some(20), "assets/game/camera-gun.webp", String::from("Camera Gun"))
+                InventoryItem::new(InventoryItemType::Weapon, 1, Some(30), "assets/game/camera-gun.webp", String::from("Camera Gun"))
             ],
+            inventory_items_used: Vec::new(),
             holding: None,
             camera_disturb_lifttime: Duration::from_secs(10),
+            notoriety_camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
             is_detected_by_enemy: false,
-            is_seen_by_enemy: false,
+            seen_by_enemies: Vec::new(),
             is_teleported: false,
             can_detecting_radius: 100.0,
             ability_radius: 150.0,
             is_using_ability: false,
             track_path_ability: false,
+            enemy_wait_time_on_trict_can: 6000,
+            lifes: 5,
+            original_lifes: 5,
+            detect_count: 0,
+            disturb_cameras_count: 0,
+            enemies_killed_count: 0,
+            level_tries: 1,
+            enemies_trick_count: 0,
         }
     }
 }
@@ -310,8 +343,30 @@ impl<'a> Player<'a> {
         &self.door_collectable_inventory
     }
 
-    pub fn add_door_collectable(&mut self, door_collectable_id: usize, opens: &Vec<usize>) {
-        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, opens: opens.clone() });
+    pub fn get_door_collectable_count(&self, collectable_type: &String) -> isize {
+        if collectable_type == "both" {
+            return self.door_collectable_inventory.len() as isize;
+        }
+
+        let door_collectable_type = if collectable_type == "key" {
+            DoorCollectableType::Key
+        } else {
+            DoorCollectableType::CodePaper
+        };
+        
+        let mut sum = 0;
+
+        for door_collectable in self.door_collectable_inventory.iter() {
+            if door_collectable.collectable_type == door_collectable_type {
+                sum += 1;         
+            }
+        }
+
+        return sum;
+    }
+
+    pub fn add_door_collectable(&mut self, collectable_type: DoorCollectableType, door_collectable_id: usize, opens: &Vec<usize>) {
+        self.door_collectable_inventory.push(DoorCollectableInventory { collectable_type, id: door_collectable_id, opens: opens.clone() });
     }
     
     pub fn can_open_door(&self, door: &Door<'a>) -> bool {
@@ -334,6 +389,18 @@ impl<'a> Player<'a> {
 
     pub fn add_coin(&mut self) {
         self.coins = self.coins + 1;
+    }
+
+    pub fn add_to_coins(&mut self, num: u32) {
+        self.coins += num;
+    }
+
+    pub fn decrease_coins(&mut self, num: u32) {
+        if self.get_coins() <= num {
+            self.coins = 0;
+        } else {
+            self.coins = self.coins - num;
+        }
     }
 
     pub fn get_movement_value(&self) -> f32 {
@@ -372,6 +439,21 @@ impl<'a> Player<'a> {
         self.camera_disturb_lifttime = Duration::from_secs(new_secs);
     }
 
+    pub fn get_notoriety_camera_disturb_lifttime(&self) -> Duration {
+        self.notoriety_camera_disturb_lifttime
+    }
+
+    pub fn set_notoriety_camera_disturb_lifttime(&mut self, notoriety_level: u64) {
+        if notoriety_level >= 4 {
+            if notoriety_level == 4 {
+                self.notoriety_camera_disturb_lifttime = Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 1);
+            } else {
+                self.notoriety_camera_disturb_lifttime = Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 2);
+            }
+        }
+    }
+
+
     pub fn get_ability_radius(&self) -> f32 {
         self.ability_radius
     }
@@ -396,12 +478,136 @@ impl<'a> Player<'a> {
         self.track_path_ability = new_val;
     }
 
-    pub fn get_is_seen_by_enemy(&self) -> bool {
-        self.is_seen_by_enemy
+    pub fn get_seen_by_enemies(&self) -> &[usize] {
+        self.seen_by_enemies.as_slice()
     }
 
-    pub fn set_is_seen_by_enemy(&mut self, new_val: bool) {
-        self.is_seen_by_enemy = new_val;
+    pub fn get_is_seen_by_enemy(&self) -> bool {
+        self.seen_by_enemies.len() > 0
+    }
+
+    pub fn get_seen_by_enemy_id(&self, enemy_id: usize) -> bool {
+        self.seen_by_enemies.contains(&enemy_id)
+    }
+
+    pub fn add_seen_enemy(&mut self, enemy_id: usize) {
+        if !self.get_seen_by_enemy_id(enemy_id) {
+            self.seen_by_enemies.push(enemy_id);
+        }
+    }
+
+    pub fn remove_seen_enemy(&mut self, enemy_id: usize) {
+        let mut idx = -1;
+        
+        for i in 0..self.seen_by_enemies.len() {
+            let seen_enemy_id = self.seen_by_enemies[i];
+
+            if seen_enemy_id == enemy_id {
+                idx = i as i32;
+            }
+        }
+
+        if idx != -1 {
+            self.seen_by_enemies.swap_remove(idx as usize);
+        }
+    }
+
+    pub fn get_enemy_wait_time_on_trict_can(&self) -> u64 {
+        self.enemy_wait_time_on_trict_can
+    }
+
+    pub fn set_enemy_wait_time_on_trict_can(&mut self, new_val: u64) {
+        self.enemy_wait_time_on_trict_can = new_val;
+    }
+
+    pub fn get_lifes(&self) -> u8 {
+        self.lifes
+    }
+
+    pub fn set_lifes(&mut self, new_val: u8) {
+        self.lifes = new_val;
+    }
+
+    pub fn decrease_life(&mut self) {
+        if self.lifes != 0 {
+            self.lifes -= 1;
+        }
+    }
+
+    pub fn set_lifes_to_original_lifes(&mut self) {
+        self.lifes = self.original_lifes;
+    }
+
+    pub fn get_original_lifes(&self) -> u8 {
+        self.original_lifes
+    }
+
+    pub fn set_original_lifes(&mut self, new_val: u8) {
+        self.original_lifes = new_val;
+    }
+
+    pub fn reset_props(&mut self) {
+        self.seen_by_enemies = Vec::new();
+        self.is_teleported = false;
+        self.is_using_ability = false;
+        self.is_detected_by_enemy = false;
+        self.set_status(PlayerStatus::NotHidden);
+    }
+
+    pub fn reset_props_for_new_level(&mut self) {
+        self.set_lifes_to_original_lifes();
+        self.reset_inventory_amounts();
+
+        self.door_collectable_inventory = Vec::new();
+        self.holding = None;
+        self.inventory_items_used = Vec::new();
+        self.detect_count = 0;
+        self.disturb_cameras_count = 0;
+        self.enemies_trick_count = 0;
+    }
+
+    pub fn get_detect_count(&self) -> isize {
+        self.detect_count
+    }
+
+    pub fn add_to_detect_count(&mut self, num: isize) {
+        self.detect_count += num;
+    }
+
+    pub fn get_disturb_cameras_count(&self) -> isize {
+        self.disturb_cameras_count
+    }
+
+    pub fn add_to_disturb_cameras_count(&mut self, num: isize) {
+        self.disturb_cameras_count += num;
+    }
+
+    pub fn get_enemies_killed_count(&self) -> isize {
+        self.enemies_killed_count
+    }
+
+    pub fn add_to_enemies_killed_count(&mut self, num: isize) {
+        self.enemies_killed_count += num;
+    }
+
+    pub fn get_level_tries(&self) -> isize {
+        self.level_tries
+    }
+
+    pub fn reset_level_tries(&mut self) {
+        self.level_tries = 1;
+    }
+
+    pub fn add_to_level_tries(&mut self, num: isize) {
+        self.level_tries += num;
+    }
+    
+    pub fn get_enemies_trick_count(&self) -> isize {
+        self.enemies_trick_count
+    }
+
+    pub fn add_to_enemies_trick_count(&mut self, num: isize) {
+        self.enemies_trick_count += num;
     }
 
     fn set_calc_position(&mut self) {
@@ -436,6 +642,27 @@ impl<'a> Player<'a> {
         }
     }
 
+    pub fn reset_inventory_amounts(&mut self) {
+        for item in self.inventory.iter_mut() {
+            item.set_amount_to_original();
+            item.set_ammo_to_original();
+        }
+    }
+
+    pub fn add_inventory_amounts(&mut self, num: usize) {
+        for item in self.inventory.iter_mut() {
+            match item.get_item_type() {
+                InventoryItemType::TrickCan => {
+                    item.increase_amount(num as u32);
+                },
+                
+                InventoryItemType::Weapon => {
+                    item.increase_ammo(num);
+                }
+            }
+        }
+    }
+
     pub fn switch_items(&mut self) {
         if let Some(interaction) = &self.interaction {
             match interaction.key() {
@@ -462,7 +689,21 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn shoot(&mut self, window_start: Position, window_size: Size, walls: &[Wall<'a>], doors: &[Door<'a>], render: &mut Render<'a>) -> Option<ShootObject<'a>> {
+    pub fn get_inventory_items_used(&self) -> &[InventoryItemType] {
+        &self.inventory_items_used
+    }
+
+    pub fn is_used_only_guns(&self) -> bool {
+        for inventory_item_used in self.inventory_items_used.iter() {
+            if inventory_item_used != &InventoryItemType::Weapon {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn shoot(&mut self, window_start: Position, window_size: Size, render: &mut Render<'a>) -> Option<ShootObject<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
@@ -475,6 +716,8 @@ impl<'a> Player<'a> {
                     Position { x: self.position.x, y: self.position.y + 15.0 }
                 };
 
+                let mut calc_start_position = Position { x: self.position.x + (self.size.width / 2.0), y: self.position.y };
+
                 let mut end_position = mouse_interaction.get_cursor_position();
 
                 let length = length_of_line(&start_position, &end_position);
@@ -485,34 +728,10 @@ impl<'a> Player<'a> {
                             &MouseButton::Button1 => {
                                 match mouse_interaction.get_action() {
                                     &Action::Press => {
-                                        let change_end_position = move | (object_start, object_end): EndStartPositions, (other_start, other_end): EndStartPositions | {
-                                            let mut x_offset = 0.0;
-                                            let mut x_sing = 1.0;
-                                            if other_end.x <= object_start.x {
-                                                x_offset = absolute_f32(object_start.x - end_position.x);
-                                                x_sing = -1.0;
-                                            } else if other_start.x >= object_end.x {
-                                                x_offset = absolute_f32(object_end.x - end_position.x);
-                                                x_sing = 1.0;
-                                            }
-
-                                            let mut y_offset = 0.0;
-                                            let mut y_sing = 1.0;
-                                            if other_end.y <= object_start.y {
-                                                y_offset = absolute_f32(object_start.y - end_position.y);
-                                                y_sing = -1.0;
-                                            } else if other_start.y >= object_end.y {
-                                                y_offset = absolute_f32(object_end.y - end_position.y);
-                                                y_sing = 1.0;
-                                            }
-
-                                            Position { x: end_position.x + (x_sing * x_offset), y: end_position.y + (y_sing * y_offset) }
-                                        };
-
-                                        if length > 250.0 {
+                                        if length > 300.0 {
                                             let direction = (end_position - start_position).normalize(&window_start);
 
-                                            end_position = start_position + (direction * 250.0);
+                                            end_position = start_position + (direction * 300.0);
                                         }
 
                                         let window_check = is_position_in_border(&window_start, &window_end, &end_position);
@@ -533,30 +752,14 @@ impl<'a> Player<'a> {
                                             }
                                         }
 
-                                        for wall in walls {
-                                            let (wall_start, wall_end)  = wall.get_calc_position();
-                                            
-                                            let (x_check, y_check) = is_position_in_border(&wall_start, &wall_end, &end_position);
-
-                                            let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), wall);
-
-                                            if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
-                                                end_position = change_end_position(wall.get_calc_position(), self.get_calc_position());
-                                            }
+                                        if end_position.x > start_position.x {
+                                            calc_start_position.x = self.position.x + self.size.width;
+                                        } else if end_position.x < start_position.x {
+                                            calc_start_position.x = self.position.x;
                                         }
 
-                                        for door in doors {
-                                            if door.is_closed() {
-                                                let (door_start, door_end)  = door.get_calc_position();
-                                                
-                                                let (x_check, y_check) = is_position_in_border(&door_start, &door_end, &end_position);
-
-                                                let (is_between_x_axis, is_between_y_axis) = object_in_between_check(self.get_calc_position(), (end_position, end_position), door);
-
-                                                if (x_check && y_check) || (is_between_x_axis || is_between_y_axis) {
-                                                    end_position = change_end_position(door.get_calc_position(), self.get_calc_position());
-                                                }
-                                            }
+                                        if end_position.y > start_position.y {
+                                            calc_start_position.y = self.position.y + self.size.height;
                                         }
 
                                         render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
@@ -569,7 +772,9 @@ impl<'a> Player<'a> {
 
                                         self.inventory[self.holding.unwrap()].decrease_amount(1);
 
-                                        return Some(ShootObject::Can(Can::new(start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
+                                        self.inventory_items_used.push(InventoryItemType::TrickCan);
+
+                                        return Some(ShootObject::Can(Can::new(calc_start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
                                     },
 
                                     _ => ()
@@ -583,34 +788,38 @@ impl<'a> Player<'a> {
                     InventoryItemType::Weapon => {
                         match mouse_interaction.get_mouse_button() {
                             &MouseButton::Button1 => {
-                                match mouse_interaction.get_action() {
-                                    &Action::Press => {
-                                        if length > 150.0 {
-                                            let direction = (end_position - start_position).normalize(&window_start);
+                                if self.status != PlayerStatus::Hidden {
+                                    match mouse_interaction.get_action() {
+                                        &Action::Press => {
+                                            if length > 150.0 {
+                                                let direction = (end_position - start_position).normalize(&window_start);
 
-                                            end_position = start_position + (direction * 150.0);
-                                        }
+                                                end_position = start_position + (direction * 150.0);
+                                            }
 
-                                        render.draw_line(start_position, end_position, Color::Green, None, None, None);
-                                    },
+                                            render.draw_line(start_position, end_position, Color::Green, None, None, None);
+                                        },
 
-                                    &Action::Release => {
-                                        if item.ammo.is_none() {
-                                            return None;
-                                        }
+                                        &Action::Release => {
+                                            if item.ammo.is_none() {
+                                                return None;
+                                            }
 
-                                        let ammo = item.ammo.unwrap();
+                                            let ammo = item.ammo.unwrap();
 
-                                        if ammo == 0 {
-                                            return None;
-                                        }
+                                            if ammo == 0 {
+                                                return None;
+                                            }
 
-                                        self.inventory[self.holding.unwrap()].decrease_ammo(1);
+                                            self.inventory[self.holding.unwrap()].decrease_ammo(1);
+                                            
+                                            self.inventory_items_used.push(InventoryItemType::Weapon);
+                
+                                            return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
+                                        },
 
-                                        return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
-                                    },
-
-                                    _ => ()
+                                        _ => ()
+                                    }
                                 }
                             },
 
@@ -692,17 +901,27 @@ impl<'a> Player<'a> {
         }
 
         let is_collide = | movement_val: f32 | {
-            (start_player_position.y == start_object_position.y
-                && (
+            // (start_player_position.y == start_object_position.y
+            //     && (
+            //         (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
+            //         || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x)
+            //     ))
+            // || (start_player_position.x == start_object_position.x
+            //     && (
+            //         (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
+            //         || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y)
+            //     )
+            
+            let covers_object_x = 
                     (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
-                    || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x)
-                ))
-            || (start_player_position.x == start_object_position.x
-                && (
+                    || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x);
+
+            let covers_object_y = 
                     (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
-                    || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y)
-                )
-            )
+                    || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y);
+
+            ((start_player_position.y == start_object_position.y || covers_object_y) && covers_object_x)
+                || ((start_player_position.x == start_object_position.x || covers_object_x) && covers_object_y)
         };
 
         let is_colliding = is_collide(self.movement_value);

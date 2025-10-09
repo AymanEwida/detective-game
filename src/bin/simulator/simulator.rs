@@ -191,7 +191,7 @@ impl<'a> Simulator<'a> {
 
         for door_collectable in self.door_collectables.iter_mut() {
             if !door_collectable.is_collected() && player.collide(door_collectable) {
-                player.add_door_collectable(door_collectable.get_id(), door_collectable.opens());
+                player.add_door_collectable(door_collectable.get_door_collectable_type(), door_collectable.get_id(), door_collectable.opens());
 
                 door_collectable.set_is_collected(true);
             }
@@ -232,6 +232,8 @@ impl<'a> Simulator<'a> {
                 &self.enemies
             );
             self.notoriety_level = new_notoriety_level;
+
+            camera.set_new_repeat_interval(self.notoriety_level);
 
             if let Some(enemy_id) = enemy_id {
                 self.attached_enemies_ids.push((enemy_id, detected_player_position.unwrap(), AttachedType::CameraDetect));
@@ -348,7 +350,8 @@ impl<'a> Simulator<'a> {
             player.set_is_teleported(false);
         }
 
-        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), &self.walls, &self.doors, render);
+        player.set_notoriety_camera_disturb_lifttime(self.notoriety_level);
+        let shooted_object = player.shoot(Position { x: 0.0, y: 0.0 }, render.get_size(), render);
         if let Some(object) = shooted_object {
             match object {
                 ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
@@ -366,7 +369,7 @@ impl<'a> Simulator<'a> {
                     for camera in self.cameras.iter_mut() {
                         if bullet.collide_with_camera(camera) {
                             if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
-                                camera.set_is_disturbed(true, Some(player.get_camera_disturb_lifttime()));
+                                camera.set_is_disturbed(true, Some(player.get_notoriety_camera_disturb_lifttime()));
                             } else if bullet.get_bullet_type() == &BulletType::Other {
                                 camera.destroy();
                             } 
@@ -427,7 +430,7 @@ impl<'a> Simulator<'a> {
             let mut can = self.cans.remove().unwrap(); 
 
             if !can.get_is_finished() {
-                let mut is_object_colliding = false;
+                let mut is_object_colliding = can.is_off_border(None, render.get_size());
 
                 for wall in self.walls.iter() {
                     if can.collide(wall) {
@@ -447,16 +450,6 @@ impl<'a> Simulator<'a> {
                     }
                 }
 
-                if !is_object_colliding {
-                    for enemy in self.enemies.iter_mut() {
-                        if (can.collide(enemy)) && (enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode()) {
-                            is_object_colliding = true;
-
-                            enemy.search(SearchingMode::TrickCanHitSearch, can.get_start_position());
-                        }
-                    }
-                }
-                
                 if is_object_colliding {
                     can.set_is_finished(true);
                 }
