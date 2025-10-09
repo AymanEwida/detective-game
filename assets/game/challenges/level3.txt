@@ -1,5 +1,5 @@
-Complete the level with notoriety level of 1 or more
-Complete the level with destroying at least 6 cameras
-Collect the paper
-Collect at least 5 Coins
-Trick 3 enemies with a can
+Complete the level with notoriety level of 1 or more?type=notoriety_level&count=1&compare=at_least&at_complete=true&reward=5
+Complete the level with disturbing at least 6 cameras?type=disturb_cameras&count=6&compare=at_least&at_complete=true&reward=2
+Collect the paper?type=door_collectable&count=1&compare=exact&collectable_type=pappar&at_complete=false&reward=2
+Collect at least 5 Coins?type=coin_collectable&count=5&compare=at_least&at_complete=false&reward=1
+Trick at least 3 enemies with a can?type=trick_enemies&count=3&compare=at_least&at_complete=false&reward=3

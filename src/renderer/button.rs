@@ -9,7 +9,7 @@ pub enum ButtonAction {
     RetryLevel,
     Exit,
     NextLevel,
-    BuyStoreItem,
+    BuyStoreItem(usize),
     None,
 }
 

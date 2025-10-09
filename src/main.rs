@@ -52,7 +52,8 @@ fn main() {
             price: 2,
             error_message: String::new(),
             buy_func: Box::new(|player: &mut Player<'_>| {
-                print!("player size is: {:?}\n", player.get_size())
+                print!("player size is: {:?}\n", player.get_size());
+                Ok(())
             })
         }
     ];
@@ -223,8 +224,8 @@ fn main() {
                     level.load_level(&mut player).expect("Unable to load level");
                 },
 
-                ButtonAction::BuyStoreItem => {
-                    store_items[0].buy(&mut player);
+                ButtonAction::BuyStoreItem(idx) => {
+                    store_items[idx].buy(&mut player);
                 }
 
                 ButtonAction::None => ()

@@ -1,5 +1,5 @@
-Complete the level with out being detectit
-Collect at least 4 coins
-Complete the level with out killing any one
-Collect one of the paper or the key
-Trick at least 2 enemies with a can
+Complete the level with out being detectit?type=detection&count=0&compare=exact&at_complete=true&reward=3
+Collect at least 4 coins?type=coin_collectable&count=4&compare=at_least&at_complete=false&reward=1
+Complete the level with out killing any one?type=killing_enemies&count=0&compare=exact&at_complete=true&reward=2
+Collect one of the paper or the key?type=door_collectable&count=1&comapre=at_least&collectable_type=both&at_complete=false&reward=2
+Trick at least 2 enemies with a can?type=trick_enemies&count=2&compare=at_least&at_complete=false&reward=3

@@ -1808,6 +1808,10 @@ impl<'a> Enemy<'a> {
             player.set_is_detected_by_enemy(true);
             player.add_seen_enemy(self.id);
 
+            if !self.already_detected_player {
+                player.add_to_detect_count(1);
+            }
+
             let is_available = if self.attached_detect_teleport_door.is_some() {
                 self.attached_detect_teleport_door.unwrap().0
             } else {

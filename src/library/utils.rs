@@ -4,7 +4,7 @@ use glam::bool;
 use queues::{IsQueue, Queue};
 use rand::Rng;
 
-use crate::{game::{character::{Direction, DEFAULT_CHARACTER_SIZE}, door::Door, enemy::Enemy, level::{AttachedType, EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, library::constants::DEFAULT_MOVEMENT_VALUE, renderer::{styles::{Padding, Size}, vertice::{GridPosition, Position}}};
+use crate::{game::{challenge::Challenge, character::{Direction, DEFAULT_CHARACTER_SIZE}, door::Door, enemy::Enemy, level::{AttachedType, EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, library::constants::DEFAULT_MOVEMENT_VALUE, renderer::{styles::{Padding, Size}, vertice::{GridPosition, Position}}};
 
 use super::constants::GAME_ASSETS_DIR;
 
@@ -185,7 +185,7 @@ pub fn absolute_f32(num: f32) -> f32 {
     num * -1.0
 }
 
-pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
+pub fn get_level_challenges(level: u8) -> Result<Vec<Challenge>, std::io::Error> {
     let level_challenges_file_path = format!("./{}challenges/level{}.txt", GAME_ASSETS_DIR, level);
     let content = fs::read_to_string(Path::new(&level_challenges_file_path))?; 
 
@@ -198,17 +198,23 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<String>, std::io::Error> {
         return Err(Error::new(ErrorKind::InvalidData, format!("There is no challenges in the file, path is: {}", level_challenges_file_path)));
     }
 
-    let mut challenges = Vec::new();
-    while challenges.len() < 3 {
+    let mut challenges_strings = Vec::new();
+    while challenges_strings.len() < 3 {
         let mut rng = rand::thread_rng();
         let idx = rng.gen_range(0..challenges_vec.len());
 
         let challenge = challenges_vec[idx].to_string();
 
-        if !challenges.contains(&challenge) {
-            challenges.push(challenge);
+        if challenge.len() > 0 && !challenges_strings.contains(&challenge) {
+            challenges_strings.push(challenge);
         }
     }
+
+    let challenges = challenges_strings.into_iter().map(| challenge_string: String | {
+        let challenge_data: Vec<&str> = challenge_string.split("?").collect();
+
+        Challenge::new(challenge_data[0].into(), challenge_data[1].into())
+    }).collect();
 
     Ok(challenges)
 }

@@ -1,5 +1,5 @@
-Collect both keys
-Collect at least 7 Coins
-Complete the level without being detectit
-Complete the level with at most kiling 3 gards
-Collect the paper
+Collect both keys?type=door_collectable&count=2&compare=exact&collectable_type=key&at_complete=false&reward=3
+Collect at least 7 Coins?type=coin_collectable&count=7&compare=at_least&at_complete=false&reward=1
+Complete the level without being detectit?type=detection&count=0&compare=exact&at_complete=true&reward=3
+Complete the level with at most killing 3 gards?type=killing_enemies&count=3&compare=at_most&at_complete=true&reward=2
+Collect the paper?type=door_collectable&count=1&compare=exact&collectable_type=papper&at_complete=false&reward=2

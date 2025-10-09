@@ -191,7 +191,7 @@ impl<'a> Simulator<'a> {
 
         for door_collectable in self.door_collectables.iter_mut() {
             if !door_collectable.is_collected() && player.collide(door_collectable) {
-                player.add_door_collectable(door_collectable.get_id(), door_collectable.opens());
+                player.add_door_collectable(door_collectable.get_door_collectable_type(), door_collectable.get_id(), door_collectable.opens());
 
                 door_collectable.set_is_collected(true);
             }

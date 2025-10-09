@@ -1,8 +1,17 @@
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position}, renderer::{error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{
+    library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position},
+    renderer::{error::Result, render::Render, styles::Size, vertice::Position},
+};
 
-use super::{level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}};
+use super::{
+    level::{EndStartPositions, GameObject},
+    level_object::{LevelObject, ObjectType},
+};
 
-pub const DEFAULT_SIZE_FOR_COLLECTABLE: Size = Size { width: 40.0, height: 40.0 };
+pub const DEFAULT_SIZE_FOR_COLLECTABLE: Size = Size {
+    width: 40.0,
+    height: 40.0,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DoorCollectableType {
@@ -32,7 +41,16 @@ pub struct DoorCollectable<'a> {
 impl<'a> GameObject<'a> for DoorCollectable<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         if !self.is_collected {
-            render.load_image(self.image, self.position, self.size, false, None, self.scale, None, None)?;
+            render.load_image(
+                self.image,
+                self.position,
+                self.size,
+                false,
+                None,
+                self.scale,
+                None,
+                None,
+            )?;
         }
 
         Ok(())
@@ -48,7 +66,7 @@ impl<'a> GameObject<'a> for DoorCollectable<'a> {
     }
 
     fn get_size(&self) -> Size {
-        self.size        
+        self.size
     }
 
     fn get_calc_position(&self) -> EndStartPositions {
@@ -63,17 +81,27 @@ impl<'a> LevelObject<'a> for DoorCollectable<'a> {
 }
 
 impl DoorCollectable<'_> {
-    pub fn new(id: usize, door_collectable_type: DoorCollectableType, position: Position, opens: Vec<usize>, scale: Option<f32>) -> Self {
+    pub fn new(
+        id: usize,
+        door_collectable_type: DoorCollectableType,
+        position: Position,
+        opens: Vec<usize>,
+        scale: Option<f32>,
+    ) -> Self {
         let door_collectable_image_path = match &door_collectable_type {
             DoorCollectableType::CodePaper => "assets/game/code-paper.webp",
             DoorCollectableType::Key => "assets/game/key.png",
         };
-        
+
         Self {
             id,
             door_collectable_type,
-            position, 
-            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_COLLECTABLE, DEFAULT_MOVEMENT_VALUE),
+            position,
+            calc_position: calculate_calc_position(
+                position,
+                DEFAULT_SIZE_FOR_COLLECTABLE,
+                DEFAULT_MOVEMENT_VALUE,
+            ),
             size: DEFAULT_SIZE_FOR_COLLECTABLE,
             image: door_collectable_image_path,
             opens,
@@ -85,7 +113,12 @@ impl DoorCollectable<'_> {
 
 impl DoorCollectable<'_> {
     fn set_calc_position(&mut self) {
-        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+        self.calc_position =
+            calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+    }
+
+    pub fn get_door_collectable_type(&self) -> DoorCollectableType {
+        self.door_collectable_type
     }
 
     pub fn get_id(&self) -> usize {
@@ -118,7 +151,16 @@ pub struct Coin<'a> {
 impl<'a> GameObject<'a> for Coin<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
         if !self.is_collected {
-            render.load_image(self.image, self.position, self.size, false, None, self.scale, None, None)?;
+            render.load_image(
+                self.image,
+                self.position,
+                self.size,
+                false,
+                None,
+                self.scale,
+                None,
+                None,
+            )?;
         }
 
         Ok(())
@@ -134,7 +176,7 @@ impl<'a> GameObject<'a> for Coin<'a> {
     }
 
     fn get_size(&self) -> Size {
-        self.size        
+        self.size
     }
 
     fn get_calc_position(&self) -> EndStartPositions {
@@ -151,9 +193,13 @@ impl<'a> LevelObject<'a> for Coin<'a> {
 impl Coin<'_> {
     pub fn new(position: Position, scale: Option<f32>) -> Self {
         Self {
-            position, 
-            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_COLLECTABLE, DEFAULT_MOVEMENT_VALUE),
-            size: DEFAULT_SIZE_FOR_COLLECTABLE, 
+            position,
+            calc_position: calculate_calc_position(
+                position,
+                DEFAULT_SIZE_FOR_COLLECTABLE,
+                DEFAULT_MOVEMENT_VALUE,
+            ),
+            size: DEFAULT_SIZE_FOR_COLLECTABLE,
             image: "assets/game/coin.png",
             scale,
             is_collected: false,
@@ -163,7 +209,8 @@ impl Coin<'_> {
 
 impl Coin<'_> {
     fn set_calc_position(&mut self) {
-        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+        self.calc_position =
+            calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
     }
 
     pub fn is_collected(&self) -> bool {

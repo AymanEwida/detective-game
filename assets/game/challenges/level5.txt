@@ -1,6 +1,6 @@
-Complete the level with notoriety level of 2 or more
-Collect at least one key or paper
-Complete the level first try
-Collect at least 5 coins
-Trick 4 enemies with a can
-Destory at least 4 cameras
+Complete the level with notoriety level of 2 or more?type=notoriety_level&count=2&compare=at_least&at_complete=true&reward=7
+Collect at least one key or paper?type=door_collectable&count=1&compare=at_least&at_complete=false&reward=2
+Complete the level first try?type=level_tries&count=1&compare=exact&at_complete=true&reward=5
+Collect at least 5 coins?type=coin_collectable&count=5&at_least&at_complete=true&reward=1
+Trick 4 enemies with a can?type=trick_enemies&count=4&compare=at_least&at_complete=false&reward=3
+Disturb at least 4 cameras?type=disturb_cameras&count=4&compare=at_least&at_complete=false&reward=1

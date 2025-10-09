@@ -12,7 +12,7 @@ pub struct StoreItem<'a> {
     pub error_message: String,
 
     #[derivative(Debug="ignore")]
-    pub buy_func: Box<dyn FnMut(&mut Player<'_>)>
+    pub buy_func: Box<dyn FnMut(&mut Player<'_>) -> Result<(), String>>
 }
 
 impl<'a> StoreItem<'a> {
@@ -49,9 +49,10 @@ impl<'a> StoreItem<'a> {
 
         self.error_message = String::new();
 
-        (self.buy_func)(player);
-
-        player.decrease_coins(self.get_price() as u32);
+        match (self.buy_func)(player) {
+            Ok(_) => player.decrease_coins(self.get_price() as u32),
+            Err(msg) => self.error_message = msg,
+        };
     }
 }
 

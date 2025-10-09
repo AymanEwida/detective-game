@@ -332,6 +332,10 @@ impl<'a> Camera<'a> {
             player.set_is_detected_by_enemy(false);
 
             if !self.already_detected_player {
+                player.add_to_detect_count(1);
+            }
+
+            if !self.already_detected_player {
                 self.already_detected_player = true;
 
                 let nearest_enemy_id = self.get_nearest_enemy(&player_start, enemies);

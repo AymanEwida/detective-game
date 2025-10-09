@@ -4,7 +4,7 @@ use glfw::{Action, Key, MouseButton};
 
 use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, is_position_in_border, length_of_line, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
 
-use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
+use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, collectable::DoorCollectableType, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
@@ -80,11 +80,12 @@ impl PlayerMouseInteraction {
 
 #[derive(Debug)]
 pub struct DoorCollectableInventory {
+    collectable_type: DoorCollectableType,
     id: usize,
     opens: Vec<usize>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InventoryItemType {
     Weapon,
     TrickCan,
@@ -197,6 +198,7 @@ pub struct Player<'a> {
     mouse_interaction: Option<PlayerMouseInteraction>,
     door_collectable_inventory: Vec<DoorCollectableInventory>,
     inventory: Vec<InventoryItem<'a>>,
+    inventory_items_used: Vec<InventoryItemType>,
     holding: Option<usize>,
     camera_disturb_lifttime: Duration,
     notoriety_camera_disturb_lifttime: Duration,
@@ -211,6 +213,11 @@ pub struct Player<'a> {
     enemy_wait_time_on_trict_can: u64, // milliseconds
     lifes: u8,
     original_lifes: u8,
+    detect_count: isize,
+    disturb_cameras_count: isize,
+    enemies_killed_count: isize,
+    level_tries: isize,
+    enemies_trick_count: isize,
 }
 
 impl Player<'_> {
@@ -233,6 +240,7 @@ impl Player<'_> {
                 InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
                 InventoryItem::new(InventoryItemType::Weapon, 1, Some(30), "assets/game/camera-gun.webp", String::from("Camera Gun"))
             ],
+            inventory_items_used: Vec::new(),
             holding: None,
             camera_disturb_lifttime: Duration::from_secs(10),
             notoriety_camera_disturb_lifttime: Duration::from_secs(10),
@@ -247,6 +255,11 @@ impl Player<'_> {
             enemy_wait_time_on_trict_can: 6000,
             lifes: 5,
             original_lifes: 5,
+            detect_count: 0,
+            disturb_cameras_count: 0,
+            enemies_killed_count: 0,
+            level_tries: 1,
+            enemies_trick_count: 0,
         }
     }
 }
@@ -330,8 +343,30 @@ impl<'a> Player<'a> {
         &self.door_collectable_inventory
     }
 
-    pub fn add_door_collectable(&mut self, door_collectable_id: usize, opens: &Vec<usize>) {
-        self.door_collectable_inventory.push(DoorCollectableInventory { id: door_collectable_id, opens: opens.clone() });
+    pub fn get_door_collectable_count(&self, collectable_type: &String) -> isize {
+        if collectable_type == "both" {
+            return self.door_collectable_inventory.len() as isize;
+        }
+
+        let door_collectable_type = if collectable_type == "key" {
+            DoorCollectableType::Key
+        } else {
+            DoorCollectableType::CodePaper
+        };
+        
+        let mut sum = 0;
+
+        for door_collectable in self.door_collectable_inventory.iter() {
+            if door_collectable.collectable_type == door_collectable_type {
+                sum += 1;         
+            }
+        }
+
+        return sum;
+    }
+
+    pub fn add_door_collectable(&mut self, collectable_type: DoorCollectableType, door_collectable_id: usize, opens: &Vec<usize>) {
+        self.door_collectable_inventory.push(DoorCollectableInventory { collectable_type, id: door_collectable_id, opens: opens.clone() });
     }
     
     pub fn can_open_door(&self, door: &Door<'a>) -> bool {
@@ -354,6 +389,10 @@ impl<'a> Player<'a> {
 
     pub fn add_coin(&mut self) {
         self.coins = self.coins + 1;
+    }
+
+    pub fn add_to_coins(&mut self, num: u32) {
+        self.coins += num;
     }
 
     pub fn decrease_coins(&mut self, num: u32) {
@@ -521,6 +560,54 @@ impl<'a> Player<'a> {
 
         self.door_collectable_inventory = Vec::new();
         self.holding = None;
+        self.inventory_items_used = Vec::new();
+        self.detect_count = 0;
+        self.disturb_cameras_count = 0;
+        self.enemies_trick_count = 0;
+    }
+
+    pub fn get_detect_count(&self) -> isize {
+        self.detect_count
+    }
+
+    pub fn add_to_detect_count(&mut self, num: isize) {
+        self.detect_count += num;
+    }
+
+    pub fn get_disturb_cameras_count(&self) -> isize {
+        self.disturb_cameras_count
+    }
+
+    pub fn add_to_disturb_cameras_count(&mut self, num: isize) {
+        self.disturb_cameras_count += num;
+    }
+
+    pub fn get_enemies_killed_count(&self) -> isize {
+        self.enemies_killed_count
+    }
+
+    pub fn add_to_enemies_killed_count(&mut self, num: isize) {
+        self.enemies_killed_count += num;
+    }
+
+    pub fn get_level_tries(&self) -> isize {
+        self.level_tries
+    }
+
+    pub fn reset_level_tries(&mut self) {
+        self.level_tries = 1;
+    }
+
+    pub fn add_to_level_tries(&mut self, num: isize) {
+        self.level_tries += num;
+    }
+    
+    pub fn get_enemies_trick_count(&self) -> isize {
+        self.enemies_trick_count
+    }
+
+    pub fn add_to_enemies_trick_count(&mut self, num: isize) {
+        self.enemies_trick_count += num;
     }
 
     fn set_calc_position(&mut self) {
@@ -602,6 +689,20 @@ impl<'a> Player<'a> {
         }
     }
 
+    pub fn get_inventory_items_used(&self) -> &[InventoryItemType] {
+        &self.inventory_items_used
+    }
+
+    pub fn is_used_only_guns(&self) -> bool {
+        for inventory_item_used in self.inventory_items_used.iter() {
+            if inventory_item_used != &InventoryItemType::Weapon {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn shoot(&mut self, window_start: Position, window_size: Size, render: &mut Render<'a>) -> Option<ShootObject<'a>> {
         let holding_item = self.get_holding_item();
 
@@ -671,6 +772,8 @@ impl<'a> Player<'a> {
 
                                         self.inventory[self.holding.unwrap()].decrease_amount(1);
 
+                                        self.inventory_items_used.push(InventoryItemType::TrickCan);
+
                                         return Some(ShootObject::Can(Can::new(calc_start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
                                     },
 
@@ -709,7 +812,9 @@ impl<'a> Player<'a> {
                                             }
 
                                             self.inventory[self.holding.unwrap()].decrease_ammo(1);
-
+                                            
+                                            self.inventory_items_used.push(InventoryItemType::Weapon);
+                
                                             return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
                                         },
 
