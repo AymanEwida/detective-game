@@ -141,26 +141,26 @@ impl<'a> Enemy<'a> {
                 Self {
                     id: unsafe { enemies_count },
                     start_position,
-                    position: start_position, // need
-                    prev_position: None, // need
+                    position: start_position,
+                    prev_position: None,
                     calc_start_position,
                     calc_position: calc_start_position,
                     size,
                     image: "assets/game/regular-enemy.png",
                     flip,
                     movement_value: DEFAULT_MOVEMENT_VALUE,
-                    last_move_time: Instant::now(), // need
-                    move_interval: DEFAULT_MOVE_INTERVAL, // need
+                    last_move_time: Instant::now(),
+                    move_interval: DEFAULT_MOVE_INTERVAL,
                     original_moves_path: path,
                     original_moves_path_vec: moves_path.clone(),
-                    current_moves_path: moves_path, // need
-                    moves_count: 0, // need
-                    moving_towards: first_direction, // need
+                    current_moves_path: moves_path,
+                    moves_count: 0,
+                    moving_towards: first_direction,
                     detect_traingle: calc_equidistant_points(Position { x: start_position.x + 27.5, y: start_position.y + 20.0 }, 30.0, 150.0, first_direction),
-                    detect_player_position: None, // need
-                    mode: EnemyMode::Regular, // need
-                    prev_mode: EnemyMode::Regular, // need
-                    already_detected_player: false, // need
+                    detect_player_position: None,
+                    mode: EnemyMode::Regular,
+                    prev_mode: EnemyMode::Regular,
+                    already_detected_player: false,
                     start_searching_position: None,
                     default_search_path: None,
                     movement_grid: None,
@@ -174,16 +174,16 @@ impl<'a> Enemy<'a> {
                     is_done_with_hide_places: false,
                     is_done_with_teleport_door: false,
                     is_searching_detect_area: false,
-                    is_colliding: false, // need
-                    collide_info: (0, None, DEFAULT_MOVEMENT_VALUE), // need
-                    want_to_teleport_door_id: None, // need
-                    move_to_teleport_id: None, // need
+                    is_colliding: false,
+                    collide_info: (0, None, DEFAULT_MOVEMENT_VALUE),
+                    want_to_teleport_door_id: None,
+                    move_to_teleport_id: None,
                     should_attach_teleport_door: true,
-                    is_teleported: false, // need
-                    attached_teleport_doors: Vec::new(), // need
-                    attached_detect_teleport_door: None, // need
-                    draw_detect_traingle: false, // need
-                    draw_move_path: false, // need
+                    is_teleported: false,
+                    attached_teleport_doors: Vec::new(),
+                    attached_detect_teleport_door: None,
+                    draw_detect_traingle: false,
+                    draw_move_path: false,
                     health: 100,
                     is_dead: false
                 }
@@ -358,7 +358,6 @@ impl<'a> Enemy<'a> {
         if idx != -1 {
             let idx = idx as usize;
 
-            // self.attached_teleport_doors.remove(idx);
             self.attached_teleport_doors = self.attached_teleport_doors[..idx].to_vec();
         } else {
             self.attached_teleport_doors.push((from_id, move_to_id, move_to_position));
@@ -898,7 +897,7 @@ impl<'a> Enemy<'a> {
                         } else {
                             SearchingMode::AfterCameraDetectSearch
                         };
-
+                        
                         self.mode = EnemyMode::Searching(searching_mode);
                     }
                 }
