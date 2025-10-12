@@ -2,15 +2,33 @@ use std::{time::Duration, usize};
 
 use glfw::{Action, Key, MouseButton};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calculate_calc_position, is_position_in_border, length_of_line, round_position_to_full_numbers}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{
+    library::{
+        constants::DEFAULT_MOVEMENT_VALUE,
+        utils::{
+            calculate_calc_position, is_position_in_border, length_of_line,
+            round_position_to_full_numbers,
+        },
+    },
+    renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position},
+};
 
-use super::{bullet::{Bullet, BulletType}, can::Can, character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, collectable::DoorCollectableType, door::{Door, DoorType}, level::{EndStartPositions, GameObject}, level_object::{LevelObject, ObjectType}, wall::Wall};
+use super::{
+    bullet::{Bullet, BulletType},
+    can::Can,
+    character::{Character, Direction, DEFAULT_CHARACTER_SIZE},
+    collectable::DoorCollectableType,
+    door::{Door, DoorType},
+    level::{EndStartPositions, GameObject},
+    level_object::{LevelObject, ObjectType},
+    wall::Wall,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum PlayerStatus {
     NotHidden,
     Hidden,
-    Detectit
+    Detectit,
 }
 
 impl std::fmt::Display for PlayerStatus {
@@ -18,22 +36,19 @@ impl std::fmt::Display for PlayerStatus {
         match self {
             Self::NotHidden => write!(f, "not hidden"),
             Self::Hidden => write!(f, "hidden"),
-            Self::Detectit => write!(f, "detectit")
+            Self::Detectit => write!(f, "detectit"),
         }
     }
 }
 #[derive(Debug)]
 pub struct PlayerInteraction {
     key: Key,
-    action: Action
+    action: Action,
 }
 
 impl PlayerInteraction {
     pub fn new(key: Key, action: Action) -> Self {
-        Self {
-            key,
-            action
-        }
+        Self { key, action }
     }
 }
 
@@ -51,7 +66,7 @@ impl PlayerInteraction {
 pub struct PlayerMouseInteraction {
     mouse_button: MouseButton,
     action: Action,
-    cursor_position: Position, 
+    cursor_position: Position,
 }
 
 impl PlayerMouseInteraction {
@@ -59,7 +74,7 @@ impl PlayerMouseInteraction {
         Self {
             mouse_button,
             action,
-            cursor_position
+            cursor_position,
         }
     }
 }
@@ -91,7 +106,10 @@ pub enum InventoryItemType {
     TrickCan,
 }
 
-pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size { width: 40.0, height: 40.0 };
+pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size {
+    width: 40.0,
+    height: 40.0,
+};
 
 #[derive(Debug, Clone)]
 pub struct InventoryItem<'a> {
@@ -105,7 +123,13 @@ pub struct InventoryItem<'a> {
 }
 
 impl<'a> InventoryItem<'a> {
-    pub fn new(item_type: InventoryItemType, amount: u32, ammo: Option<usize>, image: &'a str, name: String) -> Self {
+    pub fn new(
+        item_type: InventoryItemType,
+        amount: u32,
+        ammo: Option<usize>,
+        image: &'a str,
+        name: String,
+    ) -> Self {
         Self {
             item_type,
             original_amount: amount,
@@ -113,7 +137,7 @@ impl<'a> InventoryItem<'a> {
             original_ammo: ammo,
             ammo,
             image,
-            name
+            name,
         }
     }
 }
@@ -157,7 +181,7 @@ impl<'a> InventoryItem<'a> {
         }
     }
 
-    pub fn decrease_ammo(&mut self, num: usize) { 
+    pub fn decrease_ammo(&mut self, num: usize) {
         if self.ammo.is_some() {
             let ammo = self.ammo.unwrap();
 
@@ -225,7 +249,7 @@ impl Player<'_> {
         let size = DEFAULT_CHARACTER_SIZE;
 
         Self {
-            position: start_position, 
+            position: start_position,
             prev_position: None,
             calc_position: calculate_calc_position(start_position, size, DEFAULT_MOVEMENT_VALUE),
             size,
@@ -237,8 +261,20 @@ impl Player<'_> {
             mouse_interaction: None,
             door_collectable_inventory: Vec::new(),
             inventory: vec![
-                InventoryItem::new(InventoryItemType::TrickCan, 30, None, "assets/game/trick-can.png", String::from("Trick Can")),
-                InventoryItem::new(InventoryItemType::Weapon, 1, Some(30), "assets/game/camera-gun.webp", String::from("Camera Gun"))
+                InventoryItem::new(
+                    InventoryItemType::TrickCan,
+                    30,
+                    None,
+                    "assets/game/trick-can.png",
+                    String::from("Trick Can"),
+                ),
+                InventoryItem::new(
+                    InventoryItemType::Weapon,
+                    1,
+                    Some(30),
+                    "assets/game/camera-gun.webp",
+                    String::from("Camera Gun"),
+                ),
             ],
             inventory_items_used: Vec::new(),
             holding: None,
@@ -272,7 +308,15 @@ impl<'a> GameObject<'a> for Player<'a> {
                 y: self.get_position().y + self.get_size().height / 2.0,
             };
 
-            render.draw_geometric_object(center, self.get_ability_radius(), Color::RGBA(0, 255, 0, 50), None, None, None, None);
+            render.draw_geometric_object(
+                center,
+                self.get_ability_radius(),
+                Color::RGBA(0, 255, 0, 50),
+                None,
+                None,
+                None,
+                None,
+            );
         }
 
         let opacity = if self.status == PlayerStatus::Hidden {
@@ -281,7 +325,16 @@ impl<'a> GameObject<'a> for Player<'a> {
             None
         };
 
-        render.load_image(self.image, self.position, self.size, self.flip, opacity, None, None, None)?;
+        render.load_image(
+            self.image,
+            self.position,
+            self.size,
+            self.flip,
+            opacity,
+            None,
+            None,
+            None,
+        )?;
 
         Ok(())
     }
@@ -338,7 +391,7 @@ impl<'a> Player<'a> {
     pub fn set_mouse_interaction(&mut self, new_value: Option<PlayerMouseInteraction>) {
         self.mouse_interaction = new_value;
     }
-    
+
     pub fn get_door_collectable_inventory(&self) -> &[DoorCollectableInventory] {
         &self.door_collectable_inventory
     }
@@ -353,29 +406,41 @@ impl<'a> Player<'a> {
         } else {
             DoorCollectableType::CodePaper
         };
-        
+
         let mut sum = 0;
 
         for door_collectable in self.door_collectable_inventory.iter() {
             if door_collectable.collectable_type == door_collectable_type {
-                sum += 1;         
+                sum += 1;
             }
         }
 
         return sum;
     }
 
-    pub fn add_door_collectable(&mut self, collectable_type: DoorCollectableType, door_collectable_id: usize, opens: &Vec<usize>) {
-        self.door_collectable_inventory.push(DoorCollectableInventory { collectable_type, id: door_collectable_id, opens: opens.clone() });
+    pub fn add_door_collectable(
+        &mut self,
+        collectable_type: DoorCollectableType,
+        door_collectable_id: usize,
+        opens: &Vec<usize>,
+    ) {
+        self.door_collectable_inventory
+            .push(DoorCollectableInventory {
+                collectable_type,
+                id: door_collectable_id,
+                opens: opens.clone(),
+            });
     }
-    
+
     pub fn can_open_door(&self, door: &Door<'a>) -> bool {
         if door.get_door_type() == &DoorType::Regular {
             return true;
         }
 
         for door_collectable in self.door_collectable_inventory.iter() {
-            if door_collectable.id == door.get_opens_by_id().unwrap() || door_collectable.opens.contains(&door.get_id()) {
+            if door_collectable.id == door.get_opens_by_id().unwrap()
+                || door_collectable.opens.contains(&door.get_id())
+            {
                 return true;
             }
         }
@@ -414,7 +479,7 @@ impl<'a> Player<'a> {
     pub fn set_is_detected_by_enemy(&mut self, new_val: bool) {
         self.is_detected_by_enemy = new_val;
     }
-    
+
     pub fn get_is_teleported(&self) -> bool {
         self.is_teleported
     }
@@ -446,13 +511,14 @@ impl<'a> Player<'a> {
     pub fn set_notoriety_camera_disturb_lifttime(&mut self, notoriety_level: u64) {
         if notoriety_level >= 4 {
             if notoriety_level == 4 {
-                self.notoriety_camera_disturb_lifttime = Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 1);
+                self.notoriety_camera_disturb_lifttime =
+                    Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 1);
             } else {
-                self.notoriety_camera_disturb_lifttime = Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 2);
+                self.notoriety_camera_disturb_lifttime =
+                    Duration::from_secs(self.camera_disturb_lifttime.as_secs() - 2);
             }
         }
     }
-
 
     pub fn get_ability_radius(&self) -> f32 {
         self.ability_radius
@@ -469,7 +535,7 @@ impl<'a> Player<'a> {
     pub fn set_is_using_ability(&mut self, new_val: bool) {
         self.is_using_ability = new_val;
     }
-    
+
     pub fn get_track_path_ability(&self) -> bool {
         self.track_path_ability
     }
@@ -498,7 +564,7 @@ impl<'a> Player<'a> {
 
     pub fn remove_seen_enemy(&mut self, enemy_id: usize) {
         let mut idx = -1;
-        
+
         for i in 0..self.seen_by_enemies.len() {
             let seen_enemy_id = self.seen_by_enemies[i];
 
@@ -601,7 +667,7 @@ impl<'a> Player<'a> {
     pub fn add_to_level_tries(&mut self, num: isize) {
         self.level_tries += num;
     }
-    
+
     pub fn get_enemies_trick_count(&self) -> isize {
         self.enemies_trick_count
     }
@@ -633,7 +699,7 @@ impl<'a> Player<'a> {
     fn get_prev_holding_item_index(&self) -> usize {
         if let Some(holding) = self.holding {
             if holding == 0 {
-                return self.inventory.len() - 1;   
+                return self.inventory.len() - 1;
             }
 
             (holding - 1) % self.inventory.len()
@@ -654,8 +720,8 @@ impl<'a> Player<'a> {
             match item.get_item_type() {
                 InventoryItemType::TrickCan => {
                     item.increase_amount(num as u32);
-                },
-                
+                }
+
                 InventoryItemType::Weapon => {
                     item.increase_ammo(num);
                 }
@@ -670,13 +736,13 @@ impl<'a> Player<'a> {
                     if interaction.action() == &Action::Repeat {
                         self.holding = None;
                     }
-                },
+                }
 
                 &Key::K => {
                     if interaction.action() == &Action::Press {
                         self.holding = Some(self.get_next_holding_item_index());
                     }
-                },
+                }
 
                 &Key::J => {
                     if interaction.action() == &Action::Press {
@@ -684,7 +750,7 @@ impl<'a> Player<'a> {
                     }
                 }
 
-                _ => ()
+                _ => (),
             }
         }
     }
@@ -703,7 +769,12 @@ impl<'a> Player<'a> {
         true
     }
 
-    pub fn shoot(&mut self, window_start: Position, window_size: Size, render: &mut Render<'a>) -> Option<ShootObject<'a>> {
+    pub fn shoot(
+        &mut self,
+        window_start: Position,
+        window_size: Size,
+        render: &mut Render<'a>,
+    ) -> Option<ShootObject<'a>> {
         let holding_item = self.get_holding_item();
 
         if let Some(item) = holding_item {
@@ -711,121 +782,157 @@ impl<'a> Player<'a> {
                 let window_end = window_start + window_size;
 
                 let start_position = if self.flip {
-                    Position { x: self.position.x + self.size.width, y: self.position.y + 15.0 }
+                    Position {
+                        x: self.position.x + self.size.width,
+                        y: self.position.y + 15.0,
+                    }
                 } else {
-                    Position { x: self.position.x, y: self.position.y + 15.0 }
+                    Position {
+                        x: self.position.x,
+                        y: self.position.y + 15.0,
+                    }
                 };
 
-                let mut calc_start_position = Position { x: self.position.x + (self.size.width / 2.0), y: self.position.y };
+                let mut calc_start_position = Position {
+                    x: self.position.x + (self.size.width / 2.0),
+                    y: self.position.y,
+                };
 
                 let mut end_position = mouse_interaction.get_cursor_position();
 
                 let length = length_of_line(&start_position, &end_position);
 
                 match item.get_item_type() {
-                    InventoryItemType::TrickCan => {
-                        match mouse_interaction.get_mouse_button() {
-                            &MouseButton::Button1 => {
+                    InventoryItemType::TrickCan => match mouse_interaction.get_mouse_button() {
+                        &MouseButton::Button1 => match mouse_interaction.get_action() {
+                            &Action::Press => {
+                                if length > 300.0 {
+                                    let direction =
+                                        (end_position - start_position).normalize(&window_start);
+
+                                    end_position = start_position + (direction * 300.0);
+                                }
+
+                                let window_check = is_position_in_border(
+                                    &window_start,
+                                    &window_end,
+                                    &end_position,
+                                );
+
+                                if !window_check.0 {
+                                    if end_position.x < window_start.x {
+                                        end_position.x = window_start.x;
+                                    } else {
+                                        end_position.x = window_end.x;
+                                    }
+                                }
+
+                                if !window_check.1 {
+                                    if end_position.y < window_start.y {
+                                        end_position.y = window_start.y;
+                                    } else {
+                                        end_position.y = window_end.y;
+                                    }
+                                }
+
+                                if end_position.x > start_position.x {
+                                    calc_start_position.x = self.position.x + self.size.width;
+                                } else if end_position.x < start_position.x {
+                                    calc_start_position.x = self.position.x;
+                                }
+
+                                if end_position.y > start_position.y {
+                                    calc_start_position.y = self.position.y + self.size.height;
+                                }
+
+                                render.draw_curved_line(
+                                    start_position,
+                                    end_position,
+                                    Color::Green,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                );
+                            }
+
+                            &Action::Release => {
+                                if item.amount == 0 {
+                                    return None;
+                                }
+
+                                self.inventory[self.holding.unwrap()].decrease_amount(1);
+
+                                self.inventory_items_used.push(InventoryItemType::TrickCan);
+
+                                return Some(ShootObject::Can(Can::new(
+                                    calc_start_position,
+                                    end_position,
+                                    "assets/game/trick-can.png",
+                                    self.can_detecting_radius,
+                                )));
+                            }
+
+                            _ => (),
+                        },
+
+                        _ => (),
+                    },
+
+                    InventoryItemType::Weapon => match mouse_interaction.get_mouse_button() {
+                        &MouseButton::Button1 => {
+                            if self.status != PlayerStatus::Hidden {
                                 match mouse_interaction.get_action() {
                                     &Action::Press => {
-                                        if length > 300.0 {
-                                            let direction = (end_position - start_position).normalize(&window_start);
+                                        if length > 150.0 {
+                                            let direction = (end_position - start_position)
+                                                .normalize(&window_start);
 
-                                            end_position = start_position + (direction * 300.0);
+                                            end_position = start_position + (direction * 150.0);
                                         }
 
-                                        let window_check = is_position_in_border(&window_start, &window_end, &end_position);
-
-                                        if !window_check.0 {
-                                            if end_position.x < window_start.x {
-                                                end_position.x = window_start.x;
-                                            } else {
-                                                end_position.x = window_end.x;
-                                            }
-                                        }
-
-                                        if !window_check.1 {
-                                            if end_position.y < window_start.y {
-                                                end_position.y = window_start.y;
-                                            } else {
-                                                end_position.y = window_end.y;
-                                            }
-                                        }
-
-                                        if end_position.x > start_position.x {
-                                            calc_start_position.x = self.position.x + self.size.width;
-                                        } else if end_position.x < start_position.x {
-                                            calc_start_position.x = self.position.x;
-                                        }
-
-                                        if end_position.y > start_position.y {
-                                            calc_start_position.y = self.position.y + self.size.height;
-                                        }
-
-                                        render.draw_curved_line(start_position, end_position, Color::Green, None, None, None, None);
-                                    },
+                                        render.draw_line(
+                                            start_position,
+                                            end_position,
+                                            Color::Green,
+                                            None,
+                                            None,
+                                            None,
+                                        );
+                                    }
 
                                     &Action::Release => {
-                                        if item.amount == 0 {
+                                        if item.ammo.is_none() {
                                             return None;
                                         }
 
-                                        self.inventory[self.holding.unwrap()].decrease_amount(1);
+                                        let ammo = item.ammo.unwrap();
 
-                                        self.inventory_items_used.push(InventoryItemType::TrickCan);
+                                        if ammo == 0 {
+                                            return None;
+                                        }
 
-                                        return Some(ShootObject::Can(Can::new(calc_start_position, end_position, "assets/game/trick-can.png", self.can_detecting_radius)));
-                                    },
+                                        self.inventory[self.holding.unwrap()].decrease_ammo(1);
 
-                                    _ => ()
-                                }
-                            },
+                                        self.inventory_items_used.push(InventoryItemType::Weapon);
 
-                            _ => ()
-                        }
-                    },
-
-                    InventoryItemType::Weapon => {
-                        match mouse_interaction.get_mouse_button() {
-                            &MouseButton::Button1 => {
-                                if self.status != PlayerStatus::Hidden {
-                                    match mouse_interaction.get_action() {
-                                        &Action::Press => {
-                                            if length > 150.0 {
-                                                let direction = (end_position - start_position).normalize(&window_start);
-
-                                                end_position = start_position + (direction * 150.0);
-                                            }
-
-                                            render.draw_line(start_position, end_position, Color::Green, None, None, None);
-                                        },
-
-                                        &Action::Release => {
-                                            if item.ammo.is_none() {
-                                                return None;
-                                            }
-
-                                            let ammo = item.ammo.unwrap();
-
-                                            if ammo == 0 {
-                                                return None;
-                                            }
-
-                                            self.inventory[self.holding.unwrap()].decrease_ammo(1);
-                                            
-                                            self.inventory_items_used.push(InventoryItemType::Weapon);
-                
-                                            return Some(ShootObject::Bullet(Bullet::new(BulletType::CameraGunBullet, 10, "assets/game/bullet.png", None, start_position, end_position, DEFAULT_MOVEMENT_VALUE / 2.0)));
-                                        },
-
-                                        _ => ()
+                                        return Some(ShootObject::Bullet(Bullet::new(
+                                            BulletType::CameraGunBullet,
+                                            10,
+                                            "assets/game/bullet.png",
+                                            None,
+                                            start_position,
+                                            end_position,
+                                            DEFAULT_MOVEMENT_VALUE / 2.0,
+                                        )));
                                     }
-                                }
-                            },
 
-                            _ => ()
+                                    _ => (),
+                                }
+                            }
                         }
 
+                        _ => (),
                     },
                 }
             }
@@ -837,7 +944,7 @@ impl<'a> Player<'a> {
     pub fn move_player(&mut self, direction: Direction) {
         if self.status != PlayerStatus::Hidden {
             self.prev_position = Some(self.get_position());
-    
+
             self.move_character(direction, self.movement_value);
         }
     }
@@ -861,27 +968,29 @@ impl<'a> Player<'a> {
     }
 
     pub fn is_off_window(&self, window_size: Size) -> bool {
-        self.position.x > window_size.width ||
-        (self.position.x + self.size.width) > window_size.width ||
-        self.position.x < 0.0 ||
-        self.position.y > window_size.height ||
-        (self.position.y + self.size.height) > window_size.height ||
-        self.position.y < 0.0
+        self.position.x > window_size.width
+            || (self.position.x + self.size.width) > window_size.width
+            || self.position.x < 0.0
+            || self.position.y > window_size.height
+            || (self.position.y + self.size.height) > window_size.height
+            || self.position.y < 0.0
     }
 
     pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
         let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
 
-        self.position.x > (start_position.x + size.width) ||
-        (self.position.x + self.size.width) > (start_position.x + size.width) ||
-        self.position.x < start_position.x ||
-        self.position.y > (start_position.y + size.height) ||
-        (self.position.y + self.size.height) > (start_position.y + size.height) ||
-        self.position.y < start_position.y
+        self.position.x > (start_position.x + size.width)
+            || (self.position.x + self.size.width) > (start_position.x + size.width)
+            || self.position.x < start_position.x
+            || self.position.y > (start_position.y + size.height)
+            || (self.position.y + self.size.height) > (start_position.y + size.height)
+            || self.position.y < start_position.y
     }
 
     pub fn is_colliding_with_object(&self, object: &impl LevelObject<'a>) -> bool {
-        if (self.get_calc_position().0 == object.get_calc_position().0) || (self.get_calc_position().1 == object.get_calc_position().1) {
+        if (self.get_calc_position().0 == object.get_calc_position().0)
+            || (self.get_calc_position().1 == object.get_calc_position().1)
+        {
             return true;
         }
 
@@ -891,16 +1000,27 @@ impl<'a> Player<'a> {
         let end_player_position;
 
         if object.get_type() == ObjectType::HidePlace {
-            start_object_position = round_position_to_full_numbers(object.get_position(), self.movement_value, true, false);
-            end_object_position = round_position_to_full_numbers(start_object_position + object.get_size(), self.movement_value, true, false);
-            start_player_position = round_position_to_full_numbers(self.position, self.movement_value, true, false);
+            start_object_position = round_position_to_full_numbers(
+                object.get_position(),
+                self.movement_value,
+                true,
+                false,
+            );
+            end_object_position = round_position_to_full_numbers(
+                start_object_position + object.get_size(),
+                self.movement_value,
+                true,
+                false,
+            );
+            start_player_position =
+                round_position_to_full_numbers(self.position, self.movement_value, true, false);
             end_player_position = self.position + self.size;
         } else {
             (start_object_position, end_object_position) = object.get_calc_position();
-            (start_player_position, end_player_position) = self.get_calc_position(); 
+            (start_player_position, end_player_position) = self.get_calc_position();
         }
 
-        let is_collide = | movement_val: f32 | {
+        let is_collide = |movement_val: f32| {
             // (start_player_position.y == start_object_position.y
             //     && (
             //         (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
@@ -911,17 +1031,21 @@ impl<'a> Player<'a> {
             //         (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
             //         || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y)
             //     )
-            
-            let covers_object_x = 
-                    (start_player_position.x >= start_object_position.x && start_player_position.x <= (start_object_position.x + movement_val))
-                    || (end_player_position.x >= (end_object_position.x - movement_val) && end_player_position.x <= end_object_position.x);
 
-            let covers_object_y = 
-                    (start_player_position.y >= start_object_position.y && start_player_position.y <= (start_object_position.y + movement_val))
-                    || (end_player_position.y >= (end_object_position.y - movement_val) && end_player_position.y <= end_object_position.y);
+            let covers_object_x = (start_player_position.x >= start_object_position.x
+                && start_player_position.x <= (start_object_position.x + movement_val))
+                || (end_player_position.x >= (end_object_position.x - movement_val)
+                    && end_player_position.x <= end_object_position.x);
 
-            ((start_player_position.y == start_object_position.y || covers_object_y) && covers_object_x)
-                || ((start_player_position.x == start_object_position.x || covers_object_x) && covers_object_y)
+            let covers_object_y = (start_player_position.y >= start_object_position.y
+                && start_player_position.y <= (start_object_position.y + movement_val))
+                || (end_player_position.y >= (end_object_position.y - movement_val)
+                    && end_player_position.y <= end_object_position.y);
+
+            ((start_player_position.y == start_object_position.y || covers_object_y)
+                && covers_object_x)
+                || ((start_player_position.x == start_object_position.x || covers_object_x)
+                    && covers_object_y)
         };
 
         let is_colliding = is_collide(self.movement_value);
@@ -933,12 +1057,16 @@ impl<'a> Player<'a> {
         is_colliding
     }
 
-    pub fn throw_form_hide_place(&mut self, walls: &[Wall<'a>], enemy_movement_direction: &Direction) {
+    pub fn throw_form_hide_place(
+        &mut self,
+        walls: &[Wall<'a>],
+        enemy_movement_direction: &Direction,
+    ) {
         if self.status == PlayerStatus::Hidden {
             let new_value = 60.0;
 
             let mut can_throw_left = false;
-            let mut can_throw_right= false;
+            let mut can_throw_right = false;
 
             let mut i = 0;
 
@@ -962,14 +1090,26 @@ impl<'a> Player<'a> {
 
             if can_throw_left && can_throw_right {
                 if enemy_movement_direction == &Direction::Left {
-                    self.set_position(Position { x: self.position.x - new_value, y: self.position.y });
+                    self.set_position(Position {
+                        x: self.position.x - new_value,
+                        y: self.position.y,
+                    });
                 } else {
-                    self.set_position(Position { x: self.position.x + new_value, y: self.position.y });
+                    self.set_position(Position {
+                        x: self.position.x + new_value,
+                        y: self.position.y,
+                    });
                 }
             } else if can_throw_left {
-                self.set_position(Position { x: self.position.x - new_value, y: self.position.y });
+                self.set_position(Position {
+                    x: self.position.x - new_value,
+                    y: self.position.y,
+                });
             } else {
-                self.set_position(Position { x: self.position.x + new_value, y: self.position.y });
+                self.set_position(Position {
+                    x: self.position.x + new_value,
+                    y: self.position.y,
+                });
             }
         }
     }
