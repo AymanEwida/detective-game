@@ -4,7 +4,7 @@ extern crate glfw;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-use detective_game::game::level::{GameObject, LevelStatus};
+use detective_game::game::level::LevelStatus;
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
 use detective_game::game::store::StoreItem;
 use detective_game::renderer::button::ButtonAction;
@@ -51,17 +51,57 @@ fn main() {
         .load_level(&mut player)
         .expect("Unable to load level!");
 
-    let mut store_items = vec![StoreItem {
-        image_path: "assets/game/bullet.png",
-        title: String::from("Test"),
-        description: String::from("test 123 helloo!!"),
-        price: 2,
-        error_message: String::new(),
-        buy_func: Box::new(|player: &mut Player<'_>| {
-            print!("player size is: {:?}\n", player.get_size());
-            Ok(())
-        }),
-    }];
+    let mut store_items = vec![
+        StoreItem {
+            image_path: "assets/game/upgrade.png",
+            title: String::from("Q Ability Upgrade"),
+            description: String::from(
+                "increases the coverd space of the q ability, by adding 50 to the q ability radius",
+            ),
+            price: 2,
+            upgrade_info: Some((0, 3)),
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                player.set_ability_radius(player.get_ability_radius() + 50.0);
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/path_track_ability.png",           
+            title: String::from("Q Ability New Feature"),
+            description: String::from(
+                "when any enemy in the ability covered space, the path of the enemy in Regular mode is shown",
+            ),
+            price: 3,
+            upgrade_info: None,
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                if player.get_track_path_ability() {
+                    return Err(String::from("You have already purchased this item"));
+                }
+
+                player.set_track_path_ability(true);
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/disturb_camera.png",           
+            title: String::from("Increase Disturb Duration"),
+            description: String::from(
+                "camera disturb duration is incresed by 1.5 seconds",
+            ),
+            price: 2,
+            upgrade_info: Some((0, 2)),
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                player.set_camera_disturb_lifttime(player.get_camera_disturb_lifttime().as_secs() + 1);
+
+                Ok(())
+            }),
+        },
+    ];
 
     let mut last_update = Instant::now();
 

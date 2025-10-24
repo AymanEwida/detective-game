@@ -126,6 +126,11 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], render: &mut Render<'a>) -> Result<()> {
+        // TODO: Remove this later
+        if self.current_level == 1 {
+            self.status = LevelStatus::Win;
+        }
+    
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
         } else if self.get_status() == &LevelStatus::Lose {
@@ -182,15 +187,16 @@ impl<'a> GameLevel<'a> {
             render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 475.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
             render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 475.0 }, 1.0, None, Color::White)?;
 
+            let offset = 530.0;
             for (idx, store_item) in store_items.iter_mut().enumerate() {
-                render.draw_rectangle(Position { x: 50.0 + (idx as f32 * 200.0), y: 600.0 }, Size { width: 500.0, height: 600.0 }, Color::White, None, None, None);
-                
-                render.load_image(store_item.get_image_path(), Position { x: 60.0 + (idx as f32 * 500.0), y: 610.0 }, Size { width: 490.0, height: 190.0 }, false, None, None, None, None)?;
-                render.display_text(store_item.get_title(), Position { x: 200.0 + (idx as f32 * 500.0), y: 800.0 }, 0.7, Some(100.0), Color::Black)?;
-                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * 500.0), y: 850.0 }, 0.5, Some(490.0), Color::Black)?;
+                render.draw_rectangle(Position { x: 50.0 + (idx as f32 * offset), y: 600.0 }, Size { width: 500.0, height: 600.0 }, Color::White, None, None, None);
+
+                render.load_image(store_item.get_image_path(), Position { x: 175.0 + (idx as f32 * offset), y: 610.0 }, Size { width: 225.0, height: 190.0 }, false, None, None, None, None)?;
+                render.display_text(store_item.get_title(), Position { x: 130.0 + (idx as f32 * offset), y: 820.0 }, 0.6, Some(370.0), Color::Black)?;
+                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * offset), y: 890.0 }, 0.5, Some(490.0), Color::Black)?;
 
                 render.display_button(ButtonProps {
-                    position: Position { x: 80.0 + (idx as f32 * 500.0), y: 1150.0 },
+                    position: Position { x: 80.0 + (idx as f32 * offset), y: 1150.0 },
                     bg_color: Color::Blue,
                     width: None,
                     height: None, 
@@ -207,12 +213,16 @@ impl<'a> GameLevel<'a> {
                     on_hover_release: Box::new(|| {})
                 });
 
-                if store_item.get_error_message() != "" {
-                    render.display_text(store_item.get_error_message(), Position { x: 60.0 + (idx as f32 * 500.0), y: 1230.0 }, 0.6, None, Color::Red)?;
+                if let Some(upgrade_info) = store_item.get_upgrade_info() {
+                    render.display_text(&format!("({}/{})", upgrade_info.0, upgrade_info.1), Position { x: 160.0 + (idx as f32 * offset), y: 1140.0 }, 0.7, None, Color::Black)?;
                 }
 
-                render.load_image("assets/game/coin.png", Position { x: 430.0 + (idx as f32 * 500.0), y: 1140.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-                render.display_text(&format!("{}", store_item.get_price()), Position { x: 480.0 + (idx as f32 * 500.0), y: 1150.0 }, 0.6, None, Color::Black)?;
+                if store_item.get_error_message() != "" {
+                    render.display_text(store_item.get_error_message(), Position { x: 60.0 + (idx as f32 * offset), y: 1230.0 }, 0.6, None, Color::Red)?;
+                }
+
+                render.load_image("assets/game/coin.png", Position { x: 430.0 + (idx as f32 * offset), y: 1140.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+                render.display_text(&format!("{}", store_item.get_price()), Position { x: 480.0 + (idx as f32 * offset), y: 1150.0 }, 0.6, None, Color::Black)?;
             }
 
             render.display_button(ButtonProps {

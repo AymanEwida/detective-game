@@ -111,6 +111,8 @@ pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size {
     height: 40.0,
 };
 
+pub const DEFAULT_Q_ABILITY_RADIUS: f32 = 150.0;
+
 #[derive(Debug, Clone)]
 pub struct InventoryItem<'a> {
     item_type: InventoryItemType,
@@ -280,12 +282,12 @@ impl Player<'_> {
             holding: None,
             camera_disturb_lifttime: Duration::from_secs(10),
             notoriety_camera_disturb_lifttime: Duration::from_secs(10),
-            coins: 0,
+            coins: 100, // TODO: change this to 0 later
             is_detected_by_enemy: false,
             seen_by_enemies: Vec::new(),
             is_teleported: false,
             can_detecting_radius: 100.0,
-            ability_radius: 150.0,
+            ability_radius: DEFAULT_Q_ABILITY_RADIUS,
             is_using_ability: false,
             track_path_ability: false,
             enemy_wait_time_on_trict_can: 6000,
@@ -308,15 +310,37 @@ impl<'a> GameObject<'a> for Player<'a> {
                 y: self.get_position().y + self.get_size().height / 2.0,
             };
 
-            render.draw_geometric_object(
-                center,
-                self.get_ability_radius(),
-                Color::RGBA(0, 255, 0, 50),
-                None,
-                None,
-                None,
-                None,
-            );
+            if self.get_ability_radius() == 150.0 {
+                render.draw_geometric_object(
+                    center,
+                    self.get_ability_radius(),
+                    Color::RGBA(0, 255, 0, 50),
+                    None,
+                    None,
+                    None,
+                    None,
+                );
+            } else {
+                render.draw_geometric_object(
+                    center,
+                    self.get_ability_radius(),
+                    Color::RGBA(0, 255, 0, 100),
+                    None,
+                    None,
+                    None,
+                    None,
+                );
+
+                render.draw_geometric_object(
+                    center,
+                    DEFAULT_Q_ABILITY_RADIUS,
+                    Color::RGBA(0, 255, 0, 50),
+                    None,
+                    None,
+                    None,
+                    None,
+                );
+            }
         }
 
         let opacity = if self.status == PlayerStatus::Hidden {
