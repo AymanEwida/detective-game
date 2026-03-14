@@ -1,10 +1,31 @@
-use std::{collections::HashSet, f32::consts::PI, fs, io::{Error, ErrorKind}, path::Path};
+use std::{
+    collections::HashSet,
+    f32::consts::PI,
+    fs,
+    io::{Error, ErrorKind},
+    path::Path,
+};
 
 use glam::bool;
 use queues::{IsQueue, Queue};
 use rand::Rng;
 
-use crate::{game::{challenge::Challenge, character::{Direction, DEFAULT_CHARACTER_SIZE}, door::Door, enemy::Enemy, level::{AttachedType, EndStartPositions, GameObject}, level_object::LevelObject, wall::Wall}, library::constants::DEFAULT_MOVEMENT_VALUE, renderer::{styles::{Padding, Size}, vertice::{GridPosition, Position}}};
+use crate::{
+    game::{
+        challenge::Challenge,
+        character::{Direction, DEFAULT_CHARACTER_SIZE},
+        door::Door,
+        enemy::Enemy,
+        level::{AttachedType, EndStartPositions, GameObject},
+        level_object::LevelObject,
+        wall::Wall,
+    },
+    library::constants::DEFAULT_MOVEMENT_VALUE,
+    renderer::{
+        styles::{Padding, Size},
+        vertice::{GridPosition, Position},
+    },
+};
 
 use super::constants::GAME_ASSETS_DIR;
 
@@ -18,31 +39,40 @@ pub fn calc_mid_point(start: &Position, end: &Position) -> Position {
     let x_middle = (start.x + end.x) / 2.0;
     let y_middle = (start.y + end.y) / 2.0;
 
-    Position { x: x_middle, y: y_middle }
+    Position {
+        x: x_middle,
+        y: y_middle,
+    }
 }
 
 pub fn calc_control_point(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
-    
+
     let mut control_y = (start.y + end.y).abs();
 
     if start.y == end.y {
         control_y = &control_y / 2.0;
     }
 
-    Position { x: control_x, y: control_y }
+    Position {
+        x: control_x,
+        y: control_y,
+    }
 }
 
 pub fn calc_control_point_game_coordinate_system(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
-    
+
     let mut control_y = (start.y + end.y) / 2.0;
 
     if start.y != end.y {
         control_y = control_y - 100.0;
     }
 
-    Position { x: control_x, y: control_y }
+    Position {
+        x: control_x,
+        y: control_y,
+    }
 }
 
 pub fn convert_coordinates(coordinate: Position, size: &Size) -> Position {
@@ -56,54 +86,61 @@ pub fn convert_coordinates(coordinate: Position, size: &Size) -> Position {
         if coordinate.y <= half_height {
             Position {
                 x: new_x * -1.0,
-                y: new_y
+                y: new_y,
             }
         } else {
             Position {
                 x: new_x * -1.0,
-                y: new_y * -1.0
+                y: new_y * -1.0,
             }
         }
     } else {
         if coordinate.y <= half_height {
-            Position {
-                x: new_x,
-                y: new_y
-            }
+            Position { x: new_x, y: new_y }
         } else {
             Position {
                 x: new_x,
-                y: new_y * -1.0
+                y: new_y * -1.0,
             }
         }
     }
 }
 
 pub fn convert_size(object_size: Size, window: &Size) -> Size {
-    Size { width: (object_size.width * 2.0) / window.width, height: (object_size.height * 2.0) / window.height }
+    Size {
+        width: (object_size.width * 2.0) / window.width,
+        height: (object_size.height * 2.0) / window.height,
+    }
 }
 
 pub fn convert_path(path: &str) -> PathVec {
     let full_path = path.to_lowercase();
 
-    full_path.split(' ').map(| full_move_path | {
-        let move_path_and_wait_time: Vec<&str> = full_move_path.split('/').collect();
+    full_path
+        .split(' ')
+        .map(|full_move_path| {
+            let move_path_and_wait_time: Vec<&str> = full_move_path.split('/').collect();
 
-        let move_path = move_path_and_wait_time[0];
-        let move_number = move_path[0..move_path.len()-1].parse::<u32>().unwrap_or(0);
+            let move_path = move_path_and_wait_time[0];
+            let move_number = move_path[0..move_path.len() - 1]
+                .parse::<u32>()
+                .unwrap_or(0);
 
-        let move_direction = match move_path[move_path.len()-1..].to_lowercase().as_ref() {
-            "u" => Direction::Up,
-            "d" => Direction::Down,
-            "l" => Direction::Left,
-            "r" => Direction::Right,
-            _ => Direction::Down
-        };
+            let move_direction = match move_path[move_path.len() - 1..].to_lowercase().as_ref() {
+                "u" => Direction::Up,
+                "d" => Direction::Down,
+                "l" => Direction::Left,
+                "r" => Direction::Right,
+                _ => Direction::Down,
+            };
 
-        let wait_time = move_path_and_wait_time[move_path_and_wait_time.len()-1].parse::<u64>().unwrap_or(0);
+            let wait_time = move_path_and_wait_time[move_path_and_wait_time.len() - 1]
+                .parse::<u64>()
+                .unwrap_or(0);
 
-        (move_number, move_direction, wait_time)
-    }).collect()
+            (move_number, move_direction, wait_time)
+        })
+        .collect()
 }
 
 pub fn get_moves_number(moves_path: PathVec) -> u32 {
@@ -121,7 +158,7 @@ pub fn sum_direction_length_from_path(path: &str, direction: Direction, speed: f
         Direction::Left => 'l',
         Direction::Right => 'r',
         Direction::Up => 'u',
-        Direction::Down => 'd' 
+        Direction::Down => 'd',
     };
 
     let mut steps = String::new();
@@ -135,14 +172,10 @@ pub fn sum_direction_length_from_path(path: &str, direction: Direction, speed: f
         }
 
         if ch >= '0' && ch <= '9' {
-            steps.push(ch); 
+            steps.push(ch);
         } else if ch == direction {
             for i in 0..steps.len() {
-                let num = steps[i..i+1]
-                    .chars()
-                    .next()
-                    .unwrap()
-                    .to_ascii_lowercase() as i32 - 48;
+                let num = steps[i..i + 1].chars().next().unwrap().to_ascii_lowercase() as i32 - 48;
 
                 count += 10_i32.pow((steps.len() - 1 - i) as u32) * num;
             }
@@ -156,24 +189,31 @@ pub fn convert_angle_to_radians(angle: f32) -> f32 {
     angle * (PI / 180.0)
 }
 
-pub fn calc_mid_point_position_of_triangle(first_point_position: Position, second_point_position: Position, third_point_position: Position) -> Position {
+pub fn calc_mid_point_position_of_triangle(
+    first_point_position: Position,
+    second_point_position: Position,
+    third_point_position: Position,
+) -> Position {
     Position {
         x: (first_point_position.x + second_point_position.x + third_point_position.x) / 3.0,
-        y: (first_point_position.y + second_point_position.y + third_point_position.y) / 3.0 
+        y: (first_point_position.y + second_point_position.y + third_point_position.y) / 3.0,
     }
 }
 
-pub fn calc_mid_point_position_of_quadrilateral_shape(top_left: &Position, size: &Size) -> Position {
+pub fn calc_mid_point_position_of_quadrilateral_shape(
+    top_left: &Position,
+    size: &Size,
+) -> Position {
     Position {
         x: top_left.x + (size.width / 2.0),
-        y: top_left.y - (size.height / 2.0) 
+        y: top_left.y - (size.height / 2.0),
     }
 }
 
 pub fn create_translate(translate: Position, window_size: &Size) -> Position {
     Position {
         x: (translate.x / window_size.width) * 2.0,
-        y: (translate.y / window_size.height) * -2.0
+        y: (translate.y / window_size.height) * -2.0,
     }
 }
 
@@ -187,7 +227,7 @@ pub fn absolute_f32(num: f32) -> f32 {
 
 pub fn get_level_challenges(level: u8) -> Result<Vec<Challenge>, std::io::Error> {
     let level_challenges_file_path = format!("./{}challenges/level{}.txt", GAME_ASSETS_DIR, level);
-    let content = fs::read_to_string(Path::new(&level_challenges_file_path))?; 
+    let content = fs::read_to_string(Path::new(&level_challenges_file_path))?;
 
     let mut challenges_vec: Vec<&str> = content.split("\n").collect();
     if content.contains("\r\n") {
@@ -195,7 +235,13 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<Challenge>, std::io::Error>
     }
 
     if challenges_vec.len() == 0 {
-        return Err(Error::new(ErrorKind::InvalidData, format!("There is no challenges in the file, path is: {}", level_challenges_file_path)));
+        return Err(Error::new(
+            ErrorKind::InvalidData,
+            format!(
+                "There is no challenges in the file, path is: {}",
+                level_challenges_file_path
+            ),
+        ));
     }
 
     let mut challenges_strings = Vec::new();
@@ -210,51 +256,98 @@ pub fn get_level_challenges(level: u8) -> Result<Vec<Challenge>, std::io::Error>
         }
     }
 
-    let challenges = challenges_strings.into_iter().map(| challenge_string: String | {
-        let challenge_data: Vec<&str> = challenge_string.split("?").collect();
+    let challenges = challenges_strings
+        .into_iter()
+        .map(|challenge_string: String| {
+            let challenge_data: Vec<&str> = challenge_string.split("?").collect();
 
-        Challenge::new(challenge_data[0].into(), challenge_data[1].into())
-    }).collect();
+            Challenge::new(challenge_data[0].into(), challenge_data[1].into())
+        })
+        .collect();
 
     Ok(challenges)
 }
 
-pub fn calc_equidistant_points(apex: Position, angle: f32, line_length: f32, angle_direction: Direction) -> (Position, Position, Position) {
-    assert!(angle > 0.0 && angle < 180.0, "angle must be bigger than 0.0 and smaller than 180.0");
-   
+pub fn calc_equidistant_points(
+    apex: Position,
+    angle: f32,
+    line_length: f32,
+    angle_direction: Direction,
+) -> (Position, Position, Position) {
+    assert!(
+        angle > 0.0 && angle < 180.0,
+        "angle must be bigger than 0.0 and smaller than 180.0"
+    );
+
     let angle = convert_angle_to_radians(angle);
 
     let middle_line_length = angle.cos() * line_length;
-    let middle_part_line_length = (line_length.powi(2) - middle_line_length.powi(2)).sqrt(); 
+    let middle_part_line_length = (line_length.powi(2) - middle_line_length.powi(2)).sqrt();
 
     let middle_point;
     let top_point;
-    let bottom_point;        
+    let bottom_point;
 
     match angle_direction {
         Direction::Right => {
-            middle_point = Position { x: apex.x + middle_line_length, y: apex.y };
-            top_point = Position { x: middle_point.x, y: middle_point.y + middle_part_line_length };
-            bottom_point = Position { x: middle_point.x, y: middle_point.y - middle_part_line_length };
-        },
+            middle_point = Position {
+                x: apex.x + middle_line_length,
+                y: apex.y,
+            };
+            top_point = Position {
+                x: middle_point.x,
+                y: middle_point.y + middle_part_line_length,
+            };
+            bottom_point = Position {
+                x: middle_point.x,
+                y: middle_point.y - middle_part_line_length,
+            };
+        }
 
         Direction::Left => {
-            middle_point = Position { x: apex.x - middle_line_length, y: apex.y };
-            top_point = Position { x: middle_point.x, y: middle_point.y + middle_part_line_length };
-            bottom_point = Position { x: middle_point.x, y: middle_point.y - middle_part_line_length };
-        },
+            middle_point = Position {
+                x: apex.x - middle_line_length,
+                y: apex.y,
+            };
+            top_point = Position {
+                x: middle_point.x,
+                y: middle_point.y + middle_part_line_length,
+            };
+            bottom_point = Position {
+                x: middle_point.x,
+                y: middle_point.y - middle_part_line_length,
+            };
+        }
 
         Direction::Down => {
-            middle_point = Position { x: apex.x, y: apex.y + middle_line_length };
-            top_point = Position { x: middle_point.x + middle_part_line_length, y: middle_point.y};
-            bottom_point = Position { x: middle_point.x - middle_part_line_length, y: middle_point.y };
-        },
+            middle_point = Position {
+                x: apex.x,
+                y: apex.y + middle_line_length,
+            };
+            top_point = Position {
+                x: middle_point.x + middle_part_line_length,
+                y: middle_point.y,
+            };
+            bottom_point = Position {
+                x: middle_point.x - middle_part_line_length,
+                y: middle_point.y,
+            };
+        }
 
         Direction::Up => {
-            middle_point = Position { x: apex.x, y: apex.y - middle_line_length };    
-            top_point = Position { x: middle_point.x + middle_part_line_length, y: middle_point.y};
-            bottom_point = Position { x: middle_point.x - middle_part_line_length, y: middle_point.y };
-        },
+            middle_point = Position {
+                x: apex.x,
+                y: apex.y - middle_line_length,
+            };
+            top_point = Position {
+                x: middle_point.x + middle_part_line_length,
+                y: middle_point.y,
+            };
+            bottom_point = Position {
+                x: middle_point.x - middle_part_line_length,
+                y: middle_point.y,
+            };
+        }
     }
 
     (top_point, bottom_point, apex)
@@ -264,9 +357,16 @@ pub fn get_heuristic_score(a: &Position, b: &Position, value: f32) -> f32 {
     (absolute_f32(a.x - b.x) + absolute_f32(a.y - b.y)) / value
 }
 
-
-pub fn round_position_to_full_numbers(position: Position, value: f32, is_middle_towrds_up_x_axis: bool, is_middle_towrds_up_y_axis: bool) -> Position {
-    let decimal_round_position = Position { x: position.x.round(), y: position.y.round() };
+pub fn round_position_to_full_numbers(
+    position: Position,
+    value: f32,
+    is_middle_towrds_up_x_axis: bool,
+    is_middle_towrds_up_y_axis: bool,
+) -> Position {
+    let decimal_round_position = Position {
+        x: position.x.round(),
+        y: position.y.round(),
+    };
 
     let rounded_x = if is_middle_towrds_up_x_axis {
         (decimal_round_position.x / value).round() * value
@@ -288,66 +388,87 @@ pub fn round_position_to_full_numbers(position: Position, value: f32, is_middle_
         }
     };
 
-    Position { x: rounded_x, y: rounded_y }
-}
-
-pub fn get_estimated_position(position: &Position, steps: u32, direction: Direction, value: f32) -> Position {
-    let distance = steps as f32 * value;
-
-    match direction {
-        Direction::Left => {
-            Position {
-                x: position.x - distance,
-                ..*position
-            }
-        },
-
-        Direction::Right => {
-            Position {
-                x: position.x + distance,
-                ..*position
-            }
-        },
-
-        Direction::Up => {
-            Position {
-                y: position.y - distance,
-                ..*position
-            }
-        },
-
-        Direction::Down => {
-            Position {
-                y: position.y + distance,
-                ..*position
-            }
-        }
+    Position {
+        x: rounded_x,
+        y: rounded_y,
     }
 }
 
-pub fn is_position_in_border(border_start: &Position, border_end: &Position, position: &Position) -> (bool, bool) {
+pub fn get_estimated_position(
+    position: &Position,
+    steps: u32,
+    direction: Direction,
+    value: f32,
+) -> Position {
+    let distance = steps as f32 * value;
+
+    match direction {
+        Direction::Left => Position {
+            x: position.x - distance,
+            ..*position
+        },
+
+        Direction::Right => Position {
+            x: position.x + distance,
+            ..*position
+        },
+
+        Direction::Up => Position {
+            y: position.y - distance,
+            ..*position
+        },
+
+        Direction::Down => Position {
+            y: position.y + distance,
+            ..*position
+        },
+    }
+}
+
+pub fn is_position_in_border(
+    border_start: &Position,
+    border_end: &Position,
+    position: &Position,
+) -> (bool, bool) {
     (
         position.x >= border_start.x && position.x <= border_end.x,
-        position.y >= border_start.y && position.y <= border_end.y
+        position.y >= border_start.y && position.y <= border_end.y,
     )
 }
 
-pub fn calculate_calc_position(start_position: Position, size: Size, value: f32) -> EndStartPositions {
+pub fn calculate_calc_position(
+    start_position: Position,
+    size: Size,
+    value: f32,
+) -> EndStartPositions {
     let start = round_position_to_full_numbers(start_position, value, true, true);
     let end = round_position_to_full_numbers(start + size, value, true, true);
 
     (start, end)
 }
 
-pub fn check_point_in_triangle(point: &Position, first: &Position, second: &Position, apex: &Position) -> bool {
-    let first_to_second = (point.x - first.x) * (second.y - first.y) - (point.y - first.y) * (second.x - first.x);
-    let second_to_apex = (point.x - second.x) * (apex.y - second.y) - (point.y - second.y) * (apex.x - second.x);
-    let apex_to_first = (point.x - apex.x) * (first.y - apex.y) - (point.y - apex.y) * (first.x - apex.x);
+pub fn check_point_in_triangle(
+    point: &Position,
+    first: &Position,
+    second: &Position,
+    apex: &Position,
+) -> bool {
+    let first_to_second =
+        (point.x - first.x) * (second.y - first.y) - (point.y - first.y) * (second.x - first.x);
+    let second_to_apex =
+        (point.x - second.x) * (apex.y - second.y) - (point.y - second.y) * (apex.x - second.x);
+    let apex_to_first =
+        (point.x - apex.x) * (first.y - apex.y) - (point.y - apex.y) * (first.x - apex.x);
 
-    (first_to_second.signum() == second_to_apex.signum()) && (first_to_second.signum() == apex_to_first.signum()) && (second_to_apex.signum() == apex_to_first.signum())
+    (first_to_second.signum() == second_to_apex.signum())
+        && (first_to_second.signum() == apex_to_first.signum())
+        && (second_to_apex.signum() == apex_to_first.signum())
 }
 
-pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position, AttachedType)>, search_id: usize) -> i32 {
+pub fn get_attached_enemy_index(
+    attached_enemies: &Vec<(usize, Position, AttachedType)>,
+    search_id: usize,
+) -> i32 {
     let mut found_idx = -1;
 
     for (idx, (attached_enemy_id, ..)) in attached_enemies.iter().enumerate() {
@@ -361,34 +482,37 @@ pub fn get_attached_enemy_index(attached_enemies: &Vec<(usize, Position, Attache
     found_idx
 }
 
-pub fn object_in_between_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, object: &impl LevelObject<'a>) -> (bool, bool) {
-    let (player_start, player_end) = player_calc_position; 
-    let (other_start, other_end) = other_calc_position; 
+pub fn object_in_between_check<'a>(
+    player_calc_position: EndStartPositions,
+    other_calc_position: EndStartPositions,
+    object: &impl LevelObject<'a>,
+) -> (bool, bool) {
+    let (player_start, player_end) = player_calc_position;
+    let (other_start, other_end) = other_calc_position;
 
     let (object_start, object_end) = object.get_calc_position();
 
-    let is_between_x_axis = (
-        (player_end.y <= object_start.y && other_start.y >= object_end.y)
-        || (other_end.y <= object_start.y && player_start.y >= object_end.y)
-    ) && (
-        (player_start.x >= object_start.x && other_end.x <= object_end.x)
-        || (player_end.x <= object_end.x && other_start.x >= object_start.x)
-    );
+    let is_between_x_axis = ((player_end.y <= object_start.y && other_start.y >= object_end.y)
+        || (other_end.y <= object_start.y && player_start.y >= object_end.y))
+        && ((player_start.x >= object_start.x && other_end.x <= object_end.x)
+            || (player_end.x <= object_end.x && other_start.x >= object_start.x));
 
-    let is_between_y_axis = (
-        (player_end.x <= object_start.x && other_start.x >= object_end.x)
-        || (other_end.x <= object_start.x && player_start.x >= object_end.x)
-    ) && (
-        (player_start.y >= object_start.y && other_end.y <= object_end.y)
-        || (player_end.y <= object_end.y && other_start.y >= object_start.y)
-    );
+    let is_between_y_axis = ((player_end.x <= object_start.x && other_start.x >= object_end.x)
+        || (other_end.x <= object_start.x && player_start.x >= object_end.x))
+        && ((player_start.y >= object_start.y && other_end.y <= object_end.y)
+            || (player_end.y <= object_end.y && other_start.y >= object_start.y));
 
     (is_between_x_axis, is_between_y_axis)
 }
 
-pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, objects: &[impl LevelObject<'a>]) -> bool {
+pub fn simple_object_detect_check<'a>(
+    player_calc_position: EndStartPositions,
+    other_calc_position: EndStartPositions,
+    objects: &[impl LevelObject<'a>],
+) -> bool {
     for object in objects {
-        let (is_between_x_axis, is_between_y_axis) = object_in_between_check(player_calc_position, other_calc_position, object);
+        let (is_between_x_axis, is_between_y_axis) =
+            object_in_between_check(player_calc_position, other_calc_position, object);
 
         if is_between_x_axis || is_between_y_axis {
             return true;
@@ -398,12 +522,21 @@ pub fn simple_object_detect_check<'a>(player_calc_position: EndStartPositions, o
     false
 }
 
-pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, other_calc_position: EndStartPositions, walls: &[Wall<'a>], doors: &[Door<'a>], value: f32) -> bool {
-    let (player_start, player_end) = player_calc_position; 
-    let (other_start, ..) = other_calc_position; 
+pub fn bfs_object_detect_check<'a>(
+    player_calc_position: EndStartPositions,
+    other_calc_position: EndStartPositions,
+    walls: &[Wall<'a>],
+    doors: &[Door<'a>],
+    value: f32,
+) -> bool {
+    let (player_start, player_end) = player_calc_position;
+    let (other_start, ..) = other_calc_position;
 
-    let distance = (absolute_f32(player_start.x - other_start.x), absolute_f32(player_start.y - other_start.y));
-    
+    let distance = (
+        absolute_f32(player_start.x - other_start.x),
+        absolute_f32(player_start.y - other_start.y),
+    );
+
     let dirction: (Direction, Direction);
 
     if player_start.x < other_start.x {
@@ -443,17 +576,53 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
             if dirction.1 == Direction::Down {
                 y_pos = (player_start.y + y_count, player_end.y + y_count);
 
-                check_positions.push((Position { x: x_pos.0, y: y_pos.1 }, Position { x: x_pos.1, y: y_pos.1 }));
+                check_positions.push((
+                    Position {
+                        x: x_pos.0,
+                        y: y_pos.1,
+                    },
+                    Position {
+                        x: x_pos.1,
+                        y: y_pos.1,
+                    },
+                ));
             } else {
                 y_pos = (player_start.y - y_count, player_end.y - y_count);
 
-                check_positions.push((Position { x: x_pos.0, y: y_pos.0 }, Position { x: x_pos.1, y: y_pos.0 }));
+                check_positions.push((
+                    Position {
+                        x: x_pos.0,
+                        y: y_pos.0,
+                    },
+                    Position {
+                        x: x_pos.1,
+                        y: y_pos.0,
+                    },
+                ));
             }
-            
+
             if dirction.0 == Direction::Right {
-                check_positions.push((Position { x: x_pos.1, y: y_pos.0 }, Position { x: x_pos.1, y: y_pos.1 }));
+                check_positions.push((
+                    Position {
+                        x: x_pos.1,
+                        y: y_pos.0,
+                    },
+                    Position {
+                        x: x_pos.1,
+                        y: y_pos.1,
+                    },
+                ));
             } else {
-                check_positions.push((Position { x: x_pos.0, y: y_pos.0 }, Position { x: x_pos.0, y: y_pos.1 }));
+                check_positions.push((
+                    Position {
+                        x: x_pos.0,
+                        y: y_pos.0,
+                    },
+                    Position {
+                        x: x_pos.0,
+                        y: y_pos.1,
+                    },
+                ));
             }
 
             y_count += value;
@@ -461,10 +630,10 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
 
         x_count += value;
     }
-    
+
     let mut player_body_check_positions = (false, false);
 
-    let is_in_object = | position: &Position, obj_start: &Position, obj_end: &Position | {
+    let is_in_object = |position: &Position, obj_start: &Position, obj_end: &Position| {
         (position.x >= obj_start.x && position.x <= obj_end.x)
             && (position.y >= obj_start.y && position.y <= obj_end.y)
     };
@@ -473,11 +642,15 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
         let (wall_start, wall_end) = wall.get_calc_position();
 
         for (start_check_position, end_check_position) in check_positions.iter() {
-            if !player_body_check_positions.0 && is_in_object(start_check_position, &wall_start, &wall_end) {
+            if !player_body_check_positions.0
+                && is_in_object(start_check_position, &wall_start, &wall_end)
+            {
                 player_body_check_positions.0 = true;
             }
 
-            if !player_body_check_positions.1 && is_in_object(end_check_position, &wall_start, &wall_end) {
+            if !player_body_check_positions.1
+                && is_in_object(end_check_position, &wall_start, &wall_end)
+            {
                 player_body_check_positions.1 = true;
             }
         }
@@ -502,7 +675,9 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
             }
         }
 
-        if (door_check.0 && door_check.1) && (player_body_check_positions.0 && player_body_check_positions.1) {
+        if (door_check.0 && door_check.1)
+            && (player_body_check_positions.0 && player_body_check_positions.1)
+        {
             return true;
         }
     }
@@ -510,38 +685,31 @@ pub fn bfs_object_detect_check<'a>(player_calc_position: EndStartPositions, othe
     if player_body_check_positions.0 && player_body_check_positions.1 {
         return true;
     }
-    
+
     false
-} 
+}
 
 pub fn is_in_circle<'a>(center: Position, radius: f32, object: &impl GameObject<'a>) -> bool {
     let obj_position = object.get_position();
     let obj_size = object.get_size();
 
-    let 
-    (
-        top_left, 
-        top_right,
-        bottom_right,
-        bottom_left
-    ) = (
+    let (top_left, top_right, bottom_right, bottom_left) = (
         &obj_position,
         Position {
             x: obj_position.x + obj_size.width,
-            y: obj_position.y
+            y: obj_position.y,
         },
         obj_position + obj_size,
         Position {
             x: obj_position.x,
-            y: obj_position.y + obj_size.height
-        }
+            y: obj_position.y + obj_size.height,
+        },
     );
 
-
-    length_of_line(&top_left, &center) <= radius ||
-    length_of_line(&top_right, &center) <= radius ||
-    length_of_line(&bottom_right, &center) <= radius ||
-    length_of_line(&bottom_left, &center) <= radius
+    length_of_line(&top_left, &center) <= radius
+        || length_of_line(&top_right, &center) <= radius
+        || length_of_line(&bottom_right, &center) <= radius
+        || length_of_line(&bottom_left, &center) <= radius
 }
 
 pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) -> isize {
@@ -555,7 +723,8 @@ pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) ->
     assert!(movement_grid != &None, "movement_grid can not be none");
     let (grid_start_position, grid) = movement_grid.as_ref().unwrap();
 
-    let start_position = start_position.to_grid_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE);
+    let start_position =
+        start_position.to_grid_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE);
 
     let mut q: Queue<GridPosition> = Queue::new();
     q.add(start_position).unwrap();
@@ -563,16 +732,17 @@ pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) ->
     let mut visited: HashSet<GridPosition> = HashSet::new();
     visited.insert(start_position);
 
-    let is_colliding_with_enemy = | start_position: Position, (enemy_start, enemy_end): (Position, Position) | -> bool {
-        let end_position = start_position + DEFAULT_CHARACTER_SIZE;
+    let is_colliding_with_enemy =
+        |start_position: Position, (enemy_start, enemy_end): (Position, Position)| -> bool {
+            let end_position = start_position + DEFAULT_CHARACTER_SIZE;
 
-        start_position.x <= enemy_end.x &&
-        end_position.x >= enemy_start.x &&
-        start_position.y <= enemy_end.y &&
-        end_position.y >= enemy_start.y
-    };
+            start_position.x <= enemy_end.x
+                && end_position.x >= enemy_start.x
+                && start_position.y <= enemy_end.y
+                && end_position.y >= enemy_start.y
+        };
 
-    let is_enemy = | position: Position | -> Option<usize> {
+    let is_enemy = |position: Position| -> Option<usize> {
         for enemy in enemies {
             let (start, end) = enemy.get_calc_position();
 
@@ -585,24 +755,33 @@ pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) ->
     };
 
     while let Ok(current_position) = q.remove() {
-        if let Some(enemy_id) = is_enemy(current_position.to_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE)) {
+        if let Some(enemy_id) =
+            is_enemy(current_position.to_position(*grid_start_position, DEFAULT_MOVEMENT_VALUE))
+        {
             return enemy_id as isize;
         }
 
         for neighbor in current_position.get_neighbors() {
-            if neighbor.row < grid.len() && neighbor.col < grid[0].len() && grid[neighbor.row][neighbor.col] {
+            if neighbor.row < grid.len()
+                && neighbor.col < grid[0].len()
+                && grid[neighbor.row][neighbor.col]
+            {
                 if !visited.contains(&neighbor) {
                     visited.insert(neighbor);
                     q.add(neighbor).unwrap();
                 }
-            } 
+            }
         }
     }
 
     -1
 }
 
-pub fn get_correct_start_position(mut position: Position, movement_grid: &(Position, Vec<Vec<bool>>), value: f32) -> Position {
+pub fn get_correct_start_position(
+    mut position: Position,
+    movement_grid: &(Position, Vec<Vec<bool>>),
+    value: f32,
+) -> Position {
     let (grid_start_position, grid) = movement_grid;
 
     let mut grid_coordinate = position.to_grid_position(*grid_start_position, value);
@@ -628,7 +807,7 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
             grid_coordinate = GridPosition {
                 row: grid_coordinate.row - steps,
                 col: grid_coordinate.col,
-                distance: 0
+                distance: 0,
             };
 
             if !grid[grid_coordinate.row][grid_coordinate.col] {
@@ -637,7 +816,7 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
                 grid_coordinate = GridPosition {
                     row: grid_coordinate.row,
                     col: grid_coordinate.col - steps,
-                    distance: 0
+                    distance: 0,
                 };
 
                 position = grid_coordinate.to_position(*grid_start_position, value);
@@ -650,24 +829,33 @@ pub fn get_correct_start_position(mut position: Position, movement_grid: &(Posit
     position
 }
 
-pub fn calc_button_info_with_padding(button_position: &Position, button_size: &Size, padding: &Padding) -> (Position, Size) {
+pub fn calc_button_info_with_padding(
+    button_position: &Position,
+    button_size: &Size,
+    padding: &Padding,
+) -> (Position, Size) {
     let new_position = Position {
         x: button_position.x - padding.left,
-        y: button_position.y - padding.top
+        y: button_position.y - padding.top,
     };
 
     let new_size = Size {
         width: button_size.width + padding.right,
-        height: button_size.height + padding.bottom
+        height: button_size.height + padding.bottom,
     };
 
     (new_position, new_size)
 }
 
-pub fn is_cursor_in_button(button_start: Position, button_size: Size, cursor_position: Position) -> bool {
+pub fn is_cursor_in_button(
+    button_start: Position,
+    button_size: Size,
+    cursor_position: Position,
+) -> bool {
     let button_end = button_start + button_size;
 
-    cursor_position.x >= button_start.x && cursor_position.x <= button_end.x
-        && cursor_position.y >= button_start.y && cursor_position.y <= button_end.y
+    cursor_position.x >= button_start.x
+        && cursor_position.x <= button_end.x
+        && cursor_position.y >= button_start.y
+        && cursor_position.y <= button_end.y
 }
-

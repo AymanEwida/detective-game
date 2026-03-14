@@ -1,5 +1,5 @@
-extern crate glfw;
 extern crate detective_game;
+extern crate glfw;
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -11,7 +11,10 @@ use detective_game::renderer::button::{ButtonAction, OnHoverStylesBuilder};
 use detective_game::renderer::color::Color;
 use detective_game::renderer::render::{ButtonProps, MouseInteraction};
 use detective_game::renderer::styles::Padding;
-use glfw::{fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent, WindowHint, WindowMode};
+use glfw::{
+    fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent,
+    WindowHint, WindowMode,
+};
 
 use detective_game::game::{character::Direction, player::Player};
 use detective_game::renderer::{render::Render, styles::Size, vertice::Position};
@@ -31,7 +34,14 @@ fn main() {
     glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
     glfw.window_hint(WindowHint::Resizable(true));
 
-    let (mut window, events) = glfw.create_window(SIMULATOR_WINDOW_WIDTH, SIMULATOR_WINDOW_HEIGHT, "Derective Game", WindowMode::Windowed).expect("Failed on window creation.");
+    let (mut window, events) = glfw
+        .create_window(
+            SIMULATOR_WINDOW_WIDTH,
+            SIMULATOR_WINDOW_HEIGHT,
+            "Derective Game",
+            WindowMode::Windowed,
+        )
+        .expect("Failed on window creation.");
 
     window.make_current();
     window.set_key_polling(true);
@@ -41,166 +51,191 @@ fn main() {
 
     let (window_width, window_height) = window.get_framebuffer_size();
 
-    let mut render = Render::new(Size{ width: window_width as f32, height: window_height as f32 }).expect("Failed to created a render.");
+    let mut render = Render::new(Size {
+        width: window_width as f32,
+        height: window_height as f32,
+    })
+    .expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
     let simulator_type = SimulatorType::Empty;
-    simulator.load_simulation(simulator_type.clone()).expect("Unable to load simulation");
+    simulator
+        .load_simulation(simulator_type.clone())
+        .expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
 
-    window.set_framebuffer_size_callback(| window, new_width, new_height | {
+    window.set_framebuffer_size_callback(|window, new_width, new_height| {
         window.set_size(new_width, new_height);
     });
 
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
-    let mut pressed_buttons = HashSet::new(); 
-    
+    let mut pressed_buttons = HashSet::new();
+
     let counter = Rc::new(RefCell::new(0));
     let text_toggle = Rc::new(RefCell::new(false));
 
     while !window.should_close() {
         let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
-        let (window_width, window_height) = window.get_size(); 
+        let (window_width, window_height) = window.get_size();
 
         let render_size = render.get_size();
 
-        if (fb_window_width as f32 != render_size.width) || (fb_window_height as f32 != render_size.height) {
-            render.resize(Size { width: window_width as f32, height: window_height as f32});
+        if (fb_window_width as f32 != render_size.width)
+            || (fb_window_height as f32 != render_size.height)
+        {
+            render.resize(Size {
+                width: fb_window_width as f32,
+                height: fb_window_height as f32,
+            });
         }
 
         glfw.poll_events();
-        
+
         for (_, event) in flush_messages(&events) {
             match event {
                 WindowEvent::CursorPos(x, y) => {
                     cursor_position = Position {
                         x: x as f32 * (fb_window_width as f32 / window_width as f32),
-                        y: y as f32 * (fb_window_height as f32 / window_height as f32)
+                        y: y as f32 * (fb_window_height as f32 / window_height as f32),
                     };
                 }
 
                 WindowEvent::MouseButton(mouse_button, action, _) => {
-                    player.set_mouse_interaction(Some(PlayerMouseInteraction::new(mouse_button, action, cursor_position)));
-                    render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, mouse_button, action)));
+                    player.set_mouse_interaction(Some(PlayerMouseInteraction::new(
+                        mouse_button,
+                        action,
+                        cursor_position,
+                    )));
+                    render.set_mouse_interaction(Some(MouseInteraction::new(
+                        cursor_position,
+                        mouse_button,
+                        action,
+                    )));
 
                     match action {
                         Action::Press => {
                             pressed_buttons.insert(mouse_button);
-                        },
+                        }
 
                         Action::Release => {
                             pressed_buttons.remove(&mouse_button);
-                        },
+                        }
 
                         _ => (),
                     }
-                },
+                }
 
                 WindowEvent::Key(key, _, action, _) => {
                     player.set_interaction(Some(PlayerInteraction::new(key, action)));
 
                     match key {
-                        Key::Escape => {
-                            match action {
-                                Action::Release => {
-                                    window.set_should_close(true);
-                                },
-                                _ => ()
+                        Key::Escape => match action {
+                            Action::Release => {
+                                window.set_should_close(true);
                             }
+                            _ => (),
                         },
 
-                        Key::W => {
-                            match action {
-                                Action::Press | Action::Repeat => {
-                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Up);
-                                    }
-                                },
-                                _ => ()
+                        Key::W => match action {
+                            Action::Press | Action::Repeat => {
+                                if !player.get_is_using_ability()
+                                    && simulator.get_status() == &SimulationStatus::NotDetermine
+                                {
+                                    player.move_player(Direction::Up);
+                                }
                             }
+                            _ => (),
                         },
 
-                        Key::S => {
-                            match action {
-                                Action::Press | Action::Repeat => {
-                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Down);
-                                    }
-                                },
-                                _ => ()
+                        Key::S => match action {
+                            Action::Press | Action::Repeat => {
+                                if !player.get_is_using_ability()
+                                    && simulator.get_status() == &SimulationStatus::NotDetermine
+                                {
+                                    player.move_player(Direction::Down);
+                                }
                             }
+                            _ => (),
                         },
 
-                        Key::A => {
-                            match action {
-                                Action::Press | Action::Repeat => {
-                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Left);
-                                    }
-                                },
-                                _ => ()
+                        Key::A => match action {
+                            Action::Press | Action::Repeat => {
+                                if !player.get_is_using_ability()
+                                    && simulator.get_status() == &SimulationStatus::NotDetermine
+                                {
+                                    player.move_player(Direction::Left);
+                                }
                             }
+                            _ => (),
                         },
 
-                        Key::D => {
-                            match action {
-                                Action::Press | Action::Repeat => {
-                                    if !player.get_is_using_ability() && simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.move_player(Direction::Right);
-                                    }
-                                },
-                                _ => ()
+                        Key::D => match action {
+                            Action::Press | Action::Repeat => {
+                                if !player.get_is_using_ability()
+                                    && simulator.get_status() == &SimulationStatus::NotDetermine
+                                {
+                                    player.move_player(Direction::Right);
+                                }
                             }
+                            _ => (),
                         },
 
-                        Key::Q => {
-                            match action {
-                                Action::Repeat => {
-                                    if simulator.get_status() == &SimulationStatus::NotDetermine {
-                                        player.set_is_using_ability(true);
-                                    }
-                                },
-
-                                Action::Release => {
-                                    player.set_is_using_ability(false);
-                                },
-
-                                _ => ()
+                        Key::Q => match action {
+                            Action::Repeat => {
+                                if simulator.get_status() == &SimulationStatus::NotDetermine {
+                                    player.set_is_using_ability(true);
+                                }
                             }
-                        }
 
-                        _ => ()
+                            Action::Release => {
+                                player.set_is_using_ability(false);
+                            }
+
+                            _ => (),
+                        },
+
+                        _ => (),
                     }
-                },
+                }
 
                 WindowEvent::Close => {
                     window.set_should_close(true);
-                },
-                
-                _ => ()
+                }
+
+                _ => (),
             }
         }
 
         for pressed_button in pressed_buttons.iter() {
-            player.set_mouse_interaction(Some(PlayerMouseInteraction::new(*pressed_button, Action::Press, cursor_position)));
-            render.set_mouse_interaction(Some(MouseInteraction::new(cursor_position, *pressed_button, Action::Press)));
+            player.set_mouse_interaction(Some(PlayerMouseInteraction::new(
+                *pressed_button,
+                Action::Press,
+                cursor_position,
+            )));
+            render.set_mouse_interaction(Some(MouseInteraction::new(
+                cursor_position,
+                *pressed_button,
+                Action::Press,
+            )));
         }
 
         let now = Instant::now();
         let delta = now.duration_since(last_update);
 
-        if delta >= Duration::from_secs_f32(1.0/SIMULATION_FPS) {
+        if delta >= Duration::from_secs_f32(1.0 / SIMULATION_FPS) {
             last_update = now;
 
             if player.is_off_window(render.get_size()) {
                 player.move_to_prev_position();
             }
 
-            simulator.draw(&mut player, &mut render).expect("Unable to draw player");
+            simulator
+                .draw(&mut player, &mut render)
+                .expect("Unable to draw player");
 
             render.display_button(ButtonProps {
                 position: Position { x: 200.0, y: 300.0 },
@@ -216,7 +251,7 @@ fn main() {
                     .build(),
                 click_action: ButtonAction::None,
                 on_hover: Box::new(|| {}),
-                on_hover_release: Box::new(|| { print!("here hover release 1\n") }),
+                on_hover_release: Box::new(|| print!("here hover release 1\n")),
                 on_click: {
                     let counter = Rc::clone(&counter);
                     Box::new(move || {
@@ -231,7 +266,11 @@ fn main() {
                 width: None,
                 height: None,
                 padding: Padding::new_padding_x_y(10.0, 10.0),
-                text: if *text_toggle.borrow() { String::from("Click me!") } else { String::from("test me!") },
+                text: if *text_toggle.borrow() {
+                    String::from("Click me!")
+                } else {
+                    String::from("test me!")
+                },
                 bg_color: Color::Green,
                 text_color: Color::White,
                 text_scale: 1.0,
@@ -240,7 +279,7 @@ fn main() {
                     .build(),
                 click_action: ButtonAction::None,
                 on_hover: Box::new(|| {}),
-                on_hover_release: Box::new(|| { print!("here hover release 2\n") }),
+                on_hover_release: Box::new(|| print!("here hover release 2\n")),
                 on_click: {
                     let text_toggle = Rc::clone(&text_toggle);
                     Box::new(move || {
@@ -250,21 +289,28 @@ fn main() {
                 },
             });
 
-            render.handle_buttons_events(cursor_position).expect("Unable to handle all buttons");
+            render
+                .handle_buttons_events(cursor_position)
+                .expect("Unable to handle all buttons");
             match render.get_button_click_action() {
                 ButtonAction::RetryLevel => {
-                    simulator.load_simulation(simulator_type.clone()).expect("Unable to load level");
-                },
-                
+                    simulator
+                        .load_simulation(simulator_type.clone())
+                        .expect("Unable to load level");
+                }
+
                 ButtonAction::Exit => {
                     window.set_should_close(true);
-                },
+                }
 
-                ButtonAction::None | ButtonAction::NextLevel | ButtonAction::BuyStoreItem(_) | ButtonAction::Unpause => ()
+                ButtonAction::None
+                | ButtonAction::NextLevel
+                | ButtonAction::BuyStoreItem(_)
+                | ButtonAction::Unpause => (),
             }
 
             render.render().expect("Uable to render object on window");
-            
+
             window.swap_buffers();
 
             player.set_interaction(None);

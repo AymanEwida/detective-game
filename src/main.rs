@@ -123,8 +123,8 @@ fn main() {
             || (fb_window_height as f32 != render_size.height)
         {
             render.resize(Size {
-                width: window_width as f32,
-                height: window_height as f32,
+                width: fb_window_width as f32,
+                height: fb_window_height as f32,
             });
         }
 
