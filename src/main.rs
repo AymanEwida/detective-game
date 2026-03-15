@@ -36,12 +36,22 @@ fn main() {
     window.set_cursor_pos_polling(true);
     gl::load_with(|s| window.get_proc_address(s) as *const _);
 
-    let (window_width, window_height) = window.get_framebuffer_size();
+    let (fb_width, fb_height) = window.get_framebuffer_size();
+    let (window_width, window_height) = window.get_size();
+    unsafe {
+        gl::Viewport(0, 0, fb_width, fb_height);
+    }
 
-    let mut render = Render::new(Size {
-        width: window_width as f32,
-        height: window_height as f32,
-    })
+    let mut render = Render::new(
+        Size {
+            width: window_width as f32,
+            height: window_height as f32,
+        },
+        Size {
+            width: fb_width as f32,
+            height: fb_height as f32,
+        },
+    )
     .expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 90.0, y: 180.0 }, true);

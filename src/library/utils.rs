@@ -48,11 +48,7 @@ pub fn calc_mid_point(start: &Position, end: &Position) -> Position {
 pub fn calc_control_point(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
 
-    let mut control_y = (start.y + end.y).abs();
-
-    if start.y == end.y {
-        control_y = &control_y / 2.0;
-    }
+    let control_y = (start.y + end.y) / 4.0;
 
     Position {
         x: control_x,
@@ -60,6 +56,7 @@ pub fn calc_control_point(start: &Position, end: &Position) -> Position {
     }
 }
 
+// TODO: see what is this function about and fix if it bring problems
 pub fn calc_control_point_game_coordinate_system(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
 

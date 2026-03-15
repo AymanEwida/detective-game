@@ -1,4 +1,14 @@
-use detective_game::{game::{character::Direction, enemy::{Enemy, EnemyType}}, library::{constants::HALF_PI, utils::*}, renderer::{styles::{Padding, Size}, vertice::Position}};
+use detective_game::{
+    game::{
+        character::Direction,
+        enemy::{Enemy, EnemyType},
+    },
+    library::{constants::HALF_PI, utils::*},
+    renderer::{
+        styles::{Padding, Size},
+        vertice::Position,
+    },
+};
 
 #[test]
 fn test_length_of_line_same_x_coordinates() {
@@ -32,8 +42,8 @@ fn test_length_of_line_different_coordinates() {
 
 #[test]
 fn test_calc_control_point_same_x_coordinates() {
-    let input_start = Position { x: 5.0, y: -2.0 };
-    let input_end = Position { x: 5.0, y: 4.0 };
+    let input_start = Position { x: 5.0, y: 2.0 };
+    let input_end = Position { x: 5.0, y: 6.0 };
     let actual = calc_control_point(&input_start, &input_end);
     let expected = Position { x: 5.0, y: 2.0 };
 
@@ -45,7 +55,7 @@ fn test_calc_control_point_same_y_coordinates() {
     let input_start = Position { x: 0.0, y: 1.0 };
     let input_end = Position { x: 8.0, y: 1.0 };
     let actual = calc_control_point(&input_start, &input_end);
-    let expected = Position { x: 4.0, y: 1.0 };
+    let expected = Position { x: 4.0, y: 0.5 };
 
     assert_eq!(actual, expected);
 }
@@ -53,9 +63,9 @@ fn test_calc_control_point_same_y_coordinates() {
 #[test]
 fn test_calc_control_point_different_coordinates() {
     let input_start = Position { x: 1.0, y: 4.0 };
-    let input_end = Position { x: 5.0, y: 7.0 };
+    let input_end = Position { x: 5.0, y: 8.0 };
     let actual = calc_control_point(&input_start, &input_end);
-    let expected = Position { x: 3.0, y: 11.0 };
+    let expected = Position { x: 3.0, y: 3.0 };
 
     assert_eq!(actual, expected);
 }
@@ -63,7 +73,10 @@ fn test_calc_control_point_different_coordinates() {
 #[test]
 fn test_convert_coordinates_start() {
     let input_coordinate = Position { x: 0.0, y: 0.0 };
-    let input_size = Size { width: 8.0, height: 6.0 };
+    let input_size = Size {
+        width: 8.0,
+        height: 6.0,
+    };
     let actual = convert_coordinates(input_coordinate, &input_size);
     let expected = Position { x: -1.0, y: 1.0 };
 
@@ -73,7 +86,10 @@ fn test_convert_coordinates_start() {
 #[test]
 fn test_convert_coordinates_middle() {
     let input_coordinate = Position { x: 4.0, y: 3.0 };
-    let input_size = Size { width: 8.0, height: 6.0 };
+    let input_size = Size {
+        width: 8.0,
+        height: 6.0,
+    };
     let actual = convert_coordinates(input_coordinate, &input_size);
     let expected = Position { x: 0.0, y: 0.0 };
 
@@ -83,7 +99,10 @@ fn test_convert_coordinates_middle() {
 #[test]
 fn test_convert_coordinates_on_y_axis() {
     let input_coordinate = Position { x: 0.0, y: 3.0 };
-    let input_size = Size { width: 8.0, height: 6.0 };
+    let input_size = Size {
+        width: 8.0,
+        height: 6.0,
+    };
     let actual = convert_coordinates(input_coordinate, &input_size);
     let expected = Position { x: -1.0, y: 0.0 };
 
@@ -93,7 +112,10 @@ fn test_convert_coordinates_on_y_axis() {
 #[test]
 fn test_convert_coordinates_on_x_axis() {
     let input_coordinate = Position { x: 4.0, y: 0.0 };
-    let input_size = Size { width: 8.0, height: 6.0 };
+    let input_size = Size {
+        width: 8.0,
+        height: 6.0,
+    };
     let actual = convert_coordinates(input_coordinate, &input_size);
     let expected = Position { x: 0.0, y: 1.0 };
 
@@ -103,7 +125,10 @@ fn test_convert_coordinates_on_x_axis() {
 #[test]
 fn test_convert_coordinates_random() {
     let input_coordinate = Position { x: 6.0, y: 1.5 };
-    let input_size = Size { width: 8.0, height: 6.0 };
+    let input_size = Size {
+        width: 8.0,
+        height: 6.0,
+    };
     let actual = convert_coordinates(input_coordinate, &input_size);
     let expected = Position { x: 0.5, y: 0.5 };
 
@@ -113,7 +138,10 @@ fn test_convert_coordinates_random() {
 #[test]
 fn test_convert_coordinates_whole() {
     let input_coordinate = Position { x: 8.0, y: 6.0 };
-    let input_size = Size { width: 8.0, height: 6.0 };
+    let input_size = Size {
+        width: 8.0,
+        height: 6.0,
+    };
     let actual = convert_coordinates(input_coordinate, &input_size);
     let expected = Position { x: 1.0, y: -1.0 };
 
@@ -122,10 +150,19 @@ fn test_convert_coordinates_whole() {
 
 #[test]
 fn test_convert_size() {
-    let input_object_size = Size { width: 40.0, height: 15.0 };
-    let input_window_size = Size { width: 80.0, height: 60.0 };
+    let input_object_size = Size {
+        width: 40.0,
+        height: 15.0,
+    };
+    let input_window_size = Size {
+        width: 80.0,
+        height: 60.0,
+    };
     let actual = convert_size(input_object_size, &input_window_size);
-    let expected = Size { width: 1.0, height: 0.5 };
+    let expected = Size {
+        width: 1.0,
+        height: 0.5,
+    };
 
     assert_eq!(actual, expected);
 }
@@ -143,7 +180,14 @@ fn test_convert_path_short() {
 fn test_convert_path_long() {
     let input = "2r/0 1d/0 3r/1000 3l/0 1u/0 2l/2000";
     let actual = convert_path(input);
-    let expected = vec![(2, Direction::Right, 0), (1, Direction::Down, 0), (3, Direction::Right, 1000), (3, Direction::Left, 0), (1, Direction::Up, 0), (2, Direction::Left, 2000)];
+    let expected = vec![
+        (2, Direction::Right, 0),
+        (1, Direction::Down, 0),
+        (3, Direction::Right, 1000),
+        (3, Direction::Left, 0),
+        (1, Direction::Up, 0),
+        (2, Direction::Left, 2000),
+    ];
 
     assert_eq!(actual, expected);
 }
@@ -169,10 +213,14 @@ fn test_convert_angle_to_radians_test2() {
 #[test]
 fn test_calc_mid_point_position_of_triangle_test1() {
     let input_first_point = Position { x: 10.0, y: 50.0 };
-    let input_second_point = Position { x: 50.0, y: 50.0  };
+    let input_second_point = Position { x: 50.0, y: 50.0 };
     let input_third_point = Position { x: 30.0, y: 20.0 };
 
-    let actual = calc_mid_point_position_of_triangle(input_first_point, input_second_point, input_third_point);
+    let actual = calc_mid_point_position_of_triangle(
+        input_first_point,
+        input_second_point,
+        input_third_point,
+    );
     let expected = Position { x: 30.0, y: 40.0 };
 
     assert_eq!(actual, expected);
@@ -181,11 +229,18 @@ fn test_calc_mid_point_position_of_triangle_test1() {
 #[test]
 fn test_calc_mid_point_position_of_triangle_test2() {
     let input_first_point = Position { x: 50.0, y: 20.0 };
-    let input_second_point = Position { x: 50.0, y: 50.0  };
+    let input_second_point = Position { x: 50.0, y: 50.0 };
     let input_third_point = Position { x: 20.0, y: 30.0 };
 
-    let actual = calc_mid_point_position_of_triangle(input_first_point, input_second_point, input_third_point);
-    let expected = Position { x: 40.0, y: 33.333332 };
+    let actual = calc_mid_point_position_of_triangle(
+        input_first_point,
+        input_second_point,
+        input_third_point,
+    );
+    let expected = Position {
+        x: 40.0,
+        y: 33.333332,
+    };
 
     assert_eq!(actual, expected);
 }
@@ -193,7 +248,10 @@ fn test_calc_mid_point_position_of_triangle_test2() {
 #[test]
 fn test_calc_mid_point_position_of_quadrilateral_shape_test1() {
     let input_top_left = Position { x: 10.0, y: 10.0 };
-    let input_size = Size { width: 50.0, height: 50.0  };
+    let input_size = Size {
+        width: 50.0,
+        height: 50.0,
+    };
 
     let actual = calc_mid_point_position_of_quadrilateral_shape(&input_top_left, &input_size);
     let expected = Position { x: 35.0, y: -15.0 };
@@ -204,7 +262,10 @@ fn test_calc_mid_point_position_of_quadrilateral_shape_test1() {
 #[test]
 fn test_calc_mid_point_position_of_quadrilateral_shape_test2() {
     let input_top_left = Position { x: 20.0, y: 35.0 };
-    let input_size = Size { width: 60.0, height: 50.0  };
+    let input_size = Size {
+        width: 60.0,
+        height: 50.0,
+    };
 
     let actual = calc_mid_point_position_of_quadrilateral_shape(&input_top_left, &input_size);
     let expected = Position { x: 50.0, y: 10.0 };
@@ -215,7 +276,7 @@ fn test_calc_mid_point_position_of_quadrilateral_shape_test2() {
 #[test]
 fn test_calc_mid_point_same_y() {
     let input_start = Position { x: 10.0, y: 10.0 };
-    let input_end = Position { x: 50.0, y: 10.0  };
+    let input_end = Position { x: 50.0, y: 10.0 };
 
     let actual = calc_mid_point(&input_start, &input_end);
     let expected = Position { x: 30.0, y: 10.0 };
@@ -226,7 +287,7 @@ fn test_calc_mid_point_same_y() {
 #[test]
 fn test_calc_mid_point_same_x() {
     let input_start = Position { x: 50.0, y: 10.0 };
-    let input_end = Position { x: 50.0, y: -10.0  };
+    let input_end = Position { x: 50.0, y: -10.0 };
 
     let actual = calc_mid_point(&input_start, &input_end);
     let expected = Position { x: 50.0, y: 0.0 };
@@ -237,7 +298,7 @@ fn test_calc_mid_point_same_x() {
 #[test]
 fn test_calc_mid_point_different() {
     let input_start = Position { x: -30.0, y: -20.0 };
-    let input_end = Position { x: 30.0, y: 20.0  };
+    let input_end = Position { x: 30.0, y: 20.0 };
 
     let actual = calc_mid_point(&input_start, &input_end);
     let expected = Position { x: 0.0, y: 0.0 };
@@ -248,7 +309,10 @@ fn test_calc_mid_point_different() {
 #[test]
 fn test_create_translate_on_x_axis_positive() {
     let input_translate = Position { x: 40.0, y: 0.0 };
-    let input_window_size = Size { width: 80.0, height: 60.0  };
+    let input_window_size = Size {
+        width: 80.0,
+        height: 60.0,
+    };
 
     let actual = create_translate(input_translate, &input_window_size);
     let expected = Position { x: 1.0, y: 0.0 };
@@ -259,7 +323,10 @@ fn test_create_translate_on_x_axis_positive() {
 #[test]
 fn test_create_translate_on_x_axis_negative() {
     let input_translate = Position { x: -20.0, y: 0.0 };
-    let input_window_size = Size { width: 80.0, height: 60.0  };
+    let input_window_size = Size {
+        width: 80.0,
+        height: 60.0,
+    };
 
     let actual = create_translate(input_translate, &input_window_size);
     let expected = Position { x: -0.5, y: 0.0 };
@@ -270,7 +337,10 @@ fn test_create_translate_on_x_axis_negative() {
 #[test]
 fn test_create_translate_on_y_axis_positive() {
     let input_translate = Position { x: 0.0, y: 30.0 };
-    let input_window_size = Size { width: 80.0, height: 60.0  };
+    let input_window_size = Size {
+        width: 80.0,
+        height: 60.0,
+    };
 
     let actual = create_translate(input_translate, &input_window_size);
     let expected = Position { x: 0.0, y: -1.0 };
@@ -281,7 +351,10 @@ fn test_create_translate_on_y_axis_positive() {
 #[test]
 fn test_create_translate_on_y_axis_negative() {
     let input_translate = Position { x: 0.0, y: -15.0 };
-    let input_window_size = Size { width: 80.0, height: 60.0  };
+    let input_window_size = Size {
+        width: 80.0,
+        height: 60.0,
+    };
 
     let actual = create_translate(input_translate, &input_window_size);
     let expected = Position { x: 0.0, y: 0.5 };
@@ -292,7 +365,10 @@ fn test_create_translate_on_y_axis_negative() {
 #[test]
 fn test_create_translate_on_both_axis() {
     let input_translate = Position { x: 80.0, y: 30.0 };
-    let input_window_size = Size { width: 80.0, height: 60.0  };
+    let input_window_size = Size {
+        width: 80.0,
+        height: 60.0,
+    };
 
     let actual = create_translate(input_translate, &input_window_size);
     let expected = Position { x: 2.0, y: -1.0 };
@@ -337,8 +413,19 @@ fn test_calc_equidistant_points_left_direction() {
     let input_apex = Position { x: 10.0, y: 50.0 };
     let input_angle = 120.0;
     let input_line_length = 10.0;
-    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Left);
-    let expected= (Position { x: 15.0, y: 50.0 + (5.0 * 3.0_f32.sqrt()) }, Position { x: 15.0, y: 50.0 - (5.0 * 3.0_f32.sqrt()) }, input_apex);
+    let actual =
+        calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Left);
+    let expected = (
+        Position {
+            x: 15.0,
+            y: 50.0 + (5.0 * 3.0_f32.sqrt()),
+        },
+        Position {
+            x: 15.0,
+            y: 50.0 - (5.0 * 3.0_f32.sqrt()),
+        },
+        input_apex,
+    );
 
     assert_eq!(actual, expected);
 }
@@ -348,8 +435,19 @@ fn test_calc_equidistant_points_right_direction() {
     let input_apex = Position { x: 10.0, y: 50.0 };
     let input_angle = 120.0;
     let input_line_length = 10.0;
-    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Right);
-    let expected= (Position { x: 4.9999995, y: 50.0 + (5.0 * 3.0_f32.sqrt()) }, Position { x: 4.9999995, y: 50.0 - (5.0 * 3.0_f32.sqrt()) }, input_apex);
+    let actual =
+        calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Right);
+    let expected = (
+        Position {
+            x: 4.9999995,
+            y: 50.0 + (5.0 * 3.0_f32.sqrt()),
+        },
+        Position {
+            x: 4.9999995,
+            y: 50.0 - (5.0 * 3.0_f32.sqrt()),
+        },
+        input_apex,
+    );
 
     assert_eq!(actual, expected);
 }
@@ -361,7 +459,17 @@ fn test_calc_equidistant_points_up_direction() {
     let input_angle = 120.0;
     let input_line_length = 10.0;
     let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Up);
-    let expected= (Position { x: 10.0 + (5.0 * 3.0_f32.sqrt()), y: 55.0 }, Position { x: 10.0 - (5.0 * 3.0_f32.sqrt()), y: 55.0 }, input_apex);
+    let expected = (
+        Position {
+            x: 10.0 + (5.0 * 3.0_f32.sqrt()),
+            y: 55.0,
+        },
+        Position {
+            x: 10.0 - (5.0 * 3.0_f32.sqrt()),
+            y: 55.0,
+        },
+        input_apex,
+    );
 
     assert_eq!(actual, expected);
 }
@@ -372,8 +480,19 @@ fn test_calc_equidistant_points_down_direction() {
     let input_apex = Position { x: 10.0, y: 50.0 };
     let input_angle = 120.0;
     let input_line_length = 10.0;
-    let actual = calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Down);
-    let expected= (Position { x: 10.0 + (5.0 * 3.0_f32.sqrt()), y: 45.0 }, Position { x: 10.0 - (5.0 * 3.0_f32.sqrt()), y: 45.0 }, input_apex);
+    let actual =
+        calc_equidistant_points(input_apex, input_angle, input_line_length, Direction::Down);
+    let expected = (
+        Position {
+            x: 10.0 + (5.0 * 3.0_f32.sqrt()),
+            y: 45.0,
+        },
+        Position {
+            x: 10.0 - (5.0 * 3.0_f32.sqrt()),
+            y: 45.0,
+        },
+        input_apex,
+    );
 
     assert_eq!(actual, expected);
 }
@@ -384,7 +503,7 @@ fn test_get_heuristic_score() {
     let input_b = Position { x: 20.0, y: 10.0 };
     let input_value = 10.0;
     let actual = get_heuristic_score(&input_a, &input_b, input_value);
-    let expected= 5.0;
+    let expected = 5.0;
 
     assert_eq!(actual, expected);
 }
@@ -395,7 +514,7 @@ fn test_sum_direction_length_from_path_left() {
     let input_direction = Direction::Left;
     let input_speed = 10.0;
     let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
-    let expected= 200.0;
+    let expected = 200.0;
 
     assert_eq!(actual, expected);
 }
@@ -406,7 +525,7 @@ fn test_sum_direction_length_from_path_right() {
     let input_direction = Direction::Right;
     let input_speed = 10.0;
     let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
-    let expected= 200.0;
+    let expected = 200.0;
 
     assert_eq!(actual, expected);
 }
@@ -417,7 +536,7 @@ fn test_sum_direction_length_from_path_up() {
     let input_direction = Direction::Up;
     let input_speed = 10.0;
     let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
-    let expected= 90.0;
+    let expected = 90.0;
 
     assert_eq!(actual, expected);
 }
@@ -428,7 +547,7 @@ fn test_sum_direction_length_from_path_down() {
     let input_direction = Direction::Down;
     let input_speed = 10.0;
     let actual = sum_direction_length_from_path(input_path, input_direction, input_speed);
-    let expected= 80.0;
+    let expected = 80.0;
 
     assert_eq!(actual, expected);
 }
@@ -438,7 +557,7 @@ fn test_round_position_to_full_numbers_with_no_decimal_point_test1() {
     let input_position = Position { x: 15.0, y: 25.0 };
     let input_value = 10.0;
     let actual = round_position_to_full_numbers(input_position, input_value, false, false);
-    let expected= Position { x: 10.0, y: 20.0 };
+    let expected = Position { x: 10.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -448,7 +567,7 @@ fn test_round_position_to_full_numbers_with_no_decimal_point_test2() {
     let input_position = Position { x: 10.0, y: 20.0 };
     let input_value = 10.0;
     let actual = round_position_to_full_numbers(input_position, input_value, true, true);
-    let expected= Position { x: 10.0, y: 20.0 };
+    let expected = Position { x: 10.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -458,7 +577,7 @@ fn test_round_position_to_full_numbers_with_no_decimal_point_test3() {
     let input_position = Position { x: 247.0, y: 260.0 };
     let input_value = 10.0;
     let actual = round_position_to_full_numbers(input_position, input_value, true, true);
-    let expected= Position { x: 250.0, y: 260.0 };
+    let expected = Position { x: 250.0, y: 260.0 };
 
     assert_eq!(actual, expected);
 }
@@ -468,7 +587,7 @@ fn test_round_position_to_full_numbers_with_decimal_point_test1() {
     let input_position = Position { x: 15.3, y: 20.25 };
     let input_value = 10.0;
     let actual = round_position_to_full_numbers(input_position, input_value, false, true);
-    let expected= Position { x: 10.0, y: 20.0 };
+    let expected = Position { x: 10.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -478,7 +597,7 @@ fn test_round_position_to_full_numbers_with_decimal_point_test2() {
     let input_position = Position { x: 15.50, y: 25.75 };
     let input_value = 10.0;
     let actual = round_position_to_full_numbers(input_position, input_value, false, false);
-    let expected= Position { x: 20.0, y: 30.0 };
+    let expected = Position { x: 20.0, y: 30.0 };
 
     assert_eq!(actual, expected);
 }
@@ -488,7 +607,7 @@ fn test_round_position_to_full_numbers_with_decimal_point_test3() {
     let input_position = Position { x: 10.3, y: 20.25 };
     let input_value = 10.0;
     let actual = round_position_to_full_numbers(input_position, input_value, true, false);
-    let expected= Position { x: 10.0, y: 20.0 };
+    let expected = Position { x: 10.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -499,7 +618,7 @@ fn test_get_estimated_position_left() {
     let input_steps = 3;
     let input_value = 10.0;
     let actual = get_estimated_position(&input_position, input_steps, Direction::Left, input_value);
-    let expected= Position { x: 20.0, y: 20.0 };
+    let expected = Position { x: 20.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -509,8 +628,9 @@ fn test_get_estimated_position_right() {
     let input_position = Position { x: 50.0, y: 20.0 };
     let input_steps = 3;
     let input_value = 10.0;
-    let actual = get_estimated_position(&input_position, input_steps, Direction::Right, input_value);
-    let expected= Position { x: 80.0, y: 20.0 };
+    let actual =
+        get_estimated_position(&input_position, input_steps, Direction::Right, input_value);
+    let expected = Position { x: 80.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -520,7 +640,7 @@ fn test_get_estimated_position_up() {
     let input_steps = 3;
     let input_value = 10.0;
     let actual = get_estimated_position(&input_position, input_steps, Direction::Up, input_value);
-    let expected= Position { x: 20.0, y: 20.0 };
+    let expected = Position { x: 20.0, y: 20.0 };
 
     assert_eq!(actual, expected);
 }
@@ -530,7 +650,7 @@ fn test_get_estimated_position_down() {
     let input_steps = 3;
     let input_value = 10.0;
     let actual = get_estimated_position(&input_position, input_steps, Direction::Down, input_value);
-    let expected= Position { x: 20.0, y: 80.0 };
+    let expected = Position { x: 20.0, y: 80.0 };
 
     assert_eq!(actual, expected);
 }
@@ -542,22 +662,34 @@ fn test_is_position_in_border_both_true() {
 
     let input_position = Position { x: 0.0, y: 0.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (true, true);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (true, true);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: 60.0, y: 80.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (true, true);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (true, true);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: 20.0, y: 50.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (true, true);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (true, true);
 
     assert_eq!(actual, expected);
 }
@@ -569,22 +701,34 @@ fn test_is_position_in_border_x_true() {
 
     let input_position = Position { x: 0.0, y: -10.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (true, false);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (true, false);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: 60.0, y: 90.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (true, false);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (true, false);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: 20.0, y: 90.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (true, false);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (true, false);
 
     assert_eq!(actual, expected);
 }
@@ -596,22 +740,34 @@ fn test_is_position_in_border_y_true() {
 
     let input_position = Position { x: -10.0, y: 0.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (false, true);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (false, true);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: 70.0, y: 80.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (false, true);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (false, true);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: -5.0, y: 50.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (false, true);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (false, true);
 
     assert_eq!(actual, expected);
 }
@@ -623,15 +779,23 @@ fn test_is_position_in_border_both_false() {
 
     let input_position = Position { x: -10.0, y: -20.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (false, false);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (false, false);
 
     assert_eq!(actual, expected);
 
     let input_position = Position { x: 70.0, y: 100.0 };
 
-    let actual = is_position_in_border(&input_border_start_position, &input_border_end_position, &input_position);
-    let expected= (false, false);
+    let actual = is_position_in_border(
+        &input_border_start_position,
+        &input_border_end_position,
+        &input_position,
+    );
+    let expected = (false, false);
 
     assert_eq!(actual, expected);
 }
@@ -644,7 +808,7 @@ fn test_check_point_in_triangle_in() {
     let input_apex = Position { x: 15.0, y: 10.0 };
 
     let actual = check_point_in_triangle(&input_point, &input_first, &input_second, &input_apex);
-    let expected=  true;
+    let expected = true;
 
     assert_eq!(actual, expected);
 }
@@ -665,11 +829,16 @@ fn test_check_point_in_triangle_out() {
 #[test]
 fn test_is_in_circle_in() {
     let input_center = Position { x: 200.0, y: 200.0 };
-    let input_raduis = 50.0; 
-    let input_object = Enemy::new(EnemyType::Regular, Position { x: 180.0, y: 150.0 }, "1l 1r", false);
+    let input_raduis = 50.0;
+    let input_object = Enemy::new(
+        EnemyType::Regular,
+        Position { x: 180.0, y: 150.0 },
+        "1l 1r",
+        false,
+    );
 
     let actual = is_in_circle(input_center, input_raduis, &input_object);
-    let expected = true; 
+    let expected = true;
 
     assert_eq!(actual, expected);
 }
@@ -677,11 +846,16 @@ fn test_is_in_circle_in() {
 #[test]
 fn test_is_in_circle_out() {
     let input_center = Position { x: 200.0, y: 200.0 };
-    let input_raduis = 50.0; 
-    let input_object = Enemy::new(EnemyType::Regular, Position { x: 10.0, y: 10.0 }, "1l 1r", false);
+    let input_raduis = 50.0;
+    let input_object = Enemy::new(
+        EnemyType::Regular,
+        Position { x: 10.0, y: 10.0 },
+        "1l 1r",
+        false,
+    );
 
     let actual = is_in_circle(input_center, input_raduis, &input_object);
-    let expected = false; 
+    let expected = false;
 
     assert_eq!(actual, expected);
 }
@@ -689,7 +863,10 @@ fn test_is_in_circle_out() {
 #[test]
 fn test_calc_button_info_with_padding_all_0() {
     let input_position = Position { x: 10.0, y: 60.0 };
-    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_size = Size {
+        width: 100.0,
+        height: 50.0,
+    };
     let input_padding = Padding::default();
 
     let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
@@ -701,11 +878,23 @@ fn test_calc_button_info_with_padding_all_0() {
 #[test]
 fn test_calc_button_info_with_padding_x_0() {
     let input_position = Position { x: 10.0, y: 20.0 };
-    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_size = Size {
+        width: 100.0,
+        height: 50.0,
+    };
     let input_padding = Padding::new_padding_x_y(0.0, 10.0);
 
     let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
-    let expected = (Position { y: 10.0, ..input_position }, Size { height: 60.0, ..input_size });
+    let expected = (
+        Position {
+            y: 10.0,
+            ..input_position
+        },
+        Size {
+            height: 60.0,
+            ..input_size
+        },
+    );
 
     assert_eq!(actual, expected);
 }
@@ -713,11 +902,23 @@ fn test_calc_button_info_with_padding_x_0() {
 #[test]
 fn test_calc_button_info_with_padding_y_0() {
     let input_position = Position { x: 20.0, y: 10.0 };
-    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_size = Size {
+        width: 100.0,
+        height: 50.0,
+    };
     let input_padding = Padding::new_padding_x_y(10.0, 0.0);
 
     let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
-    let expected = (Position { x: 10.0, ..input_position }, Size { width: 110.0, ..input_size });
+    let expected = (
+        Position {
+            x: 10.0,
+            ..input_position
+        },
+        Size {
+            width: 110.0,
+            ..input_size
+        },
+    );
 
     assert_eq!(actual, expected);
 }
@@ -725,18 +926,25 @@ fn test_calc_button_info_with_padding_y_0() {
 #[test]
 fn test_calc_button_info_with_padding_none_0() {
     let input_position = Position { x: 100.0, y: 100.0 };
-    let input_size = Size { width: 100.0, height: 50.0 };
+    let input_size = Size {
+        width: 100.0,
+        height: 50.0,
+    };
     let input_padding = Padding {
         left: 30.0,
         right: 20.0,
         top: 10.0,
-        bottom: 15.0
+        bottom: 15.0,
     };
 
     let actual = calc_button_info_with_padding(&input_position, &input_size, &input_padding);
-    let expected = (Position { x: 70.0, y: 90.0 }, Size { width: 120.0, height: 65.0 });
+    let expected = (
+        Position { x: 70.0, y: 90.0 },
+        Size {
+            width: 120.0,
+            height: 65.0,
+        },
+    );
 
     assert_eq!(actual, expected);
 }
-
-

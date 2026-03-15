@@ -3,7 +3,10 @@ use std::ffi::CString;
 use gl::types::*;
 use glam::Mat4;
 
-use super::{error::{Error, Result}, shader::Shader};
+use super::{
+    error::{Error, Result},
+    shader::Shader,
+};
 
 pub struct Program {
     id: GLuint,
@@ -41,10 +44,10 @@ impl Program {
 
         let mut error_log: Vec<u8> = Vec::with_capacity(error_log_size as usize);
         gl::GetProgramInfoLog(
-            program.id, 
-            error_log_size, 
-            &mut error_log_size, 
-            error_log.as_mut_ptr() as *mut _
+            program.id,
+            error_log_size,
+            &mut error_log_size,
+            error_log.as_mut_ptr() as *mut _,
         );
 
         error_log.set_len(error_log_size as usize);
@@ -61,9 +64,10 @@ impl Program {
     }
 
     pub unsafe fn get_attrib_location(&self, attrib: &str) -> Result<GLuint> {
-        let attrib = CString::new(attrib)
-            .map_err(|_| Error::AttributeLocationError("Unable to get attrib as CString".to_string()))?;
-        
+        let attrib = CString::new(attrib).map_err(|_| {
+            Error::AttributeLocationError("Unable to get attrib as CString".to_string())
+        })?;
+
         Ok(gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint)
     }
 
@@ -74,7 +78,7 @@ impl Program {
             .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
 
         gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
-        
+
         Ok(())
     }
 
@@ -82,13 +86,21 @@ impl Program {
         let uniform = CString::new(name)
             .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
 
-        gl::Uniform3f(gl::GetUniformLocation(self.id, uniform.as_ptr()), data.0, data.1, data.2);
+        gl::Uniform3f(
+            gl::GetUniformLocation(self.id, uniform.as_ptr()),
+            data.0,
+            data.1,
+            data.2,
+        );
 
         Ok(())
     }
 
     pub unsafe fn set_bool_uniform(&self, name: &str, value: i32) -> Result<()> {
-        assert!(value == 1 || value == 0, "value must be 1 (true) or 0 (false)");
+        assert!(
+            value == 1 || value == 0,
+            "value must be 1 (true) or 0 (false)"
+        );
 
         let uniform = CString::new(name)
             .map_err(|_| Error::LinkingError("Unable to get uniform string".to_string()))?;
@@ -99,21 +111,48 @@ impl Program {
     }
 
     pub unsafe fn set_opacity_uniform_to_texture(&self, value: f32) -> Result<()> {
-        assert!(value >= 0.0 && value <= 1.0, "opacity value must be between 0.0 to 1.0");
+        assert!(
+            value >= 0.0 && value <= 1.0,
+            "opacity value must be between 0.0 to 1.0"
+        );
 
         let opacity_uniform = CString::new("opacity")
             .map_err(|_| Error::LinkingError("Unable to get opacity uniform string".to_string()))?;
 
-        gl::Uniform1f(gl::GetUniformLocation(self.id, opacity_uniform.as_ptr()), value);
+        gl::Uniform1f(
+            gl::GetUniformLocation(self.id, opacity_uniform.as_ptr()),
+            value,
+        );
 
         Ok(())
     }
 
     pub unsafe fn set_transform_matrix_uniform(&self, matrix: Mat4) -> Result<()> {
-        let transform_uniform = CString::new("transform")
-            .map_err(|_| Error::LinkingError("Unable to get transform uniform string".to_string()))?;
+        let transform_uniform = CString::new("transform").map_err(|_| {
+            Error::LinkingError("Unable to get transform uniform string".to_string())
+        })?;
 
-        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, transform_uniform.as_ptr()), 1, gl::FALSE, matrix.to_cols_array().as_ptr());
+        gl::UniformMatrix4fv(
+            gl::GetUniformLocation(self.id, transform_uniform.as_ptr()),
+            1,
+            gl::FALSE,
+            matrix.to_cols_array().as_ptr(),
+        );
+
+        Ok(())
+    }
+
+    pub unsafe fn set_projection_matrix_uniform(&self, matrix: Mat4) -> Result<()> {
+        let projection_uniform = CString::new("projection").map_err(|_| {
+            Error::LinkingError("Unable to get projection uniform string".to_string())
+        })?;
+
+        gl::UniformMatrix4fv(
+            gl::GetUniformLocation(self.id, projection_uniform.as_ptr()),
+            1,
+            gl::FALSE,
+            matrix.to_cols_array().as_ptr(),
+        );
 
         Ok(())
     }

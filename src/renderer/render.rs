@@ -9,7 +9,8 @@ use crate::{
     library::{
         constants::TWICE_PI,
         utils::{
-            absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point,
+            absolute_f32, calc_control_point, calc_control_point_game_coordinate_system,
+            calc_equidistant_points, calc_mid_point,
             calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle,
             convert_angle_to_radians, convert_coordinates, convert_size, create_translate,
             is_cursor_in_button, length_of_line,
@@ -186,7 +187,8 @@ pub struct ButtonProps<'a> {
 }
 
 pub struct Render<'a> {
-    size: Size,
+    size: Size, // framebuffer size
+    window_size: Size,
     vertices_program: Program,
     texture_program: Program,
     vertex_array: VertexArray,
@@ -204,8 +206,17 @@ pub struct Render<'a> {
 }
 
 impl Render<'_> {
-    pub fn new(size: Size) -> Result<Self> {
+    pub fn new(window_size: Size, fb_size: Size) -> Result<Self> {
         unsafe {
+            let projection_matrix = Mat4::orthographic_rh_gl(
+                0.0,
+                window_size.width,
+                window_size.height,
+                0.0,
+                -1.0,
+                1.0,
+            );
+
             let vertices_vertex_shader =
                 Shader::new(VERTICES_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
             let vertices_fragment_shader =
@@ -213,11 +224,17 @@ impl Render<'_> {
             let vertices_program =
                 Program::new(&[vertices_vertex_shader, vertices_fragment_shader])?;
 
+            vertices_program.apply();
+            vertices_program.set_projection_matrix_uniform(projection_matrix)?;
+
             let texture_vertex_shader =
                 Shader::new(TEXTURE_VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
             let texture_fragment_shader =
                 Shader::new(TEXTURE_FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER)?;
             let texture_program = Program::new(&[texture_vertex_shader, texture_fragment_shader])?;
+
+            texture_program.apply();
+            texture_program.set_projection_matrix_uniform(projection_matrix)?;
 
             let vertex_array = VertexArray::new();
 
@@ -241,7 +258,8 @@ impl Render<'_> {
             VertexArray::unbind();
 
             Ok(Self {
-                size,
+                size: fb_size,
+                window_size,
                 vertices_program,
                 texture_program,
                 vertex_array,
@@ -282,10 +300,13 @@ impl<'a> Render<'a> {
 
     pub fn fill_with_image(&mut self, image_path: &str) -> Result<()> {
         let background_image_vertices: [_TextureVerticeData; 4] = [
-            _TextureVerticeData([-1.0, 1.0], [0.0, 0.0]),
-            _TextureVerticeData([1.0, 1.0], [1.0, 0.0]),
-            _TextureVerticeData([1.0, -1.0], [1.0, 1.0]),
-            _TextureVerticeData([-1.0, -1.0], [0.0, 1.0]),
+            _TextureVerticeData([0.0, 0.0], [0.0, 0.0]),
+            _TextureVerticeData([self.window_size.width, 0.0], [1.0, 0.0]),
+            _TextureVerticeData(
+                [self.window_size.width, self.window_size.height],
+                [1.0, 1.0],
+            ),
+            _TextureVerticeData([0.0, self.window_size.height], [0.0, 1.0]),
         ];
 
         let background_indices: [i32; 6] = [0, 1, 2, 2, 3, 0];
@@ -347,9 +368,9 @@ impl<'a> Render<'a> {
         rotate: Option<f32>,
     ) {
         let vertices_data = vec![
-            first_point.get_vertice_data(&self.size),
-            second_point.get_vertice_data(&self.size),
-            third_point.get_vertice_data(&self.size),
+            first_point.get_vertice_data(),
+            second_point.get_vertice_data(),
+            third_point.get_vertice_data(),
         ];
         let indices = vec![0, 1, 2];
 
@@ -393,9 +414,6 @@ impl<'a> Render<'a> {
         translate: Option<Position>,
         rotate: Option<f32>,
     ) {
-        let position = convert_coordinates(position, &self.size);
-        let size = convert_size(size, &self.size);
-
         let vertices_data = vec![
             _VerticeData(
                 position.to_position_array(),
@@ -466,19 +484,14 @@ impl<'a> Render<'a> {
 
         assert!(num_segments > 0, "num_segments must be a positive number");
 
-        let center = convert_coordinates(center, &self.size);
-
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
         let mut indices = Vec::with_capacity(num_segments as usize * 3);
-
-        let radius_x = (radius * 2.0) / self.size.width;
-        let radius_y = (radius * 2.0) / self.size.height;
 
         for num in 0..=num_segments {
             let theta = TWICE_PI * (num as f32) / (num_segments as f32);
 
-            let x = theta.cos() * radius_x + center.x;
-            let y = theta.sin() * radius_y + center.y;
+            let x = theta.cos() * radius + center.x;
+            let y = theta.sin() * radius + center.y;
 
             vertices_data.push(_VerticeData([x, y], color.get_vertices_color_in_f32()));
 
@@ -517,9 +530,6 @@ impl<'a> Render<'a> {
         rotate: Option<f32>,
     ) {
         let num_segments = num_segments.unwrap_or(length_of_line(&start, &end) as u32);
-
-        let start = convert_coordinates(start, &self.size);
-        let end = convert_coordinates(end, &self.size);
 
         let mut vertices_data = Vec::with_capacity(num_segments as usize);
         let mut indices = Vec::with_capacity(num_segments as usize);
@@ -571,9 +581,6 @@ impl<'a> Render<'a> {
         translate: Option<Position>,
         rotate: Option<f32>,
     ) {
-        let start = convert_coordinates(start, &self.size);
-        let end = convert_coordinates(end, &self.size);
-
         let vertices_data = vec![
             _VerticeData(start.to_position_array(), color.get_vertices_color_in_f32()),
             _VerticeData(end.to_position_array(), color.get_vertices_color_in_f32()),
@@ -612,9 +619,6 @@ impl<'a> Render<'a> {
         translate: Option<Position>,
         rotate: Option<f32>,
     ) -> Result<()> {
-        let position = convert_coordinates(position, &self.size);
-        let size = convert_size(size, &self.size);
-
         let flip = if flip { 1.0 } else { 0.0 };
 
         let vertices_data = vec![
@@ -726,6 +730,7 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
+    // TODO: change the rest of the functions to make it work with the new coordinates system and not NDC
     pub fn display_text(
         &mut self,
         text: &str,
