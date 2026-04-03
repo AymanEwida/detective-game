@@ -9,13 +9,13 @@ use crate::{
     library::{
         constants::TWICE_PI,
         utils::{
-            absolute_f32, calc_control_point, calc_control_point_game_coordinate_system,
-            calc_equidistant_points, calc_mid_point,
+            absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point,
             calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle,
-            convert_angle_to_radians, convert_coordinates, convert_size, create_translate,
-            is_cursor_in_button, length_of_line,
+            convert_angle_to_radians, convert_coordinates, create_translate, is_cursor_in_button,
+            length_of_line,
         },
     },
+    renderer::text::FontMatrics,
     set_attribute,
 };
 
@@ -196,6 +196,7 @@ pub struct Render<'a> {
     index_buffer: Buffer,
     background: Background,
     characters: HashMap<char, Character>,
+    font_metrics: FontMatrics,
     images: HashMap<&'a str, Texture>,
     objects: Vec<Object<'a>>,
     renderable_characters: Vec<RenderableCharacter>,
@@ -250,7 +251,7 @@ impl Render<'_> {
             let color_attrib = vertices_program.get_attrib_location("color")?;
             set_attribute!(vertex_array, color_attrib, _VerticeData::1);
 
-            let characters = generated_characters_bitmap(None)?;
+            let (characters, font_metrics) = generated_characters_bitmap(None)?;
 
             vertex_buffer.unbind();
             index_buffer.unbind();
@@ -267,6 +268,7 @@ impl Render<'_> {
                 index_buffer,
                 background: Background::default(),
                 characters,
+                font_metrics,
                 images: HashMap::new(),
                 objects: Vec::new(),
                 renderable_characters: Vec::new(),
@@ -730,7 +732,6 @@ impl<'a> Render<'a> {
         Ok(())
     }
 
-    // TODO: change the rest of the functions to make it work with the new coordinates system and not NDC
     pub fn display_text(
         &mut self,
         text: &str,
@@ -740,10 +741,21 @@ impl<'a> Render<'a> {
         color: Color,
     ) -> Result<Size> {
         assert!(scale > 0.0, "scale must be a positive number");
+        let top_left_position = calculate_text_size(
+            &self.characters,
+            &self.font_metrics,
+            text,
+            start_position,
+            text_max_width,
+            scale,
+        )
+        .1;
+
+        let mut x = start_position.x;
+        let mut y = start_position.y + (start_position.y - top_left_position.y * scale);
 
         let mut min_y = start_position.y;
-
-        let start_position = convert_coordinates(start_position, &self.size);
+        let mut max_y = start_position.y;
 
         let mut text_size = Size {
             width: 0.0,
@@ -753,69 +765,34 @@ impl<'a> Render<'a> {
             text_size.width = width;
         }
 
-        let max_width = (text_max_width.unwrap_or(0.0) * 2.0) / self.size.width;
+        let max_width = text_max_width.unwrap_or(0.0);
 
         let (r, g, b, ..) = color.get_color_in_f32();
 
         let lines: Vec<&str> = text.split('\n').collect();
 
-        let mut line_height = 0.0;
-
-        for line in lines {
-            let mut line_width = 0.0;
-            let mut width_offset = 0.0;
-            let mut max_height = 0.0;
-            let mut prev_height = 0.0;
-            let mut height_offset = 0.0;
+        for line in &lines {
             let mut is_new_word = false;
 
             for (idx, ch) in line.chars().enumerate() {
-                if ch == ' ' {
-                    width_offset += 0.03 * scale;
-                    line_width += (0.03 * self.size.width * scale) / 2.0;
-                    is_new_word = true;
-
-                    continue;
-                }
-
                 if max_width > 0.0 && is_new_word {
                     if let Some(found_index) = line[idx..].find(' ') {
                         let found_index = found_index + idx;
 
-                        let word_width = calculate_word_width(
-                            &self.characters,
-                            &line[idx..found_index],
-                            scale,
-                            self.size.width,
-                        );
+                        let word_width =
+                            calculate_word_width(&self.characters, &line[idx..found_index], scale);
 
-                        if start_position.x + width_offset + word_width
-                            >= start_position.x + max_width
-                        {
-                            line_height += max_height + 0.09;
-                            width_offset = 0.0;
-                            max_height = 0.0;
-                            prev_height = 0.0;
-                            height_offset = 0.0;
-                            is_new_word = false;
+                        if x + word_width >= start_position.x + max_width {
+                            y += self.font_metrics.line_height * scale;
+                            x = start_position.x;
                         }
                     } else {
-                        let word_width = calculate_word_width(
-                            &self.characters,
-                            &line[idx..],
-                            scale,
-                            self.size.width,
-                        );
+                        let word_width =
+                            calculate_word_width(&self.characters, &line[idx..], scale);
 
-                        if start_position.x + width_offset + word_width
-                            >= start_position.x + max_width
-                        {
-                            line_height += max_height + 0.09;
-                            width_offset = 0.0;
-                            max_height = 0.0;
-                            prev_height = 0.0;
-                            height_offset = 0.0;
-                            is_new_word = false;
+                        if x + word_width >= start_position.x + max_width {
+                            y += self.font_metrics.line_height * scale;
+                            x = start_position.x;
                         }
                     }
                 }
@@ -828,114 +805,75 @@ impl<'a> Render<'a> {
 
                 let character = self.characters.get(&ch).unwrap();
 
-                let character_size = convert_size(
-                    Size {
-                        width: character.size.width * scale,
-                        height: character.size.height * scale,
-                    },
-                    &self.size,
-                );
-
-                let offset_y =
-                    ((character.size.height - character.offset.y) * scale * 2.0) / self.size.height;
-
-                if max_height == 0.0 {
-                    max_height = character_size.height;
-                } else {
-                    if (character.size.height - character.offset.y) > 0.0 {
-                        if max_height < (character_size.height - offset_y) {
-                            max_height = character_size.height - offset_y;
-                        }
-                    } else {
-                        if max_height < character_size.height {
-                            max_height = character_size.height;
-                        }
-                    }
-                }
-
-                if prev_height == 0.0 {
-                    prev_height = character_size.height;
-                }
-
-                if is_new_word {
-                    if max_height == character_size.height {
-                        height_offset += prev_height - max_height;
-                    } else {
-                        height_offset += prev_height - character_size.height;
-                    }
-                } else {
-                    height_offset += prev_height - character_size.height;
-                }
-
                 let character_start_position = Position {
-                    x: start_position.x + width_offset,
-                    y: start_position.y - line_height - height_offset - offset_y,
+                    x: x + (character.offset.x * scale),
+                    y: y + (character.size.height - character.offset.y) * scale,
                 };
 
-                let characher_start_y = (character_start_position.y * self.size.height) / 2.0;
-                if min_y > characher_start_y {
-                    min_y = characher_start_y;
+                let character_size = Size {
+                    width: character.size.width * scale,
+                    height: character.size.height * scale,
+                };
+
+                if max_y > (character_start_position.y - character_size.height) {
+                    max_y = character_start_position.y - character_size.height;
                 }
 
-                let character_end_y = characher_start_y + character.size.height;
-                if text_size.height < (character_end_y - min_y) {
-                    text_size.height = character_end_y - min_y;
+                if min_y < character_start_position.y {
+                    min_y = character_start_position.y;
                 }
 
-                let vertices_data = [
-                    _VerticeData(
-                        character_start_position.to_position_array(),
-                        [0.0, 0.0, 0.0, 0.0],
-                    ),
-                    _VerticeData(
-                        character_start_position
-                            .get_position_from_size(&Size {
-                                width: character_size.width,
-                                height: 0.0,
-                            })
-                            .to_position_array(),
-                        [1.0, 0.0, 0.0, 0.0],
-                    ),
-                    _VerticeData(
-                        character_start_position
-                            .get_position_from_size(&character_size)
-                            .to_position_array(),
-                        [1.0, 1.0, 0.0, 0.0],
-                    ),
-                    _VerticeData(
-                        character_start_position
-                            .get_position_from_size(&Size {
-                                width: 0.0,
-                                height: character_size.height,
-                            })
-                            .to_position_array(),
-                        [0.0, 1.0, 0.0, 0.0],
-                    ),
-                ];
+                is_new_word = ch == ' ';
 
-                self.renderable_characters.push(RenderableCharacter::new(
-                    ch,
-                    vertices_data,
-                    (r, g, b),
-                ));
+                x += character.advance * scale;
 
-                width_offset += ((character.size.width as f32 + character.offset.x) * scale * 2.0)
-                    / self.size.width;
-                prev_height = character_size.height;
+                if !is_new_word {
+                    let vertices_data = [
+                        _VerticeData(
+                            [
+                                character_start_position.x,
+                                character_start_position.y - character_size.height,
+                            ],
+                            [0.0, 0.0, 0.0, 0.0],
+                        ),
+                        _VerticeData(
+                            [
+                                character_start_position.x + character_size.width,
+                                character_start_position.y - character_size.height,
+                            ],
+                            [1.0, 0.0, 0.0, 0.0],
+                        ),
+                        _VerticeData(
+                            [
+                                character_start_position.x + character_size.width,
+                                character_start_position.y,
+                            ],
+                            [1.0, 1.0, 0.0, 0.0],
+                        ),
+                        _VerticeData(
+                            character_start_position.to_position_array(),
+                            [0.0, 1.0, 0.0, 0.0],
+                        ),
+                    ];
 
-                line_width += (character.size.width + character.offset.x) * scale;
-
-                if is_new_word {
-                    is_new_word = false;
+                    self.renderable_characters.push(RenderableCharacter::new(
+                        ch,
+                        vertices_data,
+                        (r, g, b),
+                    ));
                 }
             }
 
-            if text_max_width.is_none() && text_size.width < line_width {
-                text_size.width = line_width;
+            if text_max_width.is_none() && text_size.width < (x - start_position.x) {
+                text_size.width = x - start_position.x;
             }
 
-            line_height += max_height + 0.08;
+            y += self.font_metrics.line_height * scale;
+            x = start_position.x;
         }
+
+        text_size.height =
+            min_y + self.font_metrics.line_height * (lines.len() as f32 - 1.0) - max_y;
 
         Ok(text_size)
     }
@@ -964,12 +902,13 @@ impl<'a> Render<'a> {
             button_props.height,
             calculate_text_size(
                 &self.characters,
+                &self.font_metrics,
                 &button_props.text,
                 button_props.position,
                 button_props.width,
                 button_props.text_scale,
-                self.size,
-            ),
+            )
+            .0,
             button_props.padding,
             button_props.bg_color,
             button_props.text,

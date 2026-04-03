@@ -11,7 +11,6 @@ use detective_game::renderer::button::{ButtonAction, OnHoverStylesBuilder};
 use detective_game::renderer::color::Color;
 use detective_game::renderer::render::{ButtonProps, MouseInteraction};
 use detective_game::renderer::styles::Padding;
-use detective_game::renderer::vertice::Vertice;
 use glfw::{
     fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent,
     WindowHint, WindowMode,
@@ -91,7 +90,6 @@ fn main() {
 
     while !window.should_close() {
         let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
-        let (window_width, window_height) = window.get_size();
 
         let render_size = render.get_size();
 
@@ -110,8 +108,8 @@ fn main() {
             match event {
                 WindowEvent::CursorPos(x, y) => {
                     cursor_position = Position {
-                        x: x as f32 * (fb_window_width as f32 / window_width as f32),
-                        y: y as f32 * (fb_window_height as f32 / window_height as f32),
+                        x: x as f32,
+                        y: y as f32,
                     };
                 }
 
@@ -248,97 +246,90 @@ fn main() {
             //     .draw(&mut player, &mut render)
             //     .expect("Unable to draw player");
             //
-            // render.display_button(ButtonProps {
-            //     position: Position { x: 200.0, y: 300.0 },
-            //     width: None,
-            //     height: None,
-            //     padding: Padding::new(10.0, 20.0, 20.0, 20.0),
-            //     text: format!("counter: {}", *counter.borrow()),
-            //     bg_color: Color::Red,
-            //     text_color: Color::White,
-            //     text_scale: 1.0,
-            //     on_hover_styles: OnHoverStylesBuilder::new()
-            //         .bg_color(Color::RGBA(255, 0, 0, 150))
-            //         .build(),
-            //     click_action: ButtonAction::None,
-            //     on_hover: Box::new(|| {}),
-            //     on_hover_release: Box::new(|| print!("here hover release 1\n")),
-            //     on_click: {
-            //         let counter = Rc::clone(&counter);
-            //         Box::new(move || {
-            //             let mut value = counter.borrow_mut();
-            //             *value += 1;
-            //         })
-            //     },
-            // });
-            //
-            // render.display_button(ButtonProps {
-            //     position: Position { x: 500.0, y: 300.0 },
-            //     width: None,
-            //     height: None,
-            //     padding: Padding::new_padding_x_y(10.0, 10.0),
-            //     text: if *text_toggle.borrow() {
-            //         String::from("Click me!")
-            //     } else {
-            //         String::from("test me!")
-            //     },
-            //     bg_color: Color::Green,
-            //     text_color: Color::White,
-            //     text_scale: 1.0,
-            //     on_hover_styles: OnHoverStylesBuilder::new()
-            //         .bg_color(Color::RGBA(0, 255, 0, 150))
-            //         .build(),
-            //     click_action: ButtonAction::None,
-            //     on_hover: Box::new(|| {}),
-            //     on_hover_release: Box::new(|| print!("here hover release 2\n")),
-            //     on_click: {
-            //         let text_toggle = Rc::clone(&text_toggle);
-            //         Box::new(move || {
-            //             let mut value = text_toggle.borrow_mut();
-            //             *value = !*value;
-            //         })
-            //     },
-            // });
-            //
-            // render
-            //     .handle_buttons_events(cursor_position)
-            //     .expect("Unable to handle all buttons");
-            // match render.get_button_click_action() {
-            //     ButtonAction::RetryLevel => {
-            //         simulator
-            //             .load_simulation(simulator_type.clone())
-            //             .expect("Unable to load level");
-            //     }
-            //
-            //     ButtonAction::Exit => {
-            //         window.set_should_close(true);
-            //     }
-            //
-            //     ButtonAction::None
-            //     | ButtonAction::NextLevel
-            //     | ButtonAction::BuyStoreItem(_)
-            //     | ButtonAction::Unpause => (),
-            // }
 
             render
                 .fill_with_image("assets/game/background.jpg")
                 .expect("enable to fill background with image");
 
+            render.display_button(ButtonProps {
+                position: Position { x: 200.0, y: 300.0 },
+                width: None,
+                height: None,
+                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                text: format!("counter: {}", *counter.borrow()),
+                bg_color: Color::Red,
+                text_color: Color::White,
+                text_scale: 1.0,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                    .bg_color(Color::RGBA(255, 0, 0, 150))
+                    .build(),
+                click_action: ButtonAction::None,
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| print!("here hover release 1\n")),
+                on_click: {
+                    let counter = Rc::clone(&counter);
+                    Box::new(move || {
+                        let mut value = counter.borrow_mut();
+                        *value += 1;
+                    })
+                },
+            });
+
+            render.display_button(ButtonProps {
+                position: Position { x: 500.0, y: 300.0 },
+                width: None,
+                height: None,
+                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                text: if *text_toggle.borrow() {
+                    String::from("Click me!")
+                } else {
+                    String::from("test me!")
+                },
+                bg_color: Color::Green,
+                text_color: Color::White,
+                text_scale: 1.0,
+                on_hover_styles: OnHoverStylesBuilder::new()
+                    .bg_color(Color::RGBA(0, 255, 0, 150))
+                    .build(),
+                click_action: ButtonAction::None,
+                on_hover: Box::new(|| {}),
+                on_hover_release: Box::new(|| print!("here hover release 2\n")),
+                on_click: {
+                    let text_toggle = Rc::clone(&text_toggle);
+                    Box::new(move || {
+                        let mut value = text_toggle.borrow_mut();
+                        *value = !*value;
+                    })
+                },
+            });
+
             render
-                .load_image(
-                    "assets/game/detective.png",
-                    Position { x: 10.0, y: 10.0 },
-                    Size {
-                        width: 50.0,
-                        height: 60.0,
-                    },
-                    true,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-                .expect("unable to load image");
+                .handle_buttons_events(cursor_position)
+                .expect("Unable to handle all buttons");
+            match render.get_button_click_action() {
+                ButtonAction::RetryLevel => {
+                    simulator
+                        .load_simulation(simulator_type.clone())
+                        .expect("Unable to load level");
+                }
+
+                ButtonAction::Exit => {
+                    window.set_should_close(true);
+                }
+
+                ButtonAction::None
+                | ButtonAction::NextLevel
+                | ButtonAction::BuyStoreItem(_)
+                | ButtonAction::Unpause => (),
+            }
+
+            render.display_text(
+                "Hello, how are you?\nI just want to tell you that:\nUEFA CHAMPIONS LEAGUE is the best Actually!! HHHHHfooo Why? Why? Hey Heyyyyy reffff No Foul!",
+                Position { x: 10.0, y: 10.0 },
+                1.0,
+                Some(SIMULATOR_WINDOW_WIDTH as f32),
+                Color::Green
+            ).expect("foo");
 
             render.render().expect("Uable to render object on window");
 

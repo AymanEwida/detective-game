@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Mul, Sub},
 };
 
-use crate::library::utils::{convert_coordinates, length_of_line};
+use crate::library::utils::length_of_line;
 
 use super::{color::Color, styles::Size};
 

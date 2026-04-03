@@ -125,7 +125,6 @@ fn main() {
 
     while !window.should_close() {
         let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
-        let (window_width, window_height) = window.get_size();
 
         let render_size = render.get_size();
 
@@ -144,8 +143,8 @@ fn main() {
             match event {
                 WindowEvent::CursorPos(x, y) => {
                     cursor_position = Position {
-                        x: x as f32 * (fb_window_width as f32 / window_width as f32),
-                        y: y as f32 * (fb_window_height as f32 / window_height as f32),
+                        x: x as f32,
+                        y: y as f32,
                     };
                 }
 
