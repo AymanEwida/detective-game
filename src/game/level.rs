@@ -100,14 +100,14 @@ pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<I
     if let Some(item) = holding_item {
         render.display_text(&format!("holding: {}", item.get_name()), start_position, scale, None, Color::White)?; 
 
-        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + (55.0 - (negate_scale * 50.0)) }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
+        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + (210.0 - (negate_scale * 50.0)) }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
 
         render.display_text(&format!("| {}", item.get_amount()), Position { x: start_position.x + 150.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
         if let Some(ammo) = item.get_ammo() {
             render.display_text(&format!("| {}", ammo), Position { x: start_position.x + 230.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
-            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 310.0, y: start_position.y + (50.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
+            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 290.0, y: start_position.y + (205.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
         }
     } else {
         render.display_text("holding: nothing", start_position, scale, None, Color::White)?; 
@@ -127,9 +127,9 @@ impl<'a> GameLevel<'a> {
 
     pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], render: &mut Render<'a>) -> Result<()> {
         // TODO: Remove this later
-        if self.current_level == 1 {
-            self.status = LevelStatus::Win;
-        }
+        // if self.current_level == 1 {
+        //     self.status = LevelStatus::Win;
+        // }
     
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
@@ -263,14 +263,14 @@ impl<'a> GameLevel<'a> {
 
             if self.is_paused {
                 render.display_button(ButtonProps {
-                    position: Position { x: 880.0, y: 430.0 },
+                    position: Position { x: 870.0, y: 430.0 },
                     bg_color: Color::Green,
                     width: None,
                     height: None,
                     text: String::from("Resume"),
                     text_scale: 1.0,
                     text_color: Color::Black,
-                    padding: Padding::new(10.0, 10.0, 10.0, 20.0),
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                     on_hover_styles: OnHoverStylesBuilder::new()
                         .bg_color(Color::RGBA(0, 255, 0, 150))
                         .build(),
@@ -288,7 +288,7 @@ impl<'a> GameLevel<'a> {
                     text: String::from("Exit Game"),
                     text_scale: 1.0,
                     text_color: Color::Black,
-                    padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                     on_hover_styles: OnHoverStylesBuilder::new()
                         .bg_color(Color::RGBA(255, 0, 0, 150))
                         .build(),
@@ -320,22 +320,22 @@ impl<'a> GameLevel<'a> {
                     }
                 };
 
-                render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 20.0 + (idx as f32 * 40.0) }, 0.5, None, color)?;
+                render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 20.0 + (idx as f32 * 25.0) }, 0.5, None, color)?;
             }
 
             render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 850.0, y: 60.0 }, 0.8, None, Color::White)?;
 
             render.display_text(&format!("level: {}", self.current_level), Position { x: 1580.0, y: 50.0 }, 0.6, None, Color::White)?;
-            render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 100.0 }, 0.7, None, Color::White)?;
+            render.display_text(&format!("status: {}", player.get_status()), Position { x: 1580.0, y: 85.0 }, 0.7, None, Color::White)?;
 
             let holding_item = player.get_holding_item();
 
-            display_holding_item(Position { x: 50.0, y:  900.0 }, holding_item, 0.8, render)?;
+            display_holding_item(Position { x: 50.0, y: 750.0 }, holding_item, 0.8, render)?;
 
-            render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 900.0 }, 0.8, None, Color::White)?;
+            render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 750.0 }, 0.8, None, Color::White)?;
 
             render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 890.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 900.0 }, 0.7, None, Color::White)?;
+            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 695.0 }, 0.7, None, Color::White)?;
 
             for wall in self.walls.iter() {
                 if player.collide(wall) {
