@@ -1,8 +1,19 @@
 use std::time::{Duration, Instant};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{calc_control_point_game_coordinate_system, calculate_calc_position, length_of_line}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{
+    library::{
+        constants::DEFAULT_MOVEMENT_VALUE,
+        utils::{
+            calc_control_point_game_coordinate_system, calculate_calc_position, length_of_line,
+        },
+    },
+    renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::Position},
+};
 
-use super::{level::{EndStartPositions, GameObject}, player::DEFAULT_SIZE_FOR_INVENTORY_ITEM};
+use super::{
+    level::{EndStartPositions, GameObject},
+    player::DEFAULT_SIZE_FOR_INVENTORY_ITEM,
+};
 
 #[derive(Debug, Clone)]
 pub struct Can<'a> {
@@ -20,27 +31,39 @@ pub struct Can<'a> {
     done: bool,
     last_hit_time: Instant,
     hit_duration_interval: Duration,
-    added_detect_range: bool
+    added_detect_range: bool,
 }
 
 impl<'a> Can<'a> {
-    pub fn new(start_position: Position, end_position: Position, image: &'a str, detect_radius: f32) -> Self {
+    pub fn new(
+        start_position: Position,
+        end_position: Position,
+        image: &'a str,
+        detect_radius: f32,
+    ) -> Self {
         Self {
             start_position,
             current_position: start_position,
             end_position,
             image,
             size: DEFAULT_SIZE_FOR_INVENTORY_ITEM,
-            calc_position: calculate_calc_position(start_position, DEFAULT_SIZE_FOR_INVENTORY_ITEM, DEFAULT_MOVEMENT_VALUE),
+            calc_position: calculate_calc_position(
+                start_position,
+                DEFAULT_SIZE_FOR_INVENTORY_ITEM,
+                DEFAULT_MOVEMENT_VALUE,
+            ),
             length: length_of_line(&start_position, &end_position) as usize,
             detect_radius,
-            control_point: calc_control_point_game_coordinate_system(&start_position, &end_position),
+            control_point: calc_control_point_game_coordinate_system(
+                &start_position,
+                &end_position,
+            ),
             iter_num: 0,
             is_finished: start_position == end_position,
             done: false,
             last_hit_time: Instant::now(),
             hit_duration_interval: Duration::from_millis(1000),
-            added_detect_range: false
+            added_detect_range: false,
         }
     }
 }
@@ -48,16 +71,41 @@ impl<'a> Can<'a> {
 impl<'a> Can<'a> {
     pub fn draw(&mut self, render: &mut Render<'a>) -> Result<()> {
         if !self.is_finished {
-            render.load_image(self.image, self.current_position, self.size, false, None, None, None, None)?;
+            render.load_image(
+                self.image,
+                self.current_position,
+                self.size,
+                false,
+                None,
+                None,
+                None,
+                None,
+            )?;
         } else {
             if self.last_hit_time.elapsed() <= self.hit_duration_interval {
-                render.load_image("assets/game/can-hit-effect.png", self.current_position - self.size.width / 2.0, self.size, false, None, None, None, None)?;
-                render.draw_geometric_object(self.current_position, self.detect_radius, Color::RGBA(0, 0, 255, 50), None, None, None, None);
+                render.load_image(
+                    "assets/game/can-hit-effect.png",
+                    self.current_position - self.size.width / 2.0,
+                    self.size,
+                    false,
+                    None,
+                    None,
+                    None,
+                    None,
+                )?;
+                render.draw_geometric_object(
+                    self.current_position,
+                    self.detect_radius,
+                    Color::RGBA(0, 0, 255, 50),
+                    None,
+                    None,
+                    None,
+                    None,
+                );
             } else {
                 self.done = true;
             }
         }
-        
 
         Ok(())
     }
@@ -65,7 +113,7 @@ impl<'a> Can<'a> {
     pub fn get_position(&self) -> Position {
         self.current_position
     }
-    
+
     pub fn set_position(&mut self, new_position: Position) {
         self.current_position = new_position;
         self.set_calc_position();
@@ -76,7 +124,7 @@ impl<'a> Can<'a> {
     }
 
     pub fn get_calc_position(&self) -> EndStartPositions {
-        self.calc_position        
+        self.calc_position
     }
 }
 
@@ -111,14 +159,19 @@ impl<'a> Can<'a> {
     }
 
     fn set_calc_position(&mut self) {
-        self.calc_position = calculate_calc_position(self.current_position, self.size, DEFAULT_MOVEMENT_VALUE);
+        self.calc_position =
+            calculate_calc_position(self.current_position, self.size, DEFAULT_MOVEMENT_VALUE);
     }
 
     pub fn calc_next_position(&mut self) {
         let t = self.iter_num as f32 / self.length as f32;
 
-        let x = (1.0 - t).powi(2) * self.start_position.x + 2.0 * (1.0 - t) * t * self.control_point.x + t.powi(2) * self.end_position.x;
-        let y = (1.0 - t).powi(2) * self.start_position.y + 2.0 * (1.0 - t) * t * self.control_point.y + t.powi(2) * self.end_position.y;
+        let x = (1.0 - t).powi(2) * self.start_position.x
+            + 2.0 * (1.0 - t) * t * self.control_point.x
+            + t.powi(2) * self.end_position.x;
+        let y = (1.0 - t).powi(2) * self.start_position.y
+            + 2.0 * (1.0 - t) * t * self.control_point.y
+            + t.powi(2) * self.end_position.y;
 
         self.current_position = Position { x, y };
 
@@ -144,26 +197,28 @@ impl<'a> Can<'a> {
     pub fn collide(&self, other: &impl GameObject<'a>) -> bool {
         let (start_position, end_position) = (
             self.current_position,
-            self.current_position + Size { width: 10.0, height: 10.0 }
+            self.current_position
+                + Size {
+                    width: 10.0,
+                    height: 10.0,
+                },
         );
         let (other_start_position, other_end_position) = other.get_calc_position();
-    
-        start_position.x < other_end_position.x &&
-        end_position.x > other_start_position.x &&
-        start_position.y < other_end_position.y &&
-        end_position.y > other_start_position.y
+
+        start_position.x < other_end_position.x
+            && end_position.x > other_start_position.x
+            && start_position.y < other_end_position.y
+            && end_position.y > other_start_position.y
     }
 
     pub fn is_off_border(&self, start_position: Option<Position>, size: Size) -> bool {
         let start_position = start_position.unwrap_or(Position { x: 0.0, y: 0.0 });
 
-        self.current_position.x > (start_position.x + size.width) ||
-        (self.current_position.x + self.size.width) > (start_position.x + size.width) ||
-        self.current_position.x < start_position.x ||
-        self.current_position.y > (start_position.y + size.height) ||
-        (self.current_position.y + self.size.height) > (start_position.y + size.height) ||
-        self.current_position.y < start_position.y
+        self.current_position.x > (start_position.x + size.width)
+            || (self.current_position.x + self.size.width) > (start_position.x + size.width)
+            || self.current_position.x < start_position.x
+            || self.current_position.y > (start_position.y + size.height)
+            || (self.current_position.y + self.size.height) > (start_position.y + size.height)
+            || self.current_position.y < start_position.y
     }
 }
-
-

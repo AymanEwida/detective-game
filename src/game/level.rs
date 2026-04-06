@@ -1,7 +1,7 @@
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
-use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::{ButtonAction, OnHoverStylesBuilder}, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
+use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::{DEFAULT_MOVEMENT_VALUE, HEIGHT, WIDTH}, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::{ButtonAction, OnHoverStylesBuilder}, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
 
 use super::{bullet::Bullet, camera::Camera, can::Can, challenge::{Challenge, ChallengeStatus}, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, store::StoreItem, wall::Wall};
 
@@ -574,7 +574,7 @@ impl<'a> GameLevel<'a> {
                     }
                 }
 
-                if enemy.is_off_window(render.get_size())
+                if enemy.is_off_window(Size { width: WIDTH as f32, height: HEIGHT as f32 })
                 || enemy.is_off_border(
                     Some(self.border_top_left + DEFAULT_SIZE),
                     Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) }

@@ -7,7 +7,7 @@ use glfw::{Action, MouseButton};
 use crate::{
     game::character::Direction,
     library::{
-        constants::TWICE_PI,
+        constants::{HEIGHT, TWICE_PI, WIDTH},
         utils::{
             absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point,
             calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle,
@@ -207,12 +207,16 @@ pub struct Render<'a> {
 }
 
 impl Render<'_> {
-    pub fn new(window_size: Size, fb_size: Size) -> Result<Self> {
+    pub fn with_projection_size(
+        window_size: Size,
+        fb_size: Size,
+        projection_size: Size,
+    ) -> Result<Self> {
         unsafe {
             let projection_matrix = Mat4::orthographic_rh_gl(
                 0.0,
-                window_size.width,
-                window_size.height,
+                projection_size.width,
+                projection_size.height,
                 0.0,
                 -1.0,
                 1.0,
@@ -279,11 +283,30 @@ impl Render<'_> {
             })
         }
     }
+
+    pub fn new(window_size: Size, fb_size: Size) -> Result<Self> {
+        Render::with_projection_size(
+            window_size,
+            fb_size,
+            Size {
+                width: WIDTH as f32,
+                height: HEIGHT as f32,
+            },
+        )
+    }
 }
 
 impl<'a> Render<'a> {
     pub fn get_size(&self) -> Size {
         self.size
+    }
+
+    pub fn get_window_size(&self) -> Size {
+        self.window_size
+    }
+
+    pub fn set_window_size(&mut self, new_window_size: Size) {
+        self.window_size = new_window_size;
     }
 
     pub fn resize(&mut self, new_size: Size) {

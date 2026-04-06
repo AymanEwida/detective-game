@@ -56,7 +56,6 @@ pub fn calc_control_point(start: &Position, end: &Position) -> Position {
     }
 }
 
-// TODO: see what is this function about and fix if it bring problems
 pub fn calc_control_point_game_coordinate_system(start: &Position, end: &Position) -> Position {
     let control_x = (start.x + end.x) / 2.0;
 

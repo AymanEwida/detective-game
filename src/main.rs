@@ -26,8 +26,29 @@ fn main() {
     glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
     glfw.window_hint(WindowHint::Resizable(true));
 
+    let screen_size = glfw.with_primary_monitor(|_, monitor| {
+        if let Some(m) = monitor {
+            let video_mode = m.get_video_mode().unwrap();
+
+            return Size {
+                width: video_mode.width,
+                height: video_mode.height,
+            };
+        }
+
+        return Size {
+            width: WIDTH,
+            height: HEIGHT,
+        };
+    });
+
     let (mut window, events) = glfw
-        .create_window(WIDTH, HEIGHT, "Derective Game", WindowMode::Windowed)
+        .create_window(
+            screen_size.width,
+            screen_size.height,
+            "Derective Game",
+            WindowMode::Windowed,
+        )
         .expect("Failed on window creation.");
 
     window.make_current();
@@ -115,9 +136,13 @@ fn main() {
 
     let mut last_update = Instant::now();
 
-    window.set_framebuffer_size_callback(|window, new_width, new_height| {
+    window.set_size_callback(|window, new_width, new_height| {
         window.set_size(new_width, new_height);
     });
+
+    // window.set_framebuffer_size_callback(|window, new_width, new_height| {
+    //     window.set_size(new_width, new_height);
+    // });
 
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
@@ -125,15 +150,21 @@ fn main() {
 
     while !window.should_close() {
         let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
+        let (window_width, window_height) = window.get_size();
 
-        let render_size = render.get_size();
+        let render_size = render.get_window_size();
 
-        if (fb_window_width as f32 != render_size.width)
-            || (fb_window_height as f32 != render_size.height)
+        if (window_width as f32 != render_size.width)
+            || (window_height as f32 != render_size.height)
         {
             render.resize(Size {
                 width: fb_window_width as f32,
                 height: fb_window_height as f32,
+            });
+
+            render.set_window_size(Size {
+                width: window_width as f32,
+                height: window_height as f32,
             });
         }
 
@@ -143,8 +174,8 @@ fn main() {
             match event {
                 WindowEvent::CursorPos(x, y) => {
                     cursor_position = Position {
-                        x: x as f32,
-                        y: y as f32,
+                        x: x as f32 * (WIDTH as f32 / window_width as f32),
+                        y: y as f32 * (HEIGHT as f32 / window_height as f32),
                     };
                 }
 
@@ -265,12 +296,13 @@ fn main() {
         if delta >= Duration::from_secs_f32(1.0 / FPS) {
             last_update = now;
 
-            if player.is_off_window(render.get_size())
-                || player.is_off_border(
-                    Some(level.get_boder_start_position()),
-                    level.get_boder_size(),
-                )
-            {
+            if player.is_off_window(Size {
+                width: WIDTH as f32,
+                height: HEIGHT as f32,
+            }) || player.is_off_border(
+                Some(level.get_boder_start_position()),
+                level.get_boder_size(),
+            ) {
                 player.move_to_prev_position();
             }
 

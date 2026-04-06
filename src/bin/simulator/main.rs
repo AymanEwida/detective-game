@@ -32,7 +32,7 @@ fn main() {
     glfw.window_hint(WindowHint::ContextVersion(3, 3));
     glfw.window_hint(WindowHint::OpenGlProfile(OpenGlProfileHint::Core));
     glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
-    glfw.window_hint(WindowHint::Resizable(true));
+    glfw.window_hint(WindowHint::Resizable(false));
 
     let (mut window, events) = glfw
         .create_window(
@@ -55,7 +55,7 @@ fn main() {
         gl::Viewport(0, 0, fb_width, fb_height);
     }
 
-    let mut render = Render::new(
+    let mut render = Render::with_projection_size(
         Size {
             width: window_width as f32,
             height: window_height as f32,
@@ -63,6 +63,10 @@ fn main() {
         Size {
             width: fb_width as f32,
             height: fb_height as f32,
+        },
+        Size {
+            width: window_width as f32,
+            height: window_height as f32,
         },
     )
     .expect("Failed to created a render.");
@@ -77,10 +81,6 @@ fn main() {
 
     let mut last_update = Instant::now();
 
-    window.set_framebuffer_size_callback(|window, new_width, new_height| {
-        window.set_size(new_width, new_height);
-    });
-
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
     let mut pressed_buttons = HashSet::new();
@@ -90,15 +90,21 @@ fn main() {
 
     while !window.should_close() {
         let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
+        let (window_width, window_height) = window.get_size();
 
-        let render_size = render.get_size();
+        let render_size = render.get_window_size();
 
-        if (fb_window_width as f32 != render_size.width)
-            || (fb_window_height as f32 != render_size.height)
+        if (window_width as f32 != render_size.width)
+            || (window_height as f32 != render_size.height)
         {
             render.resize(Size {
                 width: fb_window_width as f32,
                 height: fb_window_height as f32,
+            });
+
+            render.set_window_size(Size {
+                width: window_width as f32,
+                height: window_height as f32,
             });
         }
 
