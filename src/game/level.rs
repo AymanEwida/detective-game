@@ -1,6 +1,9 @@
 use glfw::{Action, Key};
 use queues::{IsQueue, Queue};
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::{DEFAULT_MOVEMENT_VALUE, HEIGHT, WIDTH}, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::{ButtonAction, OnHoverStylesBuilder}, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
 
 use super::{bullet::Bullet, camera::Camera, can::Can, challenge::{Challenge, ChallengeStatus}, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, store::StoreItem, wall::Wall};
@@ -58,7 +61,9 @@ pub struct GameLevel<'a> {
     notoriety_level: u64,
     status: LevelStatus,
     add_amount_after_lost: usize,
-    is_paused: bool
+    is_paused: bool,
+    start_idx_store_items: Rc<RefCell<usize>>,
+    end_idx_store_items: Rc<RefCell<usize>> 
 }
 
 impl Default for GameLevel<'_> {
@@ -90,6 +95,8 @@ impl Default for GameLevel<'_> {
             status: LevelStatus::NotDetermine,
             add_amount_after_lost: 5,
             is_paused: false,
+            start_idx_store_items: Rc::new(RefCell::new(0)),
+            end_idx_store_items: Rc::new(RefCell::new(3))
         }
     }
 }
@@ -125,11 +132,11 @@ impl<'a> GameLevel<'a> {
         self.border_top_left + DEFAULT_SIZE
     }
 
-    pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], render: &mut Render<'a>) -> Result<()> {
+    pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], store_items_len: usize, render: &mut Render<'a>) -> Result<()> {
         // TODO: Remove this later
-        // if self.current_level == 1 {
-        //     self.status = LevelStatus::Win;
-        // }
+        if self.current_level == 1 {
+            self.status = LevelStatus::Win;
+        }
     
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
@@ -188,15 +195,18 @@ impl<'a> GameLevel<'a> {
             render.display_text(&format!("{}", player.get_coins()), Position { x: 940.0, y: 370.0 }, 1.0, None, Color::White)?;
 
             let offset = 530.0;
-            for (idx, store_item) in store_items.iter_mut().enumerate() {
-                render.draw_rectangle(Position { x: 50.0 + (idx as f32 * offset), y: 430.0 }, Size { width: 500.0, height: 500.0 }, Color::White, None, None, None);
+            for idx in *self.start_idx_store_items.borrow()..*self.end_idx_store_items.borrow() {
+                let store_item = &mut store_items[idx];
+                let idx = idx - *self.start_idx_store_items.borrow();
 
-                render.load_image(store_item.get_image_path(), Position { x: 60.0 + (idx as f32 * offset), y: 440.0 }, Size { width: 480.0, height: 190.0 }, false, None, None, None, None)?;
-                render.display_text(store_item.get_title(), Position { x: 150.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
-                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * offset), y: 680.0 }, 0.5, Some(490.0), Color::Black)?;
+                render.draw_rectangle(Position { x: 175.0 + (idx as f32 * offset), y: 430.0 }, Size { width: 500.0, height: 500.0 }, Color::White, None, None, None);
+
+                render.load_image(store_item.get_image_path(), Position { x: 185.0 + (idx as f32 * offset), y: 440.0 }, Size { width: 480.0, height: 190.0 }, false, None, None, None, None)?;
+                render.display_text(store_item.get_title(), Position { x: 275.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
+                render.display_text(store_item.get_description(), Position { x: 185.0 + (idx as f32 * offset), y: 680.0 }, 0.5, Some(490.0), Color::Black)?;
 
                 render.display_button(ButtonProps {
-                    position: Position { x: 70.0 + (idx as f32 * offset), y: 890.0 },
+                    position: Position { x: 205.0 + (idx as f32 * offset), y: 880.0 },
                     bg_color: Color::Blue,
                     width: None,
                     height: None,
@@ -214,15 +224,51 @@ impl<'a> GameLevel<'a> {
                 });
 
                 if let Some(upgrade_info) = store_item.get_upgrade_info() {
-                    render.display_text(&format!("({}/{})", upgrade_info.0, upgrade_info.1), Position { x: 150.0 + (idx as f32 * offset), y: 890.0 }, 0.7, None, Color::Black)?;
+                    render.display_text(&format!("({}/{})", upgrade_info.0, upgrade_info.1), Position { x: 275.0 + (idx as f32 * offset), y: 875.0 }, 0.7, None, Color::Black)?;
                 }
 
                 if store_item.get_error_message() != "" {
-                    render.display_text(store_item.get_error_message(), Position { x: 60.0 + (idx as f32 * offset), y: 940.0 }, 0.6, None, Color::Red)?;
+                    render.display_text(store_item.get_error_message(), Position { x: 185.0 + (idx as f32 * offset), y: 940.0 }, 0.6, None, Color::Red)?;
                 }
 
-                render.load_image("assets/game/coin.png", Position { x: 450.0 + (idx as f32 * offset), y: 880.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-                render.display_text(&format!("{}", store_item.get_price()), Position { x: 500.0 + (idx as f32 * offset), y: 890.0 }, 0.6, None, Color::Black)?;
+                render.load_image("assets/game/coin.png", Position { x: 575.0 + (idx as f32 * offset), y: 880.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+                render.display_text(&format!("{}", store_item.get_price()), Position { x: 625.0 + (idx as f32 * offset), y: 890.0 }, 0.6, None, Color::Black)?;
+            }
+
+            if *self.start_idx_store_items.borrow() != 0 {
+                render.display_button(ButtonProps {
+                    position: Position { x: 175.0, y: 1000.0 },
+                    width: None,
+                    height: None,
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                    bg_color: Color::RGB(169, 169, 169),
+                    text: String::from("Previous"),
+                    text_scale: 1.0,
+                    text_color: Color::White,
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(169, 169, 169, 150))
+                        .build(),
+                    click_action: ButtonAction::None,
+                    on_click: {
+                        let start = Rc::clone(&self.start_idx_store_items);
+                        let end = Rc::clone(&self.end_idx_store_items);
+
+                        Box::new(move || {
+                            let mut start_value = start.borrow_mut();
+                            let mut end_value = end.borrow_mut();
+
+                            *start_value -= 3;
+
+                            if *start_value + 3 > store_items_len {
+                                *end_value = store_items_len;
+                            } else {
+                                *end_value = *start_value + 3;
+                            }
+                        })
+                    },
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
             }
 
             render.display_button(ButtonProps {
@@ -242,6 +288,42 @@ impl<'a> GameLevel<'a> {
                 on_hover: Box::new(|| {}),
                 on_hover_release: Box::new(|| {})
             });
+
+            if *self.end_idx_store_items.borrow() != store_items_len {
+                render.display_button(ButtonProps {
+                    position: Position { x: 1630.0, y: 1000.0 },
+                    width: None,
+                    height: None,
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                    bg_color: Color::RGB(169, 169, 169),
+                    text: String::from("Next"),
+                    text_scale: 1.0,
+                    text_color: Color::White,
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(169, 169, 169, 150))
+                        .build(),
+                    click_action: ButtonAction::None,
+                    on_click: {
+                        let start = Rc::clone(&self.start_idx_store_items);
+                        let end = Rc::clone(&self.end_idx_store_items);
+
+                        Box::new(move || {
+                            let mut start_value = start.borrow_mut();
+                            let mut end_value = end.borrow_mut();
+
+                            *start_value += 3;
+
+                            if *start_value + 3 > store_items_len {
+                                *end_value = store_items_len;
+                            } else {
+                                *end_value = *start_value + 3;
+                            }
+                        })
+                    },
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
+            }
         } else {
             render.load_image(self.background_image, self.border_top_left, self.border_size, false, None, None, None, None)?;
 
@@ -900,6 +982,8 @@ impl<'a> GameLevel<'a> {
         assert!(self.current_level < 5, "level must be between 1 to 5 (include)");
         
         self.current_level += 1;
+        self.start_idx_store_items = Rc::new(RefCell::new(0));
+        self.end_idx_store_items = Rc::new(RefCell::new(3));
     }
 
     pub fn clear_level_objects(&mut self) {

@@ -133,6 +133,7 @@ fn main() {
             }),
         },
     ];
+    let store_items_len = store_items.len();
 
     let mut last_update = Instant::now();
 
@@ -303,7 +304,7 @@ fn main() {
             }
 
             level
-                .draw(&mut player, &mut store_items, &mut render)
+                .draw(&mut player, &mut store_items, store_items_len, &mut render)
                 .expect("Unable to draw level");
 
             render
