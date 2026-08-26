@@ -100,14 +100,14 @@ pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<I
     if let Some(item) = holding_item {
         render.display_text(&format!("holding: {}", item.get_name()), start_position, scale, None, Color::White)?; 
 
-        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + (210.0 - (negate_scale * 50.0)) }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
+        render.load_image(item.get_image(), Position { x: start_position.x + 100.0, y: start_position.y + (50.0 - (negate_scale * 50.0)) }, DEFAULT_SIZE_FOR_INVENTORY_ITEM, false, None, None, None, None)?;
 
         render.display_text(&format!("| {}", item.get_amount()), Position { x: start_position.x + 150.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
         if let Some(ammo) = item.get_ammo() {
             render.display_text(&format!("| {}", ammo), Position { x: start_position.x + 230.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
-            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 290.0, y: start_position.y + (205.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
+            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 290.0, y: start_position.y + (50.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
         }
     } else {
         render.display_text("holding: nothing", start_position, scale, None, Color::White)?; 
@@ -134,16 +134,16 @@ impl<'a> GameLevel<'a> {
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
         } else if self.get_status() == &LevelStatus::Lose {
-            render.display_text("You Lost!", Position { x: 1200.0, y: 500.0 }, 2.0, None, Color::Red)?;
+            render.display_text("You Lost!", Position { x: (WIDTH as f32 / 2.0) - 135.0, y: (HEIGHT as f32 / 4.0) + 350.0 }, 1.5, None, Color::Red)?;
             render.display_button(ButtonProps {
-                position: Position { x: 1300.0, y: 630.0 },
+                position: Position { x: (WIDTH as f32 / 2.0) - 100.0, y: 530.0 },
                 bg_color: Color::Green,
                 width: None,
                 height: None,
                 text: String::from("Retry Level"),
                 text_scale: 1.0,
                 text_color: Color::Black,
-                padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                 on_hover_styles: OnHoverStylesBuilder::new()
                                 .bg_color(Color::RGBA(0, 255, 0, 150))
                                 .build(),
@@ -154,14 +154,14 @@ impl<'a> GameLevel<'a> {
             });
 
             render.display_button(ButtonProps {
-                position: Position { x: 1310.0, y: 720.0 },
+                position: Position { x: (WIDTH as f32 / 2.0) - 90.0, y: 620.0 },
                 bg_color: Color::Green,
                 width: None,
                 height: None,
                 text: String::from("Exit Game"),
                 text_scale: 1.0,
                 text_color: Color::Black,
-                padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                 on_hover_styles: OnHoverStylesBuilder::new()
                                 .bg_color(Color::RGBA(0, 255, 0, 150))
                                 .build(),
@@ -171,7 +171,7 @@ impl<'a> GameLevel<'a> {
                 on_hover_release: Box::new(|| {})
             });
         } else if self.status == LevelStatus::Win {
-            render.display_text("You Won", Position { x: 1250.0, y: 200.0 }, 2.0, None, Color::Green)?;
+            render.display_text("You Won", Position { x: (WIDTH as f32 / 2.0) - 140.0, y: 80.0 }, 1.5, None, Color::Green)?;
         
             for (idx , challenge) in self.challenges.iter().enumerate() {
                 let color = if challenge.get_status() == &ChallengeStatus::Completed {
@@ -180,27 +180,27 @@ impl<'a> GameLevel<'a> {
                     Color::Red
                 };
 
-                render.display_text(&format!("Challenge {}: {} - completed +{} coins", idx + 1, challenge.get_challenge_text(), challenge.get_reward()), Position { x: 1000.0, y: 330.0 + (idx as f32 * 40.0) }, 0.6, None, color)?;
+                render.display_text(&format!("Challenge {}: {} - completed +{} coins", idx + 1, challenge.get_challenge_text(), challenge.get_reward()), Position { x: 550.0, y: 180.0 + (idx as f32 * 40.0) }, 0.6, None, color)?;
             }
 
-            render.display_text("Buy anything from the store", Position { x: 1060.0, y: 480.0 }, 0.6, None, Color::White)?;
-            render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 475.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 475.0 }, 1.0, None, Color::White)?;
+            render.display_text("Buy anything from the store", Position { x: 800.0, y: 310.0 }, 0.6, None, Color::White)?;
+            render.load_image("assets/game/coin.png", Position { x: 900.0, y: 370.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+            render.display_text(&format!("{}", player.get_coins()), Position { x: 940.0, y: 370.0 }, 1.0, None, Color::White)?;
 
             let offset = 530.0;
             for (idx, store_item) in store_items.iter_mut().enumerate() {
-                render.draw_rectangle(Position { x: 50.0 + (idx as f32 * offset), y: 600.0 }, Size { width: 500.0, height: 600.0 }, Color::White, None, None, None);
+                render.draw_rectangle(Position { x: 50.0 + (idx as f32 * offset), y: 430.0 }, Size { width: 500.0, height: 500.0 }, Color::White, None, None, None);
 
-                render.load_image(store_item.get_image_path(), Position { x: 175.0 + (idx as f32 * offset), y: 610.0 }, Size { width: 225.0, height: 190.0 }, false, None, None, None, None)?;
-                render.display_text(store_item.get_title(), Position { x: 130.0 + (idx as f32 * offset), y: 820.0 }, 0.6, Some(370.0), Color::Black)?;
-                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * offset), y: 890.0 }, 0.5, Some(490.0), Color::Black)?;
+                render.load_image(store_item.get_image_path(), Position { x: 60.0 + (idx as f32 * offset), y: 440.0 }, Size { width: 480.0, height: 190.0 }, false, None, None, None, None)?;
+                render.display_text(store_item.get_title(), Position { x: 150.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
+                render.display_text(store_item.get_description(), Position { x: 60.0 + (idx as f32 * offset), y: 680.0 }, 0.5, Some(490.0), Color::Black)?;
 
                 render.display_button(ButtonProps {
-                    position: Position { x: 80.0 + (idx as f32 * offset), y: 1150.0 },
+                    position: Position { x: 70.0 + (idx as f32 * offset), y: 890.0 },
                     bg_color: Color::Blue,
                     width: None,
-                    height: None, 
-                    padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                    height: None,
+                    padding: Padding::new(10.0, 10.0, 20.0, 15.0),
                     text: String::from("Buy"),
                     text_color: Color::White,
                     text_scale: 0.7,
@@ -214,22 +214,22 @@ impl<'a> GameLevel<'a> {
                 });
 
                 if let Some(upgrade_info) = store_item.get_upgrade_info() {
-                    render.display_text(&format!("({}/{})", upgrade_info.0, upgrade_info.1), Position { x: 160.0 + (idx as f32 * offset), y: 1140.0 }, 0.7, None, Color::Black)?;
+                    render.display_text(&format!("({}/{})", upgrade_info.0, upgrade_info.1), Position { x: 150.0 + (idx as f32 * offset), y: 890.0 }, 0.7, None, Color::Black)?;
                 }
 
                 if store_item.get_error_message() != "" {
-                    render.display_text(store_item.get_error_message(), Position { x: 60.0 + (idx as f32 * offset), y: 1230.0 }, 0.6, None, Color::Red)?;
+                    render.display_text(store_item.get_error_message(), Position { x: 60.0 + (idx as f32 * offset), y: 940.0 }, 0.6, None, Color::Red)?;
                 }
 
-                render.load_image("assets/game/coin.png", Position { x: 430.0 + (idx as f32 * offset), y: 1140.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-                render.display_text(&format!("{}", store_item.get_price()), Position { x: 480.0 + (idx as f32 * offset), y: 1150.0 }, 0.6, None, Color::Black)?;
+                render.load_image("assets/game/coin.png", Position { x: 450.0 + (idx as f32 * offset), y: 880.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
+                render.display_text(&format!("{}", store_item.get_price()), Position { x: 500.0 + (idx as f32 * offset), y: 890.0 }, 0.6, None, Color::Black)?;
             }
 
             render.display_button(ButtonProps {
-                position: Position { x: 1220.0, y: 1320.0 },
+                position: Position { x: 750.0, y: 1000.0 },
                 width: None,
                 height: None,
-                padding: Padding::new(10.0, 15.0, 20.0, 15.0),
+                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                 bg_color: Color::Green,
                 text: String::from("Continue to next level"),
                 text_scale: 1.0,
@@ -320,7 +320,7 @@ impl<'a> GameLevel<'a> {
                     }
                 };
 
-                render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 20.0 + (idx as f32 * 25.0) }, 0.5, None, color)?;
+                render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 25.0 + (idx as f32 * 35.0) }, 0.5, None, color)?;
             }
 
             render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 850.0, y: 60.0 }, 0.8, None, Color::White)?;
@@ -330,12 +330,12 @@ impl<'a> GameLevel<'a> {
 
             let holding_item = player.get_holding_item();
 
-            display_holding_item(Position { x: 50.0, y: 750.0 }, holding_item, 0.8, render)?;
+            display_holding_item(Position { x: 50.0, y: 900.0 }, holding_item, 0.8, render)?;
 
-            render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 750.0 }, 0.8, None, Color::White)?;
+            render.display_text(&format!("lifes: {}", player.get_lifes()), Position { x: 920.0, y: 900.0 }, 0.8, None, Color::White)?;
 
             render.load_image("assets/game/coin.png", Position { x: 1650.0, y: 890.0 }, DEFAULT_SIZE_FOR_COLLECTABLE, false, None, None, None, None)?;
-            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 695.0 }, 0.7, None, Color::White)?;
+            render.display_text(&format!("{}", player.get_coins()), Position { x: 1700.0, y: 900.0 }, 0.7, None, Color::White)?;
 
             for wall in self.walls.iter() {
                 if player.collide(wall) {

@@ -87,7 +87,7 @@ fn main() {
             image_path: "assets/game/upgrade.png",
             title: String::from("Q Ability Upgrade"),
             description: String::from(
-                "increases the coverd space of the q ability, by adding 50 to the q ability radius",
+                "increases the coverd space of the q ability, by adding 50 to the q ability radius.",
             ),
             price: 2,
             upgrade_info: Some((0, 3)),
@@ -102,7 +102,7 @@ fn main() {
             image_path: "assets/game/path_track_ability.png",           
             title: String::from("Q Ability New Feature"),
             description: String::from(
-                "when any enemy in the ability covered space, the path of the enemy in Regular mode is shown",
+                "when any enemy in the ability covered space, the path of the enemy in Regular mode is shown.",
             ),
             price: 3,
             upgrade_info: None,
@@ -121,7 +121,7 @@ fn main() {
             image_path: "assets/game/disturb_camera.png",           
             title: String::from("Increase Disturb Duration"),
             description: String::from(
-                "camera disturb duration is incresed by 1.5 seconds",
+                "camera disturb duration is incresed by 1.5 seconds.",
             ),
             price: 2,
             upgrade_info: Some((0, 2)),
@@ -139,10 +139,6 @@ fn main() {
     window.set_size_callback(|window, new_width, new_height| {
         window.set_size(new_width, new_height);
     });
-
-    // window.set_framebuffer_size_callback(|window, new_width, new_height| {
-    //     window.set_size(new_width, new_height);
-    // });
 
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 

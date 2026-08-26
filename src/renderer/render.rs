@@ -775,7 +775,7 @@ impl<'a> Render<'a> {
         .1;
 
         let mut x = start_position.x;
-        let mut y = start_position.y + (start_position.y - top_left_position.y * scale);
+        let mut y = start_position.y + (start_position.y - top_left_position.y);
 
         let mut min_y = start_position.y;
         let mut max_y = start_position.y;

@@ -193,6 +193,7 @@ impl<'a> Button<'a> {
 
         let (button_position, button_size) =
             calc_button_info_with_padding(&self.get_position(), &size, &self.get_padding());
+
         render.draw_rectangle(
             button_position,
             button_size,
