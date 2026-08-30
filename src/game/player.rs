@@ -104,6 +104,7 @@ pub struct DoorCollectableInventory {
 pub enum InventoryItemType {
     Weapon,
     TrickCan,
+    CheckPointFlag,
 }
 
 pub const DEFAULT_SIZE_FOR_INVENTORY_ITEM: Size<f32> = Size {
@@ -163,6 +164,14 @@ impl<'a> InventoryItem<'a> {
 
     pub fn get_image(&self) -> &'a str {
         self.image
+    }
+
+    pub fn set_original_amount(&mut self, new_amount: u32) {
+        self.original_amount = new_amount;
+    }
+
+    pub fn set_original_ammo(&mut self, new_ammo: usize) {
+        self.original_ammo = Some(new_ammo);
     }
 
     pub fn increase_amount(&mut self, num: u32) {
@@ -226,6 +235,8 @@ pub struct Player<'a> {
     inventory: Vec<InventoryItem<'a>>,
     inventory_items_used: Vec<InventoryItemType>,
     holding: Option<usize>,
+    has_silence_pistol: bool,
+    has_checkpoint_flag: bool,
     camera_disturb_lifttime: Duration,
     notoriety_camera_disturb_lifttime: Duration,
     coins: u32,
@@ -244,6 +255,7 @@ pub struct Player<'a> {
     enemies_killed_count: isize,
     level_tries: isize,
     enemies_trick_count: isize,
+    enemy_detecting_range: f32,
 }
 
 impl Player<'_> {
@@ -280,6 +292,8 @@ impl Player<'_> {
             ],
             inventory_items_used: Vec::new(),
             holding: None,
+            has_silence_pistol: false,
+            has_checkpoint_flag: false,
             camera_disturb_lifttime: Duration::from_secs(10),
             notoriety_camera_disturb_lifttime: Duration::from_secs(10),
             coins: 100, // TODO: change this to 0 later
@@ -298,6 +312,7 @@ impl Player<'_> {
             enemies_killed_count: 0,
             level_tries: 1,
             enemies_trick_count: 0,
+            enemy_detecting_range: DEFAULT_Q_ABILITY_RADIUS,
         }
     }
 }
@@ -310,7 +325,7 @@ impl<'a> GameObject<'a> for Player<'a> {
                 y: self.get_position().y + self.get_size().height / 2.0,
             };
 
-            if self.get_ability_radius() == 150.0 {
+            if self.get_ability_radius() == self.enemy_detecting_range {
                 render.draw_geometric_object(
                     center,
                     self.get_ability_radius(),
@@ -333,7 +348,7 @@ impl<'a> GameObject<'a> for Player<'a> {
 
                 render.draw_geometric_object(
                     center,
-                    DEFAULT_Q_ABILITY_RADIUS,
+                    self.enemy_detecting_range,
                     Color::RGBA(0, 255, 0, 50),
                     None,
                     None,
@@ -552,6 +567,14 @@ impl<'a> Player<'a> {
         self.ability_radius = new_radius;
     }
 
+    pub fn get_enemy_detect_range(&self) -> f32 {
+        self.enemy_detecting_range
+    }
+
+    pub fn set_enemy_detect_range(&mut self, new_val: f32) {
+        self.enemy_detecting_range = new_val;
+    }
+
     pub fn get_is_using_ability(&self) -> bool {
         self.is_using_ability
     }
@@ -747,7 +770,56 @@ impl<'a> Player<'a> {
                 }
 
                 InventoryItemType::Weapon => {
+                    if item.get_name() != String::from("Silence Pistol") {
+                        item.increase_ammo(num);
+                    }
+                }
+
+                _ => (),
+            }
+        }
+    }
+
+    pub fn add_pistol_to_inventory(&mut self) {
+        self.inventory.push(InventoryItem::new(
+            InventoryItemType::Weapon,
+            1,
+            Some(3),
+            "assets/game/pistol.png",
+            String::from("Silence Pistol"),
+        ));
+
+        self.has_silence_pistol = true;
+    }
+
+    pub fn add_checkpoint_flag_to_inventory(&mut self) {
+        self.inventory.push(InventoryItem::new(
+            InventoryItemType::CheckPointFlag,
+            2,
+            None,
+            "assets/game/checkpoint_flag.png",
+            String::from("Checkpoint Flag"),
+        ));
+
+        self.has_checkpoint_flag = true;
+    }
+
+    pub fn has_silence_pistol(&self) -> bool {
+        self.has_silence_pistol
+    }
+
+    pub fn has_checkpoint_flag(&self) -> bool {
+        self.has_checkpoint_flag
+    }
+
+    pub fn increase_pistol_ammo(&mut self, num: usize) {
+        if self.has_silence_pistol {
+            for item in self.inventory.iter_mut() {
+                if item.get_name() == String::from("Silence Pistol") {
+                    item.set_original_ammo(num);
                     item.increase_ammo(num);
+
+                    break;
                 }
             }
         }
@@ -958,6 +1030,9 @@ impl<'a> Player<'a> {
 
                         _ => (),
                     },
+
+                    // TODO: add logic to checkpoint_flag
+                    InventoryItemType::CheckPointFlag => (),
                 }
             }
         }

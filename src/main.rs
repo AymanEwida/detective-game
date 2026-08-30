@@ -99,7 +99,7 @@ fn main() {
             }),
         },
         StoreItem {
-            image_path: "assets/game/path_track_ability.png",           
+            image_path: "assets/game/path_track_ability.png",
             title: String::from("Q Ability New Feature"),
             description: String::from(
                 "when any enemy in the ability covered space, the path of the enemy in Regular mode is shown.",
@@ -118,7 +118,7 @@ fn main() {
             }),
         },
         StoreItem {
-            image_path: "assets/game/disturb_camera.png",           
+            image_path: "assets/game/disturb_camera.png",
             title: String::from("Increase Disturb Duration"),
             description: String::from(
                 "camera disturb duration is incresed by 1.5 seconds.",
@@ -128,6 +128,94 @@ fn main() {
             error_message: String::new(),
             buy_func: Box::new(|player: &mut Player<'_>| {
                 player.set_camera_disturb_lifttime(player.get_camera_disturb_lifttime().as_secs() + 1);
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/regular-enemy.png",
+            title: String::from("Decrease Enemy Detecting Range"),
+            description: String::from(
+                "decrease enemy detecting range by 25.",
+            ),
+            price: 3,
+            upgrade_info: Some((0, 3)),
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                player.set_enemy_detect_range(player.get_enemy_detect_range() - 25.0);
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/pistol.png",
+            title: String::from("Silence Pistol"),
+            description: String::from(
+                "get a silence pistol, however you have only 3 shoots.\nyou can increse the number of shoots after buying this pistol.",
+            ),
+            price: 5,
+            upgrade_info: None,
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                if player.has_silence_pistol() {
+                    return Err(String::from("You have already purchased this item"));
+                }
+
+                player.add_pistol_to_inventory();
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/pistol_ammo.png",
+            title: String::from("Increase Silence Pistol Ammo"),
+            description: String::from(
+                "you can increse the number of ammo for the silence pistol by 1 shoot.",
+            ),
+            price: 2,
+            upgrade_info: Some((0, 3)),
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                if !player.has_silence_pistol() {
+                    return Err(String::from("You have to purchased the Silence Pistol to unlock this upgrade"));
+                }
+
+                player.increase_pistol_ammo(1);
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/heart.png",
+            title: String::from("Increase Life Amount"),
+            description: String::from(
+                "you can increse the number of lifes you have each level by 1.",
+            ),
+            price: 3,
+            upgrade_info: Some((0, 3)),
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                player.set_lifes(player.get_lifes() + 1);
+                player.set_original_lifes(player.get_lifes() + 1);
+
+                Ok(())
+            }),
+        },
+        StoreItem {
+            image_path: "assets/game/checkpoint_flag.png",
+            title: String::from("Checkpoint Flag"),
+            description: String::from(
+                "get a checkpoint flag, place it anywhere in the level to mark the place as a checkpoint.\nyou will receive 2 flags and the recent place one is your checkpoint.",
+            ),
+            price: 4,
+            upgrade_info: None,
+            error_message: String::new(),
+            buy_func: Box::new(|player: &mut Player<'_>| {
+                if player.has_checkpoint_flag() {
+                    return Err(String::from("You have already purchased this item"));
+                }
+
+                player.add_checkpoint_flag_to_inventory();
 
                 Ok(())
             }),

@@ -91,6 +91,7 @@ pub struct Enemy<'a> {
     original_moves_path_vec: PathVec,
     moves_count: u32,
     moving_towards: Direction,
+    detect_range: f32,
     detect_traingle: DetectTraingle,
     detect_player_position: Option<Position>,
     mode: EnemyMode,
@@ -124,7 +125,7 @@ pub struct Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
-    pub fn new(enemy_type: EnemyType, start_position: Position, path: &'a str, flip: bool) -> Self {
+    pub fn new(enemy_type: EnemyType, start_position: Position, detect_range: f32, path: &'a str, flip: bool) -> Self {
         unsafe {
             enemies_count += 1;
         }
@@ -156,7 +157,8 @@ impl<'a> Enemy<'a> {
                     current_moves_path: moves_path,
                     moves_count: 0,
                     moving_towards: first_direction,
-                    detect_traingle: calc_equidistant_points(Position { x: start_position.x + 27.5, y: start_position.y + 20.0 }, 30.0, 150.0, first_direction),
+                    detect_range,
+                    detect_traingle: calc_equidistant_points(Position { x: start_position.x + 27.5, y: start_position.y + 20.0 }, 30.0, detect_range, first_direction),
                     detect_player_position: None,
                     mode: EnemyMode::Regular,
                     prev_mode: EnemyMode::Regular,
@@ -260,7 +262,7 @@ impl<'a> GameObject<'a> for Enemy<'a> {
     fn set_position(&mut self, new_position: Position) {
         self.position = new_position;
         self.set_calc_position();
-        self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
+        self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, self.detect_range, self.moving_towards);
     }
 
     fn get_size(&self) -> Size {
@@ -322,6 +324,10 @@ impl<'a> Enemy<'a> {
 
     pub fn set_draw_detect_traingle(&mut self, new_val: bool) {
         self.draw_detect_traingle = new_val;
+    }
+
+    pub fn get_detect_range(&self) -> f32 {
+        self.detect_range
     }
 
     pub fn get_draw_move_path(&self) -> bool {
@@ -475,7 +481,7 @@ impl<'a> Enemy<'a> {
                     self.move_enemy_in_path(move_interval);
                 }
 
-                self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
+                self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, self.detect_range, self.moving_towards);
                 self.last_move_time = Instant::now();
             }
         }
@@ -485,7 +491,7 @@ impl<'a> Enemy<'a> {
         if let Some(prev_position) = self.prev_position {
             self.position = prev_position;
             self.set_calc_position();
-            self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, 150.0, self.moving_towards);
+            self.detect_traingle = calc_equidistant_points(Position { x: self.position.x + 27.5, y: self.position.y + 20.0 }, 30.0, self.detect_range, self.moving_towards);
         }
     }
 
