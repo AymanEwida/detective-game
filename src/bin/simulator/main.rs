@@ -74,7 +74,7 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
-    let simulator_type = SimulatorType::Empty;
+    let simulator_type = SimulatorType::EnemyDamageAndDeathLogic;
     simulator
         .load_simulation(simulator_type.clone())
         .expect("Unable to load simulation");
@@ -244,70 +244,69 @@ fn main() {
         if delta >= Duration::from_secs_f32(1.0 / SIMULATION_FPS) {
             last_update = now;
 
-            // if player.is_off_window(render.get_size()) {
-            //     player.move_to_prev_position();
-            // }
+            if player.is_off_window(render.get_size()) {
+                player.move_to_prev_position();
+            }
+
+            simulator
+                .draw(&mut player, &mut render)
+                .expect("Unable to draw player");
+
+            // render
+            //     .fill_with_image("assets/game/background.jpg")
+            //     .expect("enable to fill background with image");
             //
-            // simulator
-            //     .draw(&mut player, &mut render)
-            //     .expect("Unable to draw player");
+            // render.display_button(ButtonProps {
+            //     position: Position { x: 200.0, y: 300.0 },
+            //     width: None,
+            //     height: None,
+            //     padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+            //     text: format!("counter: {}", *counter.borrow()),
+            //     bg_color: Color::Red,
+            //     text_color: Color::White,
+            //     text_scale: 1.0,
+            //     on_hover_styles: OnHoverStylesBuilder::new()
+            //         .bg_color(Color::RGBA(255, 0, 0, 150))
+            //         .build(),
+            //     click_action: ButtonAction::None,
+            //     on_hover: Box::new(|| {}),
+            //     on_hover_release: Box::new(|| print!("here hover release 1\n")),
+            //     on_click: {
+            //         let counter = Rc::clone(&counter);
+            //         Box::new(move || {
+            //             let mut value = counter.borrow_mut();
+            //             *value += 1;
+            //         })
+            //     },
+            // });
             //
-
-            render
-                .fill_with_image("assets/game/background.jpg")
-                .expect("enable to fill background with image");
-
-            render.display_button(ButtonProps {
-                position: Position { x: 200.0, y: 300.0 },
-                width: None,
-                height: None,
-                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
-                text: format!("counter: {}", *counter.borrow()),
-                bg_color: Color::Red,
-                text_color: Color::White,
-                text_scale: 1.0,
-                on_hover_styles: OnHoverStylesBuilder::new()
-                    .bg_color(Color::RGBA(255, 0, 0, 150))
-                    .build(),
-                click_action: ButtonAction::None,
-                on_hover: Box::new(|| {}),
-                on_hover_release: Box::new(|| print!("here hover release 1\n")),
-                on_click: {
-                    let counter = Rc::clone(&counter);
-                    Box::new(move || {
-                        let mut value = counter.borrow_mut();
-                        *value += 1;
-                    })
-                },
-            });
-
-            render.display_button(ButtonProps {
-                position: Position { x: 500.0, y: 300.0 },
-                width: None,
-                height: None,
-                padding: Padding::new(10.0, 10.0, 20.0, 20.0),
-                text: if *text_toggle.borrow() {
-                    String::from("Click me!")
-                } else {
-                    String::from("test me!")
-                },
-                bg_color: Color::Green,
-                text_color: Color::White,
-                text_scale: 1.0,
-                on_hover_styles: OnHoverStylesBuilder::new()
-                    .bg_color(Color::RGBA(0, 255, 0, 150))
-                    .build(),
-                click_action: ButtonAction::None,
-                on_hover: Box::new(|| {}),
-                on_hover_release: Box::new(|| print!("here hover release 2\n")),
-                on_click: {
-                    let text_toggle = Rc::clone(&text_toggle);
-                    Box::new(move || {
-                        let mut value = text_toggle.borrow_mut();
-                        *value = !*value;
-                    })
-                },
-            });
+            // render.display_button(ButtonProps {
+            //     position: Position { x: 500.0, y: 300.0 },
+            //     width: None,
+            //     height: None,
+            //     padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+            //     text: if *text_toggle.borrow() {
+            //         String::from("Click me!")
+            //     } else {
+            //         String::from("test me!")
+            //     },
+            //     bg_color: Color::Green,
+            //     text_color: Color::White,
+            //     text_scale: 1.0,
+            //     on_hover_styles: OnHoverStylesBuilder::new()
+            //         .bg_color(Color::RGBA(0, 255, 0, 150))
+            //         .build(),
+            //     click_action: ButtonAction::None,
+            //     on_hover: Box::new(|| {}),
+            //     on_hover_release: Box::new(|| print!("here hover release 2\n")),
+            //     on_click: {
+            //         let text_toggle = Rc::clone(&text_toggle);
+            //         Box::new(move || {
+            //             let mut value = text_toggle.borrow_mut();
+            //             *value = !*value;
+            //         })
+            //     },
+            // });
 
             render
                 .handle_buttons_events(cursor_position)
@@ -329,13 +328,13 @@ fn main() {
                 | ButtonAction::Unpause => (),
             }
 
-            render.display_text(
-                "Hello, how are you?\nI just want to tell you that:\nUEFA CHAMPIONS LEAGUE is the best Actually!! HHHHHfooo Why? Why? Hey Heyyyyy reffff No Foul!",
-                Position { x: 10.0, y: 10.0 },
-                1.0,
-                Some(SIMULATOR_WINDOW_WIDTH as f32),
-                Color::Green
-            ).expect("foo");
+            // render.display_text(
+            //     "Hello, how are you?\nI just want to tell you that:\nUEFA CHAMPIONS LEAGUE is the best Actually!! HHHHHfooo Why? Why? Hey Heyyyyy reffff No Foul!",
+            //     Position { x: 10.0, y: 10.0 },
+            //     1.0,
+            //     Some(SIMULATOR_WINDOW_WIDTH as f32),
+            //     Color::Green
+            // ).expect("foo");
 
             render.render().expect("Uable to render object on window");
 

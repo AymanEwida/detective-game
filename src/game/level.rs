@@ -114,7 +114,7 @@ pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<I
         if let Some(ammo) = item.get_ammo() {
             render.display_text(&format!("| {}", ammo), Position { x: start_position.x + 230.0, y: start_position.y + 50.0 }, scale, None, Color::White)?;
 
-            render.load_image("assets/game/pile-of-ammo.png", Position { x: start_position.x + 290.0, y: start_position.y + (50.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
+            render.load_image(item.get_ammo_image().unwrap(), Position { x: start_position.x + 290.0, y: start_position.y + (50.0 - (negate_scale * 45.0)) }, Size { width: 50.0, height: 50.0 }, false, None, None, None, None)?;
         }
     } else {
         render.display_text("holding: nothing", start_position, scale, None, Color::White)?; 
@@ -629,6 +629,10 @@ impl<'a> GameLevel<'a> {
             }
 
             for enemy in self.enemies.iter_mut() {
+                if enemy.get_is_dead() {
+                    continue;
+                }
+
                 let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
                 if idx != -1 {
                     let (.., attached_position, attached_type) = &self.attached_enemies_ids[idx as usize];
@@ -740,11 +744,16 @@ impl<'a> GameLevel<'a> {
                                 if bullet.get_bullet_type() == &BulletType::CameraGunBullet && !camera.get_is_disturbed() {
                                     camera.set_is_disturbed(true, Some(player.get_notoriety_camera_disturb_lifttime()));
                                     player.add_to_disturb_cameras_count(1);
-                                } else if bullet.get_bullet_type() == &BulletType::Other {
+                                } else if bullet.get_bullet_type() == &BulletType::SilencePistolBullet
+                                || bullet.get_bullet_type() == &BulletType::Other
+                                {
                                     camera.destroy();
-                                } 
+                                    self.notoriety_level += 1;
+                                }
 
                                 is_object_colliding = true;
+
+                                break;
                             }
                         }
                     }
@@ -772,20 +781,20 @@ impl<'a> GameLevel<'a> {
                     if !is_object_colliding {
                         for enemy in self.enemies.iter_mut() {
                             if bullet.collide(enemy) {
-                                if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
-                                    // TODO: see if want to implement this in game
-                                    // enemy.damage(bullet.get_damage_on_enemy());
-                                    //
-                                    // if !enemy.get_is_dead() {
-                                    //     enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
-                                    // } else {
-                                    //     player.add_to_enemies_killed_count(1);
-                                    // }
+                                enemy.damage(bullet.get_damage_on_enemy());
+                                enemy.set_is_been_shoot(true);
 
-                                    enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                                if !enemy.get_is_dead() {
+                                    if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
+                                        enemy.search(SearchingMode::BulletSearch, bullet.get_start_position());
+                                    }
+                                } else {
+                                    player.add_to_enemies_killed_count(1);
                                 }
 
                                 is_object_colliding = true;
+
+                                break;
                             }
                         }
                     }

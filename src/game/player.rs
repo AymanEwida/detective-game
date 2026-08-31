@@ -101,8 +101,14 @@ pub struct DoorCollectableInventory {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WeaponType {
+    CameraGun,
+    SilencePistol,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InventoryItemType {
-    Weapon,
+    Weapon(WeaponType),
     TrickCan,
     CheckPointFlag,
 }
@@ -121,6 +127,7 @@ pub struct InventoryItem<'a> {
     amount: u32,
     original_ammo: Option<usize>,
     ammo: Option<usize>,
+    ammo_image: Option<&'a str>,
     image: &'a str,
     name: String,
 }
@@ -130,6 +137,7 @@ impl<'a> InventoryItem<'a> {
         item_type: InventoryItemType,
         amount: u32,
         ammo: Option<usize>,
+        ammo_image: Option<&'a str>,
         image: &'a str,
         name: String,
     ) -> Self {
@@ -139,6 +147,7 @@ impl<'a> InventoryItem<'a> {
             amount,
             original_ammo: ammo,
             ammo,
+            ammo_image,
             image,
             name,
         }
@@ -160,6 +169,10 @@ impl<'a> InventoryItem<'a> {
 
     pub fn get_ammo(&self) -> Option<usize> {
         self.ammo
+    }
+
+    pub fn get_ammo_image(&self) -> Option<&'a str> {
+        self.ammo_image
     }
 
     pub fn get_image(&self) -> &'a str {
@@ -279,13 +292,15 @@ impl Player<'_> {
                     InventoryItemType::TrickCan,
                     30,
                     None,
+                    None,
                     "assets/game/trick-can.png",
                     String::from("Trick Can"),
                 ),
                 InventoryItem::new(
-                    InventoryItemType::Weapon,
+                    InventoryItemType::Weapon(WeaponType::CameraGun),
                     1,
                     Some(30),
+                    Some("assets/game/pile-of-ammo.png"),
                     "assets/game/camera-gun.webp",
                     String::from("Camera Gun"),
                 ),
@@ -769,11 +784,13 @@ impl<'a> Player<'a> {
                     item.increase_amount(num as u32);
                 }
 
-                InventoryItemType::Weapon => {
-                    if item.get_name() != String::from("Silence Pistol") {
+                InventoryItemType::Weapon(weapon_type) => match weapon_type {
+                    WeaponType::CameraGun => {
                         item.increase_ammo(num);
                     }
-                }
+
+                    _ => (),
+                },
 
                 _ => (),
             }
@@ -782,9 +799,10 @@ impl<'a> Player<'a> {
 
     pub fn add_pistol_to_inventory(&mut self) {
         self.inventory.push(InventoryItem::new(
-            InventoryItemType::Weapon,
+            InventoryItemType::Weapon(WeaponType::SilencePistol),
             1,
             Some(3),
+            Some("assets/game/pistol_ammo.png"),
             "assets/game/pistol.png",
             String::from("Silence Pistol"),
         ));
@@ -796,6 +814,7 @@ impl<'a> Player<'a> {
         self.inventory.push(InventoryItem::new(
             InventoryItemType::CheckPointFlag,
             2,
+            None,
             None,
             "assets/game/checkpoint_flag.png",
             String::from("Checkpoint Flag"),
@@ -857,7 +876,7 @@ impl<'a> Player<'a> {
 
     pub fn is_used_only_guns(&self) -> bool {
         for inventory_item_used in self.inventory_items_used.iter() {
-            if inventory_item_used != &InventoryItemType::Weapon {
+            if !matches!(inventory_item_used, InventoryItemType::Weapon(_)) {
                 return false;
             }
         }
@@ -975,61 +994,80 @@ impl<'a> Player<'a> {
                         _ => (),
                     },
 
-                    InventoryItemType::Weapon => match mouse_interaction.get_mouse_button() {
-                        &MouseButton::Button1 => {
-                            if self.status != PlayerStatus::Hidden {
-                                match mouse_interaction.get_action() {
-                                    &Action::Press => {
-                                        if length > 150.0 {
-                                            let direction = (end_position - start_position)
-                                                .normalize(&window_start);
+                    InventoryItemType::Weapon(weapon_type) => {
+                        match mouse_interaction.get_mouse_button() {
+                            &MouseButton::Button1 => {
+                                if self.status != PlayerStatus::Hidden {
+                                    match mouse_interaction.get_action() {
+                                        &Action::Press => {
+                                            if length > 150.0 {
+                                                let direction = (end_position - start_position)
+                                                    .normalize(&window_start);
 
-                                            end_position = start_position + (direction * 150.0);
+                                                end_position = start_position + (direction * 150.0);
+                                            }
+
+                                            render.draw_line(
+                                                start_position,
+                                                end_position,
+                                                Color::Green,
+                                                None,
+                                                None,
+                                                None,
+                                            );
                                         }
 
-                                        render.draw_line(
-                                            start_position,
-                                            end_position,
-                                            Color::Green,
-                                            None,
-                                            None,
-                                            None,
-                                        );
+                                        &Action::Release => {
+                                            if item.ammo.is_none() {
+                                                return None;
+                                            }
+
+                                            let ammo = item.ammo.unwrap();
+
+                                            if ammo == 0 {
+                                                return None;
+                                            }
+
+                                            self.inventory[self.holding.unwrap()].decrease_ammo(1);
+
+                                            self.inventory_items_used
+                                                .push((*item.get_item_type()).clone());
+
+                                            match weapon_type {
+                                                WeaponType::CameraGun => {
+                                                    return Some(ShootObject::Bullet(Bullet::new(
+                                                        BulletType::CameraGunBullet,
+                                                        10,
+                                                        "assets/game/bullet.png",
+                                                        None,
+                                                        start_position,
+                                                        end_position,
+                                                        DEFAULT_MOVEMENT_VALUE / 2.0,
+                                                    )));
+                                                }
+
+                                                WeaponType::SilencePistol => {
+                                                    return Some(ShootObject::Bullet(Bullet::new(
+                                                        BulletType::SilencePistolBullet,
+                                                        100,
+                                                        "assets/game/pistol_bullet.png",
+                                                        None,
+                                                        start_position,
+                                                        end_position,
+                                                        DEFAULT_MOVEMENT_VALUE / 2.0,
+                                                    )));
+                                                }
+                                            }
+                                        }
+
+                                        _ => (),
                                     }
-
-                                    &Action::Release => {
-                                        if item.ammo.is_none() {
-                                            return None;
-                                        }
-
-                                        let ammo = item.ammo.unwrap();
-
-                                        if ammo == 0 {
-                                            return None;
-                                        }
-
-                                        self.inventory[self.holding.unwrap()].decrease_ammo(1);
-
-                                        self.inventory_items_used.push(InventoryItemType::Weapon);
-
-                                        return Some(ShootObject::Bullet(Bullet::new(
-                                            BulletType::CameraGunBullet,
-                                            10,
-                                            "assets/game/bullet.png",
-                                            None,
-                                            start_position,
-                                            end_position,
-                                            DEFAULT_MOVEMENT_VALUE / 2.0,
-                                        )));
-                                    }
-
-                                    _ => (),
                                 }
                             }
-                        }
 
-                        _ => (),
-                    },
+                            _ => (),
+                        }
+                    }
 
                     // TODO: add logic to checkpoint_flag
                     InventoryItemType::CheckPointFlag => (),

@@ -1,9 +1,10 @@
 use core::fmt;
 use std::{cmp::Ordering, collections::{BinaryHeap, HashMap, HashSet}, time::{Duration, Instant}, usize};
 
+use glam::bool;
 use queues::{IsQueue, Queue};
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::{GridPosition, Position}}};
+use crate::{game::level::DEFAULT_SIZE, library::{constants::DEFAULT_MOVEMENT_VALUE, utils::{bfs_object_detect_check, calc_equidistant_points, calculate_calc_position, convert_path, get_estimated_position, get_heuristic_score, is_position_in_border, round_position_to_full_numbers, simple_object_detect_check, PathVec}}, renderer::{color::Color, error::Result, render::Render, styles::Size, vertice::{GridPosition, Position}}};
 
 use super::{character::{Character, Direction, DEFAULT_CHARACTER_SIZE}, door::{Door, TeleportDoor}, hide_place::HidePlace, level::{EndStartPositions, GameObject}, player::{Player, PlayerStatus}, wall::Wall};
 
@@ -120,7 +121,10 @@ pub struct Enemy<'a> {
     attached_detect_teleport_door: Option<(bool, usize, Position, Position)>,
     draw_detect_traingle: bool,
     draw_move_path: bool,
+    max_health: u8,
     health: u8,
+    is_been_shoot: bool,
+    last_shoot_time: Instant,
     is_dead: bool
 }
 
@@ -186,7 +190,10 @@ impl<'a> Enemy<'a> {
                     attached_detect_teleport_door: None,
                     draw_detect_traingle: false,
                     draw_move_path: false,
+                    max_health: 100,
                     health: 100,
+                    is_been_shoot: false,
+                    last_shoot_time: Instant::now(),
                     is_dead: false
                 }
             }
@@ -196,6 +203,26 @@ impl<'a> Enemy<'a> {
 
 impl<'a> GameObject<'a> for Enemy<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
+        match self.mode {
+            EnemyMode::Detecting => {
+                render.load_image("assets/game/detecting_icon.png", Position { x: self.position.x + (self.size.width / 2.0) - 15.0, y: if self.is_been_shoot { self.position.y - 60.0 } else { self.position.y - 30.0 } }, Size { width: DEFAULT_SIZE, height: DEFAULT_SIZE }, false, None, None, None, None )?;
+            },
+
+            EnemyMode::Searching(_) => {
+                render.load_image("assets/game/searching_icon.png", Position { x: self.position.x + (self.size.width / 2.0) - 15.0, y: if self.is_been_shoot { self.position.y - 60.0 } else { self.position.y - 30.0 } }, Size { width: DEFAULT_SIZE, height: DEFAULT_SIZE }, false, None, None, None, None )?;
+            },
+             _ => (),
+        }
+
+        if self.is_been_shoot {
+            if self.last_shoot_time.elapsed() <= Duration::from_secs(4) {
+                render.draw_rectangle(Position { x: self.position.x - 20.0, y: self.position.y - 30.0 }, Size { width: self.size.width + 40.0, height: 20.0 }, Color::Red, None, None, None);
+                render.draw_rectangle(Position { x: self.position.x - 20.0, y: self.position.y - 30.0 }, Size { width: (self.size.width + 40.0) * (self.health as f32 / self.max_health as f32), height: 20.0 }, Color::Green, None, None, None);
+            } else {
+                // self.set_is_been_shoot(false);
+            }
+        }
+
         render.load_image(self.image, self.position, self.size, self.flip, None, None, None, None)?;
 
         if self.draw_detect_traingle {
@@ -399,6 +426,14 @@ impl<'a> Enemy<'a> {
 
         if self.health == 0 {
             self.is_dead = true;
+        }
+    }
+
+    pub fn set_is_been_shoot(&mut self, new_val: bool) {
+        self.is_been_shoot = new_val;
+
+        if new_val {
+            self.last_shoot_time = Instant::now();
         }
     }
 

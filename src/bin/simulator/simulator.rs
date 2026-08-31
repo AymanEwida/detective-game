@@ -56,6 +56,7 @@ pub enum SimulatorType {
     CameraLogic,
     DoorLogic,
     PlayerLogic,
+    EnemyDamageAndDeathLogic,
     Empty,
     Other,
 }
@@ -116,8 +117,8 @@ impl<'a> Simulator<'a> {
         render
             .display_text(
                 &format!("status: {}", player.get_status()),
-                Position { x: 400.0, y: 500.0 },
-                1.0,
+                Position { x: 200.0, y: 500.0 },
+                0.5,
                 None,
                 Color::White,
             )
@@ -126,7 +127,7 @@ impl<'a> Simulator<'a> {
             .display_text(
                 &format!("notoriety level: {}", self.notoriety_level),
                 Position { x: 10.0, y: 560.0 },
-                1.0,
+                0.5,
                 None,
                 Color::White,
             )
@@ -134,7 +135,7 @@ impl<'a> Simulator<'a> {
 
         let holding_item = player.get_holding_item();
 
-        display_holding_item(Position { x: 150.0, y: 650.0 }, holding_item, 1.0, render)?;
+        display_holding_item(Position { x: 450.0, y: 500.0 }, holding_item, 0.5, render)?;
 
         for wall in self.walls.iter() {
             if player.collide(wall) {
@@ -349,6 +350,10 @@ impl<'a> Simulator<'a> {
         }
 
         for enemy in self.enemies.iter_mut() {
+            if enemy.get_is_dead() {
+                continue;
+            }
+
             let idx = get_attached_enemy_index(&self.attached_enemies_ids, enemy.get_id());
             if idx != -1 {
                 let (.., attached_position, attached_type) =
@@ -391,7 +396,7 @@ impl<'a> Simulator<'a> {
                     .display_text(
                         "Lost",
                         Position { x: 10.0, y: 500.0 },
-                        1.0,
+                        0.5,
                         None,
                         Color::White,
                     )
@@ -401,7 +406,7 @@ impl<'a> Simulator<'a> {
                     .display_text(
                         "Still playing",
                         Position { x: 10.0, y: 500.0 },
-                        1.0,
+                        0.5,
                         None,
                         Color::White,
                     )
@@ -410,8 +415,8 @@ impl<'a> Simulator<'a> {
 
             render.display_text(
                 &format!("enemy mode: {}", enemy.get_mode()),
-                Position { x: 400.0, y: 560.0 },
-                1.0,
+                Position { x: 200.0, y: 560.0 },
+                0.5,
                 None,
                 Color::White,
             )?;
@@ -483,8 +488,11 @@ impl<'a> Simulator<'a> {
                                     true,
                                     Some(player.get_notoriety_camera_disturb_lifttime()),
                                 );
-                            } else if bullet.get_bullet_type() == &BulletType::Other {
+                            } else if bullet.get_bullet_type() == &BulletType::SilencePistolBullet
+                                || bullet.get_bullet_type() == &BulletType::Other
+                            {
                                 camera.destroy();
+                                self.notoriety_level += 1;
                             }
 
                             is_object_colliding = true;
@@ -515,14 +523,22 @@ impl<'a> Simulator<'a> {
                 if !is_object_colliding {
                     for enemy in self.enemies.iter_mut() {
                         if bullet.collide(enemy) {
-                            if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode() {
-                                enemy.search(
-                                    SearchingMode::BulletSearch,
-                                    bullet.get_start_position(),
-                                );
+                            enemy.damage(bullet.get_damage_on_enemy());
+                            enemy.set_is_been_shoot(true);
+
+                            if !enemy.get_is_dead() {
+                                if enemy.get_mode() == &EnemyMode::Regular || enemy.is_search_mode()
+                                {
+                                    enemy.search(
+                                        SearchingMode::BulletSearch,
+                                        bullet.get_start_position(),
+                                    );
+                                }
                             }
 
                             is_object_colliding = true;
+
+                            break;
                         }
                     }
                 }
@@ -1152,6 +1168,16 @@ impl<'a> Simulator<'a> {
                 ));
                 // self.cameras.push(Camera::new_with_repeat(Position { x: 370.0, y: 175.0 }, false, None, None, Some(5000)));
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
+            }
+
+            SimulatorType::EnemyDamageAndDeathLogic => {
+                self.enemies.push(Enemy::new(
+                    EnemyType::Regular,
+                    Position { x: 600.0, y: 260.0 },
+                    DEFAULT_Q_ABILITY_RADIUS,
+                    "6u/5500 6d/5500",
+                    false,
+                ));
             }
 
             SimulatorType::Other | SimulatorType::Empty => (),

@@ -2,6 +2,7 @@ use detective_game::{
     game::{
         character::Direction,
         enemy::{Enemy, EnemyType},
+        player::DEFAULT_Q_ABILITY_RADIUS,
     },
     library::{constants::HALF_PI, utils::*},
     renderer::{
@@ -833,6 +834,7 @@ fn test_is_in_circle_in() {
     let input_object = Enemy::new(
         EnemyType::Regular,
         Position { x: 180.0, y: 150.0 },
+        DEFAULT_Q_ABILITY_RADIUS,
         "1l 1r",
         false,
     );
@@ -850,6 +852,7 @@ fn test_is_in_circle_out() {
     let input_object = Enemy::new(
         EnemyType::Regular,
         Position { x: 10.0, y: 10.0 },
+        DEFAULT_Q_ABILITY_RADIUS,
         "1l 1r",
         false,
     );
