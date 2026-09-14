@@ -255,7 +255,7 @@ fn test_calc_mid_point_position_of_quadrilateral_shape_test1() {
     };
 
     let actual = calc_mid_point_position_of_quadrilateral_shape(&input_top_left, &input_size);
-    let expected = Position { x: 35.0, y: -15.0 };
+    let expected = Position { x: 35.0, y: 35.0 };
 
     assert_eq!(actual, expected);
 }
@@ -269,7 +269,7 @@ fn test_calc_mid_point_position_of_quadrilateral_shape_test2() {
     };
 
     let actual = calc_mid_point_position_of_quadrilateral_shape(&input_top_left, &input_size);
-    let expected = Position { x: 50.0, y: 10.0 };
+    let expected = Position { x: 50.0, y: 60.0 };
 
     assert_eq!(actual, expected);
 }
@@ -303,76 +303,6 @@ fn test_calc_mid_point_different() {
 
     let actual = calc_mid_point(&input_start, &input_end);
     let expected = Position { x: 0.0, y: 0.0 };
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_create_translate_on_x_axis_positive() {
-    let input_translate = Position { x: 40.0, y: 0.0 };
-    let input_window_size = Size {
-        width: 80.0,
-        height: 60.0,
-    };
-
-    let actual = create_translate(input_translate, &input_window_size);
-    let expected = Position { x: 1.0, y: 0.0 };
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_create_translate_on_x_axis_negative() {
-    let input_translate = Position { x: -20.0, y: 0.0 };
-    let input_window_size = Size {
-        width: 80.0,
-        height: 60.0,
-    };
-
-    let actual = create_translate(input_translate, &input_window_size);
-    let expected = Position { x: -0.5, y: 0.0 };
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_create_translate_on_y_axis_positive() {
-    let input_translate = Position { x: 0.0, y: 30.0 };
-    let input_window_size = Size {
-        width: 80.0,
-        height: 60.0,
-    };
-
-    let actual = create_translate(input_translate, &input_window_size);
-    let expected = Position { x: 0.0, y: -1.0 };
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_create_translate_on_y_axis_negative() {
-    let input_translate = Position { x: 0.0, y: -15.0 };
-    let input_window_size = Size {
-        width: 80.0,
-        height: 60.0,
-    };
-
-    let actual = create_translate(input_translate, &input_window_size);
-    let expected = Position { x: 0.0, y: 0.5 };
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_create_translate_on_both_axis() {
-    let input_translate = Position { x: 80.0, y: 30.0 };
-    let input_window_size = Size {
-        width: 80.0,
-        height: 60.0,
-    };
-
-    let actual = create_translate(input_translate, &input_window_size);
-    let expected = Position { x: 2.0, y: -1.0 };
 
     assert_eq!(actual, expected);
 }

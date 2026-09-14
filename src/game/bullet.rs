@@ -43,7 +43,7 @@ impl<'a> Bullet<'a> {
 
         let velocity = (dir_vec.x * speed, dir_vec.y * speed);
 
-        let angle = (-dir_y).atan2(dir_x).to_degrees();
+        let angle = dir_y.atan2(dir_x).to_degrees();
 
         let size = size.unwrap_or(DEFAULT_SIZE_FOR_INVENTORY_ITEM);
 

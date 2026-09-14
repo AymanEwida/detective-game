@@ -429,7 +429,7 @@ impl<'a> GameLevel<'a> {
 
 
             for door in self.doors.iter_mut() {
-                let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | enemy.collide(door)).collect();
+                let collided_enemies: Vec<&Enemy<'a>> = self.enemies.iter().filter(| enemy | !enemy.get_is_dead() && enemy.collide(door)).collect();
 
                 match door.get_door_type() {
                     &DoorType::Regular => {
@@ -472,7 +472,7 @@ impl<'a> GameLevel<'a> {
 
             for teleport_door in self.teleport_doors.iter() {
                 let want_to_teleport_enemies: Vec<&mut Enemy<'a>> = self.enemies.iter_mut().filter(| enemy | {
-                    if enemy.get_want_to_teleport_id().is_none() {
+                    if enemy.get_is_dead() || enemy.get_want_to_teleport_id().is_none() {
                         return false;
                     }
 
@@ -510,7 +510,7 @@ impl<'a> GameLevel<'a> {
             }
 
             for enemy in self.enemies.iter_mut() {
-                if enemy.get_is_teleported() {
+                if !enemy.get_is_dead() && enemy.get_is_teleported() {
                     enemy.set_is_teleported(false);
                 }
             }
@@ -606,7 +606,7 @@ impl<'a> GameLevel<'a> {
                 let mut enemies_in_detect_area = Vec::new();
 
                 for enemy in &self.enemies {
-                    if !enemy.get_is_searching_detect_area() && detect_range.is_in_range(enemy) {
+                    if !enemy.get_is_dead() && !enemy.get_is_searching_detect_area() && detect_range.is_in_range(enemy) {
                         enemies_in_detect_area.push(enemy);
                     }
                 }
@@ -780,7 +780,7 @@ impl<'a> GameLevel<'a> {
 
                     if !is_object_colliding {
                         for enemy in self.enemies.iter_mut() {
-                            if bullet.collide(enemy) {
+                            if !enemy.get_is_dead() && bullet.collide(enemy) {
                                 enemy.damage(bullet.get_damage_on_enemy(), player);
                                 enemy.set_is_been_shoot(true);
 

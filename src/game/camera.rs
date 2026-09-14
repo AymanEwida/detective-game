@@ -441,6 +441,10 @@ impl<'a> Camera<'a> {
 
         let is_enemy = |position: Position| -> Option<usize> {
             for enemy in enemies {
+                if enemy.get_is_dead() {
+                    continue;
+                }
+
                 let (start, end) = enemy.get_calc_position();
 
                 if is_colliding_with_enemy(position, (start, end)) {

@@ -202,14 +202,7 @@ pub fn calc_mid_point_position_of_quadrilateral_shape(
 ) -> Position {
     Position {
         x: top_left.x + (size.width / 2.0),
-        y: top_left.y - (size.height / 2.0),
-    }
-}
-
-pub fn create_translate(translate: Position, window_size: &Size) -> Position {
-    Position {
-        x: (translate.x / window_size.width) * 2.0,
-        y: (translate.y / window_size.height) * -2.0,
+        y: top_left.y + (size.height / 2.0),
     }
 }
 
@@ -740,6 +733,10 @@ pub fn get_nearest_enemy_id(start_position: Position, enemies: &[&Enemy<'_>]) ->
 
     let is_enemy = |position: Position| -> Option<usize> {
         for enemy in enemies {
+            if enemy.get_is_dead() {
+                continue;
+            }
+
             let (start, end) = enemy.get_calc_position();
 
             if is_colliding_with_enemy(position, (start, end)) {

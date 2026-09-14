@@ -11,8 +11,7 @@ use crate::{
         utils::{
             absolute_f32, calc_control_point, calc_equidistant_points, calc_mid_point,
             calc_mid_point_position_of_quadrilateral_shape, calc_mid_point_position_of_triangle,
-            convert_angle_to_radians, convert_coordinates, create_translate, is_cursor_in_button,
-            length_of_line,
+            convert_angle_to_radians, is_cursor_in_button, length_of_line,
         },
     },
     renderer::text::FontMatrics,
@@ -402,22 +401,13 @@ impl<'a> Render<'a> {
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
         if let Some(translate) = translate {
-            let translate = create_translate(translate, &self.size);
-
             object.translate(glam::vec3(translate.x, translate.y, 0.0));
         }
 
         if let Some(rotate) = rotate {
             object.rotate(
                 rotate,
-                convert_coordinates(
-                    calc_mid_point_position_of_triangle(
-                        first_point.0,
-                        second_point.0,
-                        third_point.0,
-                    ),
-                    &self.size,
-                ),
+                calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0),
             );
         }
 
@@ -472,8 +462,6 @@ impl<'a> Render<'a> {
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
         if let Some(translate) = translate {
-            let translate = create_translate(translate, &self.size);
-
             object.translate(glam::vec3(translate.x, translate.y, 0.0));
         }
 
@@ -526,8 +514,6 @@ impl<'a> Render<'a> {
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLE_FAN);
 
         if let Some(translate) = translate {
-            let translate = create_translate(translate, &self.size);
-
             object.translate(glam::vec3(translate.x, translate.y, 0.0));
         }
 
@@ -579,8 +565,6 @@ impl<'a> Render<'a> {
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
         if let Some(translate) = translate {
-            let translate = create_translate(translate, &self.size);
-
             object.translate(glam::vec3(translate.x, translate.y, 0.0));
         }
 
@@ -615,8 +599,6 @@ impl<'a> Render<'a> {
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
         if let Some(translate) = translate {
-            let translate = create_translate(translate, &self.size);
-
             object.translate(glam::vec3(translate.x, translate.y, 0.0));
         }
 
@@ -688,8 +670,6 @@ impl<'a> Render<'a> {
             );
 
             if let Some(translate) = translate {
-                let translate = create_translate(translate, &self.size);
-
                 object.translate(glam::vec3(translate.x, translate.y, 0.0));
             }
 
@@ -731,8 +711,6 @@ impl<'a> Render<'a> {
             );
 
             if let Some(translate) = translate {
-                let translate = create_translate(translate, &self.size);
-
                 object.translate(glam::vec3(translate.x, translate.y, 0.0));
             }
 
