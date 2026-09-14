@@ -469,9 +469,12 @@ impl<'a> Simulator<'a> {
                 ShootObject::Can(can) => {
                     self.cans.add(can).unwrap();
                 }
+
                 ShootObject::Bullet(bullet) => {
                     self.bullets.add(bullet).unwrap();
                 }
+
+                _ => (),
             }
         }
 
@@ -615,7 +618,11 @@ impl<'a> Simulator<'a> {
         Ok(())
     }
 
-    pub fn load_simulation(&mut self, simulator_type: SimulatorType) -> SimulationResult<()> {
+    pub fn load_simulation(
+        &mut self,
+        simulator_type: SimulatorType,
+        player: &mut Player<'_>,
+    ) -> SimulationResult<()> {
         self.clear_all();
         self.load_type = simulator_type.clone();
 
@@ -1174,6 +1181,8 @@ impl<'a> Simulator<'a> {
             }
 
             SimulatorType::EnemyDamageAndDeathLogic => {
+                player.add_pistol_to_inventory();
+
                 self.enemies.push(Enemy::new(
                     EnemyType::Regular,
                     Position { x: 600.0, y: 260.0 },
@@ -1205,6 +1214,8 @@ impl<'a> Simulator<'a> {
         self.enemies.clear();
         self.cameras.clear();
         self.attached_enemies_ids.clear();
+        self.cans = Queue::new();
+        self.bullets = Queue::new();
     }
 
     pub fn get_status(&self) -> &SimulationStatus {

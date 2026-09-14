@@ -68,12 +68,11 @@ fn main() {
     .expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
-    player.add_pistol_to_inventory();
     let mut simulator = Simulator::new();
 
     let simulator_type = SimulatorType::EnemyDamageAndDeathLogic;
     simulator
-        .load_simulation(simulator_type.clone())
+        .load_simulation(simulator_type.clone(), &mut player)
         .expect("Unable to load simulation");
 
     let mut last_update = Instant::now();
@@ -252,7 +251,7 @@ fn main() {
             match render.get_button_click_action() {
                 ButtonAction::RetryLevel => {
                     simulator
-                        .load_simulation(simulator_type.clone())
+                        .load_simulation(simulator_type.clone(), &mut player)
                         .expect("Unable to load level");
                 }
 
@@ -265,14 +264,6 @@ fn main() {
                 | ButtonAction::BuyStoreItem(_)
                 | ButtonAction::Unpause => (),
             }
-
-            // render.display_text(
-            //     "Hello, how are you?\nI just want to tell you that:\nUEFA CHAMPIONS LEAGUE is the best Actually!! HHHHHfooo Why? Why? Hey Heyyyyy reffff No Foul!",
-            //     Position { x: 10.0, y: 10.0 },
-            //     1.0,
-            //     Some(SIMULATOR_WINDOW_WIDTH as f32),
-            //     Color::Green
-            // ).expect("foo");
 
             render.render().expect("Uable to render object on window");
 

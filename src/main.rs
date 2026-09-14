@@ -121,7 +121,7 @@ fn main() {
             image_path: "assets/game/disturb_camera.png",
             title: String::from("Increase Disturb Duration"),
             description: String::from(
-                "camera disturb duration is incresed by 1.5 seconds.",
+                "camera disturb duration is incresed by 1 seconds.",
             ),
             price: 2,
             upgrade_info: Some((0, 2)),

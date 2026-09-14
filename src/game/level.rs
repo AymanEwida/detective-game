@@ -4,7 +4,7 @@ use queues::{IsQueue, Queue};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::{game::{bullet::BulletType, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::{DEFAULT_MOVEMENT_VALUE, HEIGHT, WIDTH}, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::{ButtonAction, OnHoverStylesBuilder}, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
+use crate::{game::{bullet::BulletType, checkpoint_flag::CheckPointFlag, enemy::{EnemyMode, EnemyType, SearchingMode}, player::{PlayerStatus, ShootObject}}, library::{constants::{DEFAULT_MOVEMENT_VALUE, HEIGHT, WIDTH}, utils::{absolute_f32, get_attached_enemy_index, get_correct_start_position, get_level_challenges, get_nearest_enemy_id, is_in_circle, round_position_to_full_numbers}}, renderer::{button::{ButtonAction, OnHoverStylesBuilder}, color::Color, error::Result, render::{ButtonProps, Render}, styles::{Padding, Size}, vertice::Position}};
 
 use super::{bullet::Bullet, camera::Camera, can::Can, challenge::{Challenge, ChallengeStatus}, character::Character, collectable::{Coin, DoorCollectable, DoorCollectableType}, detect_range::DetectRange, door::{Door, DoorType, ExitDoor, TeleportDoor}, enemy::Enemy, hide_place::HidePlace, player::{InventoryItem, Player, DEFAULT_SIZE_FOR_INVENTORY_ITEM}, store::StoreItem, wall::Wall};
 
@@ -56,6 +56,7 @@ pub struct GameLevel<'a> {
     cameras: Vec<Camera<'a>>,
     cans: Queue<Can<'a>>,
     bullets: Queue<Bullet<'a>>,
+    checkpoint_flag: Option<CheckPointFlag>,
     detecting_ranges: Vec<DetectRange>,
     challenges: Vec<Challenge>,
     notoriety_level: u64,
@@ -89,6 +90,7 @@ impl Default for GameLevel<'_> {
             cameras: Vec::new(),
             cans: Queue::new(),
             bullets: Queue::new(),
+            checkpoint_flag: None,
             detecting_ranges: Vec::new(),
             challenges: Vec::new(),
             notoriety_level: 0,
@@ -134,9 +136,9 @@ impl<'a> GameLevel<'a> {
 
     pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], store_items_len: usize, render: &mut Render<'a>) -> Result<()> {
         // TODO: Remove this later
-        if self.current_level == 1 {
-            self.status = LevelStatus::Win;
-        }
+        // if self.current_level == 1 {
+        //     self.status = LevelStatus::Win;
+        // }
     
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
@@ -728,8 +730,17 @@ impl<'a> GameLevel<'a> {
             if let Some(object) = shooted_object {
                 match object {
                     ShootObject::Can(can) => { self.cans.add(can).unwrap(); },
+
                     ShootObject::Bullet(bullet) => { self.bullets.add(bullet).unwrap(); },
+
+                    ShootObject::CheckPointFlag(checkpoint_flag) => {
+                        self.checkpoint_flag = Some(checkpoint_flag);
+                    }
                 }
+            }
+
+            if let Some(checkpoint_flag) = &self.checkpoint_flag {
+                checkpoint_flag.draw(render)?;
             }
 
             for _ in 0..self.bullets.size() {
@@ -1008,6 +1019,9 @@ impl<'a> GameLevel<'a> {
         self.hide_places.clear();
         self.coins.clear();
         self.cameras.clear();
+        self.cans = Queue::new();
+        self.bullets = Queue::new();
+        self.checkpoint_flag = None;
 
         self.exit_door = None;
     }
@@ -1015,6 +1029,10 @@ impl<'a> GameLevel<'a> {
     pub fn load_level(&mut self, player: &mut Player<'a>) -> std::result::Result<(), String> {
         if self.status == LevelStatus::ReLoadLevel {
             player.add_inventory_amounts(self.add_amount_after_lost);
+
+            if let Some(checkpoint_flag) = &self.checkpoint_flag {
+                player.set_position(checkpoint_flag.get_spawn_postion());
+            }
         } else {
             self.notoriety_level = 0;
 
@@ -1039,7 +1057,9 @@ impl<'a> GameLevel<'a> {
         
         match self.current_level {
             1 => {
-                player.move_to(Position { x: 90.0, y: 180.0 }, true);
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 90.0, y: 180.0 }, true);
+                }
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 140.0, y: 10.0 }, player.get_enemy_detect_range(), "18d/0 13l/3000 13r/0 18u/0 6r/3000 6l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 100.0, y: 295.0 }, player.get_enemy_detect_range(), "9l/6000 20r/3000 11l/0", false));
@@ -1240,7 +1260,9 @@ impl<'a> GameLevel<'a> {
             },
 
             2 => {
-                player.move_to(Position { x: 1780.0, y: 790.0 }, false);
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 1780.0, y: 790.0 }, false);
+                }
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1070.0, y: 620.0 }, player.get_enemy_detect_range(), "52r/3500 52l/4000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 960.0, y: 620.0 }, player.get_enemy_detect_range(), "11u/0 21r/5500 21l/0 10d/0 1r/6000 1l/0", false));
@@ -1477,7 +1499,9 @@ impl<'a> GameLevel<'a> {
             },
 
             3 => {
-                player.move_to(Position { x: 1790.0, y: 170.0 }, false);
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 1790.0, y: 170.0 }, false);
+                }
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1525.0, y: 0.0 }, player.get_enemy_detect_range(), "13d/0 15r/0 1d/3500 1u/0 15l/0 13u/0 5r/6000 5l/0", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 1680.0, y: 480.0 }, player.get_enemy_detect_range(), "25u/5500 25d/0 2l/3500 2r/0", false));
@@ -1739,7 +1763,9 @@ impl<'a> GameLevel<'a> {
             },
 
             4 => {
-                player.move_to(Position { x: 90.0, y: 790.0 }, true);
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 90.0, y: 790.0 }, true);
+                }
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 132.0, y: 615.0 }, player.get_enemy_detect_range(), "34r/4000 34l/6000", false));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 587.0, y: 615.0 }, player.get_enemy_detect_range(), "29r/4500 29l/6500", false));
@@ -1995,7 +2021,9 @@ impl<'a> GameLevel<'a> {
             },
 
             5 => {
-                player.move_to(Position { x: 930.0, y: 460.0 }, false);
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 930.0, y: 460.0 }, false);
+                }
 
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 883.0, y: 615.0 }, player.get_enemy_detect_range(), "3l/0 21u/5500 21d/0 3r/3500", true));
                 self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 990.0, y: 615.0 }, player.get_enemy_detect_range(), "27r/4000 27l/6000", false));

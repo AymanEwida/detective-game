@@ -3,6 +3,7 @@ use std::{time::Duration, usize};
 use glfw::{Action, Key, MouseButton};
 
 use crate::{
+    game::checkpoint_flag::CheckPointFlag,
     library::{
         constants::DEFAULT_MOVEMENT_VALUE,
         utils::{
@@ -230,6 +231,7 @@ impl<'a> InventoryItem<'a> {
 pub enum ShootObject<'a> {
     Can(Can<'a>),
     Bullet(Bullet<'a>),
+    CheckPointFlag(CheckPointFlag),
 }
 
 #[derive(Debug)]
@@ -1069,8 +1071,29 @@ impl<'a> Player<'a> {
                         }
                     }
 
-                    // TODO: add logic to checkpoint_flag
-                    InventoryItemType::CheckPointFlag => (),
+                    InventoryItemType::CheckPointFlag => match mouse_interaction.get_mouse_button()
+                    {
+                        &MouseButton::Button1 => match mouse_interaction.get_action() {
+                            &Action::Release => {
+                                if item.amount == 0 {
+                                    return None;
+                                }
+
+                                self.inventory[self.holding.unwrap()].decrease_amount(1);
+
+                                self.inventory_items_used
+                                    .push(InventoryItemType::CheckPointFlag);
+
+                                return Some(ShootObject::CheckPointFlag(CheckPointFlag::new(
+                                    self.position,
+                                    self.position,
+                                    self.size,
+                                )));
+                            }
+                            _ => (),
+                        },
+                        _ => (),
+                    },
                 }
             }
         }

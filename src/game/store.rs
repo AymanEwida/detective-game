@@ -4,7 +4,6 @@ use derivative::Derivative;
 
 use super::player::Player;
 
-// TODO: see if to make a trait and different structs for items and upgrades
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct StoreItem<'a> {
