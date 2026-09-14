@@ -417,7 +417,7 @@ impl<'a> Enemy<'a> {
         self.health
     }
 
-    pub fn damage(&mut self, damage_val: u8) {
+    pub fn damage(&mut self, damage_val: u8, player: &mut Player<'a>) {
         if self.health < damage_val {
             self.health = 0;
         } else {
@@ -426,6 +426,13 @@ impl<'a> Enemy<'a> {
 
         if self.health == 0 {
             self.is_dead = true;
+
+
+            if player.get_is_detected_by_enemy() {
+                player.set_is_detected_by_enemy(false);
+                player.set_status(PlayerStatus::NotHidden);
+                player.remove_seen_enemy(self.id);
+            }
         }
     }
 

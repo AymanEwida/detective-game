@@ -747,7 +747,7 @@ impl<'a> GameLevel<'a> {
                                 } else if bullet.get_bullet_type() == &BulletType::SilencePistolBullet
                                 || bullet.get_bullet_type() == &BulletType::Other
                                 {
-                                    camera.destroy();
+                                    camera.destroy(player);
                                     self.notoriety_level += 1;
                                 }
 
@@ -781,7 +781,7 @@ impl<'a> GameLevel<'a> {
                     if !is_object_colliding {
                         for enemy in self.enemies.iter_mut() {
                             if bullet.collide(enemy) {
-                                enemy.damage(bullet.get_damage_on_enemy());
+                                enemy.damage(bullet.get_damage_on_enemy(), player);
                                 enemy.set_is_been_shoot(true);
 
                                 if !enemy.get_is_dead() {

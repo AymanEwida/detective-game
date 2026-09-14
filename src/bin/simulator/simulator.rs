@@ -491,7 +491,7 @@ impl<'a> Simulator<'a> {
                             } else if bullet.get_bullet_type() == &BulletType::SilencePistolBullet
                                 || bullet.get_bullet_type() == &BulletType::Other
                             {
-                                camera.destroy();
+                                camera.destroy(player);
                                 self.notoriety_level += 1;
                             }
 
@@ -523,7 +523,7 @@ impl<'a> Simulator<'a> {
                 if !is_object_colliding {
                     for enemy in self.enemies.iter_mut() {
                         if bullet.collide(enemy) {
-                            enemy.damage(bullet.get_damage_on_enemy());
+                            enemy.damage(bullet.get_damage_on_enemy(), player);
                             enemy.set_is_been_shoot(true);
 
                             if !enemy.get_is_dead() {
@@ -1177,6 +1177,13 @@ impl<'a> Simulator<'a> {
                     DEFAULT_Q_ABILITY_RADIUS,
                     "6u/5500 6d/5500",
                     false,
+                ));
+
+                self.cameras.push(Camera::new_without_repeat(
+                    Position { x: 270.0, y: 175.0 },
+                    true,
+                    None,
+                    None,
                 ));
             }
 

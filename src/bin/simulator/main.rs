@@ -1,16 +1,12 @@
 extern crate detective_game;
 extern crate glfw;
 
-use std::cell::RefCell;
 use std::collections::HashSet;
-use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
-use detective_game::renderer::button::{ButtonAction, OnHoverStylesBuilder};
-use detective_game::renderer::color::Color;
-use detective_game::renderer::render::{ButtonProps, MouseInteraction};
-use detective_game::renderer::styles::Padding;
+use detective_game::renderer::button::ButtonAction;
+use detective_game::renderer::render::MouseInteraction;
 use glfw::{
     fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent,
     WindowHint, WindowMode,
@@ -72,6 +68,7 @@ fn main() {
     .expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
+    player.add_pistol_to_inventory();
     let mut simulator = Simulator::new();
 
     let simulator_type = SimulatorType::EnemyDamageAndDeathLogic;
@@ -84,9 +81,6 @@ fn main() {
     let mut cursor_position = Position { x: 0.0, y: 0.0 };
 
     let mut pressed_buttons = HashSet::new();
-
-    let counter = Rc::new(RefCell::new(0));
-    let text_toggle = Rc::new(RefCell::new(false));
 
     while !window.should_close() {
         let (fb_window_width, fb_window_height) = window.get_framebuffer_size();
@@ -244,69 +238,13 @@ fn main() {
         if delta >= Duration::from_secs_f32(1.0 / SIMULATION_FPS) {
             last_update = now;
 
-            if player.is_off_window(render.get_size()) {
+            if player.is_off_window(render.get_window_size()) {
                 player.move_to_prev_position();
             }
 
             simulator
                 .draw(&mut player, &mut render)
                 .expect("Unable to draw player");
-
-            // render
-            //     .fill_with_image("assets/game/background.jpg")
-            //     .expect("enable to fill background with image");
-            //
-            // render.display_button(ButtonProps {
-            //     position: Position { x: 200.0, y: 300.0 },
-            //     width: None,
-            //     height: None,
-            //     padding: Padding::new(10.0, 10.0, 20.0, 20.0),
-            //     text: format!("counter: {}", *counter.borrow()),
-            //     bg_color: Color::Red,
-            //     text_color: Color::White,
-            //     text_scale: 1.0,
-            //     on_hover_styles: OnHoverStylesBuilder::new()
-            //         .bg_color(Color::RGBA(255, 0, 0, 150))
-            //         .build(),
-            //     click_action: ButtonAction::None,
-            //     on_hover: Box::new(|| {}),
-            //     on_hover_release: Box::new(|| print!("here hover release 1\n")),
-            //     on_click: {
-            //         let counter = Rc::clone(&counter);
-            //         Box::new(move || {
-            //             let mut value = counter.borrow_mut();
-            //             *value += 1;
-            //         })
-            //     },
-            // });
-            //
-            // render.display_button(ButtonProps {
-            //     position: Position { x: 500.0, y: 300.0 },
-            //     width: None,
-            //     height: None,
-            //     padding: Padding::new(10.0, 10.0, 20.0, 20.0),
-            //     text: if *text_toggle.borrow() {
-            //         String::from("Click me!")
-            //     } else {
-            //         String::from("test me!")
-            //     },
-            //     bg_color: Color::Green,
-            //     text_color: Color::White,
-            //     text_scale: 1.0,
-            //     on_hover_styles: OnHoverStylesBuilder::new()
-            //         .bg_color(Color::RGBA(0, 255, 0, 150))
-            //         .build(),
-            //     click_action: ButtonAction::None,
-            //     on_hover: Box::new(|| {}),
-            //     on_hover_release: Box::new(|| print!("here hover release 2\n")),
-            //     on_click: {
-            //         let text_toggle = Rc::clone(&text_toggle);
-            //         Box::new(move || {
-            //             let mut value = text_toggle.borrow_mut();
-            //             *value = !*value;
-            //         })
-            //     },
-            // });
 
             render
                 .handle_buttons_events(cursor_position)
