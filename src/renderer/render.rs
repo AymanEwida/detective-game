@@ -325,12 +325,9 @@ impl<'a> Render<'a> {
     pub fn fill_with_image(&mut self, image_path: &str) -> Result<()> {
         let background_image_vertices: [_TextureVerticeData; 4] = [
             _TextureVerticeData([0.0, 0.0], [0.0, 0.0]),
-            _TextureVerticeData([self.window_size.width, 0.0], [1.0, 0.0]),
-            _TextureVerticeData(
-                [self.window_size.width, self.window_size.height],
-                [1.0, 1.0],
-            ),
-            _TextureVerticeData([0.0, self.window_size.height], [0.0, 1.0]),
+            _TextureVerticeData([self.size.width, 0.0], [1.0, 0.0]),
+            _TextureVerticeData([self.size.width, self.size.height], [1.0, 1.0]),
+            _TextureVerticeData([0.0, self.size.height], [0.0, 1.0]),
         ];
 
         let background_indices: [i32; 6] = [0, 1, 2, 2, 3, 0];

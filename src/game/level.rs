@@ -138,9 +138,9 @@ impl<'a> GameLevel<'a> {
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
         } else if self.get_status() == &LevelStatus::Lose {
-            render.display_text("You Lost!", Position { x: (WIDTH as f32 / 2.0) - 135.0, y: (HEIGHT as f32 / 4.0) + 350.0 }, 1.5, None, Color::Red)?;
+            render.display_text("You Lost!", Position { x: (WIDTH as f32 / 2.0) - 135.0, y: (HEIGHT as f32 / 4.0) + 30.0 }, 1.5, None, Color::Red)?;
             render.display_button(ButtonProps {
-                position: Position { x: (WIDTH as f32 / 2.0) - 100.0, y: 530.0 },
+                position: Position { x: (WIDTH as f32 / 2.0) - 100.0, y: 460.0 },
                 bg_color: Color::Green,
                 width: None,
                 height: None,
@@ -158,8 +158,8 @@ impl<'a> GameLevel<'a> {
             });
 
             render.display_button(ButtonProps {
-                position: Position { x: (WIDTH as f32 / 2.0) - 90.0, y: 620.0 },
-                bg_color: Color::Green,
+                position: Position { x: (WIDTH as f32 / 2.0) - 90.0, y: 550.0 },
+                bg_color: Color::Red,
                 width: None,
                 height: None,
                 text: String::from("Exit Game"),
@@ -167,7 +167,7 @@ impl<'a> GameLevel<'a> {
                 text_color: Color::Black,
                 padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                 on_hover_styles: OnHoverStylesBuilder::new()
-                                .bg_color(Color::RGBA(0, 255, 0, 150))
+                                .bg_color(Color::RGBA(255, 0, 0, 150))
                                 .build(),
                 click_action: ButtonAction::Exit,
                 on_click: Box::new(|| {}),
