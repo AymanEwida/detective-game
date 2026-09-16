@@ -70,7 +70,7 @@ fn main() {
     let mut player = Player::new(Position { x: 10.0, y: 10.0 }, true);
     let mut simulator = Simulator::new();
 
-    let simulator_type = SimulatorType::EnemyDamageAndDeathLogic;
+    let simulator_type = SimulatorType::CameraRotation;
     simulator
         .load_simulation(simulator_type.clone(), &mut player)
         .expect("Unable to load simulation");

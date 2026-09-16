@@ -80,9 +80,9 @@ fn main() {
     .expect("Failed to created a render.");
 
     let mut player = Player::new(Position { x: 90.0, y: 180.0 }, true);
-    let is_game_started = Rc::new(RefCell::new(false));
+    let is_game_started = Rc::new(RefCell::new(true)); // TODO: change this later to false
     let mut level = GameLevel::default();
-    level.set_level(1);
+    level.set_level(3);
     level
         .load_level(&mut player)
         .expect("Unable to load level!");

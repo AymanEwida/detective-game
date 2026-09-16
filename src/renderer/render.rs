@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
-use glam::{Mat4, Vec3};
+use glam::Mat4;
 use glfw::{Action, MouseButton};
 
 use crate::{
@@ -66,30 +66,43 @@ impl<'a> Object<'a> {
 }
 
 impl Object<'_> {
-    pub fn scale(&mut self, scale: Vec3) {
-        let scaling_matrix = Mat4::from_scale(scale);
+    pub fn create_transform_matrix(
+        &mut self,
+        translate: Option<Position>,
+        angle: Option<f32>,
+        scale: Option<f32>,
+        center: Position,
+    ) {
+        let translate_matrix = if translate.is_some() {
+            let translate_vector = translate.unwrap();
 
-        self.transform_matrix = self.transform_matrix * scaling_matrix;
-    }
+            Mat4::from_translation(glam::vec3(translate_vector.x, translate_vector.y, 0.0))
+        } else {
+            Mat4::IDENTITY
+        };
 
-    pub fn rotate(&mut self, angle: f32, rotation_point: Position) {
-        let translate_to_origin =
-            Mat4::from_translation(-glam::vec3(rotation_point.x, rotation_point.y, 0.0));
+        let scaling_matrix = if scale.is_some() {
+            let scale_val = scale.unwrap();
 
-        let rotation_matrix =
-            Mat4::from_axis_angle(glam::vec3(0.0, 0.0, 1.0), convert_angle_to_radians(angle));
+            Mat4::from_scale(glam::vec3(scale_val, scale_val, 1.0))
+        } else {
+            Mat4::IDENTITY
+        };
 
-        let translate_back =
-            Mat4::from_translation(glam::vec3(rotation_point.x, rotation_point.y, 0.0));
+        let rotation_matrix = Mat4::from_axis_angle(
+            glam::vec3(0.0, 0.0, 1.0),
+            convert_angle_to_radians(angle.unwrap_or(0.0)),
+        );
 
-        self.transform_matrix =
-            self.transform_matrix * translate_back * rotation_matrix * translate_to_origin;
-    }
+        let translate_to_origin = Mat4::from_translation(-glam::vec3(center.x, center.y, 0.0));
 
-    pub fn translate(&mut self, translate: Vec3) {
-        let translation_matrix = Mat4::from_translation(translate);
+        let translate_back = Mat4::from_translation(glam::vec3(center.x, center.y, 0.0));
 
-        self.transform_matrix = self.transform_matrix * translation_matrix;
+        self.transform_matrix = translate_matrix
+            * translate_back
+            * rotation_matrix
+            * scaling_matrix
+            * translate_to_origin;
     }
 }
 
@@ -397,22 +410,10 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center =
+            calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0);
 
-        if let Some(rotate) = rotate {
-            object.rotate(
-                rotate,
-                calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0),
-            );
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -458,22 +459,9 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center = calc_mid_point_position_of_quadrilateral_shape(&position, &size);
 
-        if let Some(rotate) = rotate {
-            object.rotate(
-                rotate,
-                calc_mid_point_position_of_quadrilateral_shape(&position, &size),
-            );
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -510,19 +498,7 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLE_FAN);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
-
-        if let Some(rotate) = rotate {
-            object.rotate(rotate, center);
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -561,19 +537,9 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center = calc_mid_point(&start, &end);
 
-        if let Some(rotate) = rotate {
-            object.rotate(rotate, calc_mid_point(&start, &end));
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -595,19 +561,9 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center = calc_mid_point(&start, &end);
 
-        if let Some(rotate) = rotate {
-            object.rotate(rotate, calc_mid_point(&start, &end));
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -666,22 +622,9 @@ impl<'a> Render<'a> {
                 gl::TRIANGLES,
             );
 
-            if let Some(translate) = translate {
-                object.translate(glam::vec3(translate.x, translate.y, 0.0));
-            }
+            let center = calc_mid_point_position_of_quadrilateral_shape(&position, &size);
 
-            if let Some(rotate) = rotate {
-                object.rotate(
-                    rotate,
-                    calc_mid_point_position_of_quadrilateral_shape(&position, &size),
-                );
-            }
-
-            if let Some(scale) = scale {
-                assert!(scale > 0.0, "scale must be a positive number");
-
-                object.scale(glam::vec3(scale, scale, 1.0));
-            }
+            object.create_transform_matrix(translate, rotate, scale, center);
 
             self.objects.push(object);
 
@@ -707,22 +650,9 @@ impl<'a> Render<'a> {
                 gl::TRIANGLES,
             );
 
-            if let Some(translate) = translate {
-                object.translate(glam::vec3(translate.x, translate.y, 0.0));
-            }
+            let center = calc_mid_point_position_of_quadrilateral_shape(&position, &size);
 
-            if let Some(rotate) = rotate {
-                object.rotate(
-                    rotate,
-                    calc_mid_point_position_of_quadrilateral_shape(&position, &size),
-                );
-            }
-
-            if let Some(scale) = scale {
-                assert!(scale > 0.0, "scale must be a positive number");
-
-                object.scale(glam::vec3(scale, scale, 1.0));
-            }
+            object.create_transform_matrix(translate, rotate, scale, center);
 
             self.objects.push(object);
         }

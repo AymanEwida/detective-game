@@ -1016,6 +1016,7 @@ impl<'a> GameLevel<'a> {
         self.coins.clear();
         self.cameras.clear();
         self.cans = Queue::new();
+        self.detecting_ranges.clear();
         self.bullets = Queue::new();
         self.checkpoint_flag = None;
 
@@ -1049,6 +1050,9 @@ impl<'a> GameLevel<'a> {
 
         if self.status == LevelStatus::ReLoadLevel {
             self.enemies.clear();
+            self.cans = Queue::new();
+            self.detecting_ranges.clear();
+            self.bullets = Queue::new();
         }
         
         match self.current_level {
@@ -1334,7 +1338,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_hide_place(HidePlace::new(Position { x: 840.0, y: 417.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 880.0, y: 530.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 795.0, y: 550.0 }, true, None, Some(350.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 795.0, y: 550.0 }, true, None, Some(20.0)));
 
                 self.insert_teleport_door(TeleportDoor::new(1, Position { x: 475.0, y: 615.0 }, Position { x: 560.0, y: 790.0 }, 1, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 577.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
@@ -1366,7 +1370,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 70.0, y: 235.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 130.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 35.0, y: 0.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: -30.0, y: 80.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: -30.0, y: 80.0 }, true, None, Some(280.0)));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 220.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 220.0, y: 70.0 }, None));
@@ -1469,12 +1473,12 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1415.0, y: 150.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1360.0, y: 275.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1360.0, y: 415.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1440.0, y: 380.0 }, false, None, Some(25.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1440.0, y: 380.0 }, false, None, Some(330.0)));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1490.0, y: 150.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1545.0, y: 275.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1520.0, y: 415.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1460.0, y: 250.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1460.0, y: 250.0 }, false, None, Some(280.0), Some(4000))); // here
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1470.0, y: 55.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1360.0, y: 0.0 }, None));
@@ -1483,7 +1487,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1650.0, y: 415.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1715.0, y: 315.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1640.0, y: 210.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1590.0, y: 320.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1590.0, y: 320.0 }, true, None, Some(280.0)));
 
                 self.insert_door(Door::new(4, DoorType::Locked, Position { x: 1613.0, y: 63.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, true, Some(3), None, None)?);
                 self.insert_wall(Wall::new(Position { x: 1677.0, y: 63.0 }, Size { width: DEFAULT_SIZE - 10.0, height: 117.0 }, None, None));
@@ -1494,6 +1498,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_coin(Coin::new(Position { x: 1627.0, y: 135.0 }, None));
             },
 
+            // TODO: fix some chanllenges are failing for no reason
             3 => {
                 if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
                     player.move_to(Position { x: 1790.0, y: 170.0 }, false);
@@ -1562,7 +1567,7 @@ impl<'a> GameLevel<'a> {
                 
                 self.insert_hide_place(HidePlace::new(Position { x: 980.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 940.0, y: 125.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1035.0, y: 80.0 }, false, None, Some(45.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1035.0, y: 80.0 }, false, None, Some(335.0)));
 
                 self.insert_wall(Wall::new(Position { x: 1060.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 130.0 }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1057.0, y: 130.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
@@ -1613,7 +1618,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_teleport_door(TeleportDoor::new(5, Position { x: 1550.0, y: 385.0 }, Position { x: 540.0, y: 300.0 }, 4, None, None));
                 self.insert_teleport_door(TeleportDoor::new(6, Position { x: 1550.0, y: 215.0 }, Position { x: 1410.0, y: 390.0 }, 7, None, None));
                 
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1490.0, y: 310.0 }, true, Some(0.99), Some(100.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1490.0, y: 310.0 }, true, Some(0.99), Some(280.0)));
                 self.insert_coin(Coin::new(Position { x: 1555.0, y: 340.0 }, None));
                 self.insert_door_collectable(DoorCollectable::new(2, DoorCollectableType::CodePaper, Position { x: 1555.0, y: 290.0 }, vec![2, 3, 4, 8], None));
 
@@ -1653,7 +1658,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1140.0, y: 220.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1064.0, y: 320.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1104.0, y: 430.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1214.0, y: 400.0 }, false, None, Some(25.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1214.0, y: 400.0 }, false, None, Some(335.0)));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1140.0, y: 495.0 }, false, None, None));
                 self.insert_coin(Coin::new(Position { x: 1150.0, y: 330.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 1135.0, y: 535.0 }, None));
@@ -1758,6 +1763,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_exit_door(ExitDoor::new(Position { x: 0.0, y: 620.0 }, None));
             },
 
+            // TODO: fix all the camera in levels 4 and 5
             4 => {
                 if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
                     player.move_to(Position { x: 90.0, y: 790.0 }, true);

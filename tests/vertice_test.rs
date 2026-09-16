@@ -73,12 +73,34 @@ fn test_rotate_position_0_degrees() {
 }
 
 #[test]
-fn test_rotate_position_90_degrees() {
+fn test_rotate_position_90_degrees_1() {
     let vertice_position = Position { x: 10.0, y: 10.0 };
     let input_center = Position { x: 0.0, y: 0.0 };
 
     let actual = vertice_position.rotate(input_center, convert_angle_to_radians(90.0));
     let expected = Position { x: -10.0, y: 10.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_rotate_position_90_degrees_2() {
+    let vertice_position = Position { x: 150.0, y: 100.0 };
+    let input_center = Position { x: 100.0, y: 100.0 };
+
+    let actual = vertice_position.rotate(input_center, convert_angle_to_radians(90.0));
+    let expected = Position { x: 100.0, y: 150.0 };
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_rotate_position_90_degrees_3() {
+    let vertice_position = Position { x: 150.0, y: 100.0 };
+    let input_center = Position { x: 100.0, y: 100.0 };
+
+    let actual = vertice_position.rotate(input_center, convert_angle_to_radians(-90.0));
+    let expected = Position { x: 100.0, y: 50.0 };
 
     assert_eq!(actual, expected);
 }

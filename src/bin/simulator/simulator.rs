@@ -54,6 +54,7 @@ pub enum SimulatorType {
     EnemySearchLogic,
     PlayerInteractionWithHidePlace,
     CameraLogic,
+    CameraRotation,
     DoorLogic,
     PlayerLogic,
     EnemyDamageAndDeathLogic,
@@ -963,6 +964,50 @@ impl<'a> Simulator<'a> {
                     Some(5000),
                 ));
                 // self.cameras.push(Camera::new_without_repeat(Position { x: 295.0, y: 180.0 }, false, None, Some(90.0)));
+            }
+
+            SimulatorType::CameraRotation => {
+                self.cameras.push(Camera::new_without_repeat(
+                    Position { x: 170.0, y: 175.0 },
+                    true,
+                    None,
+                    None,
+                ));
+
+                // self.cameras.push(Camera::new_without_repeat(
+                //     Position { x: 170.0, y: 175.0 },
+                //     true,
+                //     None,
+                //     Some(0.0),
+                // ));
+                //
+                // self.cameras.push(Camera::new_without_repeat(
+                //     Position { x: 320.0, y: 175.0 },
+                //     true,
+                //     None,
+                //     Some(90.0),
+                // ));
+                //
+                // self.cameras.push(Camera::new_without_repeat(
+                //     Position { x: 470.0, y: 175.0 },
+                //     true,
+                //     None,
+                //     Some(180.0),
+                // ));
+                //
+                // self.cameras.push(Camera::new_without_repeat(
+                //     Position { x: 620.0, y: 175.0 },
+                //     true,
+                //     None,
+                //     Some(270.0),
+                // ));
+                //
+                // self.cameras.push(Camera::new_without_repeat(
+                //     Position { x: 370.0, y: 220.0 },
+                //     true,
+                //     None,
+                //     Some(360.0),
+                // ));
             }
 
             SimulatorType::DoorLogic => {
