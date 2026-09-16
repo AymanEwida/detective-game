@@ -525,6 +525,7 @@ impl<'a> GameLevel<'a> {
             for coin in self.coins.iter_mut() {
                 if !coin.is_collected() && player.collide(coin) {
                     player.add_coin();
+                    player.add_level_coin();
 
                     coin.set_is_collected(true);
                 }
