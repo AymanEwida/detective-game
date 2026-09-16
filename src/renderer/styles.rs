@@ -1,14 +1,14 @@
 use std::ops::Div;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Size<T=f32> {
+pub struct Size<T = f32> {
     pub width: T,
-    pub height: T
+    pub height: T,
 }
 
 impl Div<f32> for Size {
     type Output = Self;
-    
+
     fn div(self, rhs: f32) -> Self::Output {
         assert!(rhs != 0.0, "can not divide by zero!");
 
@@ -24,7 +24,7 @@ pub struct Padding {
     pub left: f32,
     pub right: f32,
     pub top: f32,
-    pub bottom: f32
+    pub bottom: f32,
 }
 
 impl Default for Padding {
@@ -33,7 +33,7 @@ impl Default for Padding {
             left: 0.0,
             right: 0.0,
             top: 0.0,
-            bottom: 0.0
+            bottom: 0.0,
         }
     }
 }
@@ -44,7 +44,7 @@ impl Padding {
             left,
             right,
             top,
-            bottom
+            bottom,
         }
     }
 
@@ -53,8 +53,16 @@ impl Padding {
             left: x,
             right: x,
             top: y,
-            bottom: y
+            bottom: y,
+        }
+    }
+
+    pub fn none() -> Self {
+        Self {
+            left: 0.0,
+            right: 0.0,
+            top: 0.0,
+            bottom: 0.0,
         }
     }
 }
-
