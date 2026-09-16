@@ -313,7 +313,7 @@ impl Player<'_> {
             has_checkpoint_flag: false,
             camera_disturb_lifttime: Duration::from_secs(10),
             notoriety_camera_disturb_lifttime: Duration::from_secs(10),
-            coins: 100, // TODO: change this to 0 later
+            coins: 0,
             is_detected_by_enemy: false,
             seen_by_enemies: Vec::new(),
             is_teleported: false,

@@ -135,11 +135,6 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn draw(&mut self, player: &mut Player<'a>, store_items: &mut [StoreItem<'a>], store_items_len: usize, render: &mut Render<'a>) -> Result<()> {
-        // TODO: Remove this later
-        // if self.current_level == 1 {
-        //     self.status = LevelStatus::Win;
-        // }
-    
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
         } else if self.get_status() == &LevelStatus::Lose {
