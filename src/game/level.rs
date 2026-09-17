@@ -71,14 +71,12 @@ impl Default for GameLevel<'_> {
     fn default() -> Self {
         // TODO: do tutorial here
 
-        let enemies = vec![];
-
         Self {
             border_top_left: Position { x: 50.0, y: 140.0 },
             border_size: Size { width: 1820.0, height: 740.0 },
             background_image: "assets/game/background.jpg",
-            current_level: 0,
-            enemies,
+            current_level: 0, // level 0 is tutorial
+            enemies: Vec::new(),
             attached_enemies_ids: Vec::new(),
             walls: Vec::new(),
             doors: Vec::new(),
@@ -989,13 +987,13 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn set_level(&mut self, level: u8) {
-        assert!(level >= 1 && level <= 5, "level must be between 1 to 5 (include)");
+        assert!(level <= 5, "level must be between 0 to 5 (include)");
 
         self.current_level = level;
     }
 
     pub fn next_level(&mut self) {
-        assert!(self.current_level < 5, "level must be between 1 to 5 (include)");
+        assert!(self.current_level < 5, "level must be between 0 to 5 (include)");
         
         self.current_level += 1;
         self.start_idx_store_items = Rc::new(RefCell::new(0));
@@ -1003,7 +1001,7 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn clear_level_objects(&mut self) {
-        if self.status != LevelStatus::Lose {
+        if self.status != LevelStatus::Lose && self.current_level != 0 {
             self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
         }
 
@@ -1056,6 +1054,56 @@ impl<'a> GameLevel<'a> {
         }
         
         match self.current_level {
+            0 => {
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 90.0, y: 180.0 }, true);
+                }
+
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 360.0 }, player.get_enemy_detect_range(), "19l/0 17u/3000 19r/0 17d/4500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 620.0 }, player.get_enemy_detect_range(), "17u/4500 19l/0 17d/0 19r/4500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 620.0 }, player.get_enemy_detect_range(), "8r/0 16u/3000 16d/0 8l/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 450.0, y: 200.0 }, player.get_enemy_detect_range(), "8l/0 15d/3000 15u/0 8r/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 330.0, y: 0.0 }, player.get_enemy_detect_range(), "18l/0 10d/0 35r/3500 35l/0 10u/0 18r/5000", false));
+
+                self.insert_wall(Wall::new(Position { x: 500.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 680.0 }, None, None));
+                
+                self.insert_wall(Wall::new(Position { x: 110.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 190.0 }, None, None));
+                self.insert_wall(Wall::new(Position { x: 55.0, y: 160.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 160.0 }, Size { width:  55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 140.0, y: 160.0 }, Size { width: 305.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 445.0, y: 160.0 }, Size { width:  55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+
+                self.insert_wall(Wall::new(Position { x: 250.0, y: 190.0 }, Size { width: DEFAULT_SIZE, height: 430.0 }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 245.0, y: 620.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
+                
+                self.insert_hide_place(HidePlace::new(Position { x: 130.0, y: 355.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 230.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 205.0, y: 210.0 }, None));
+
+                self.insert_wall(Wall::new(Position { x: 0.0, y: 420.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 195.0, y: 420.0 }, Size { width:  55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+
+                self.insert_hide_place(HidePlace::new(Position { x: 165.0, y: 615.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 530.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 130.0, y: 450.0 }, None));
+                
+                self.insert_hide_place(HidePlace::new(Position { x: 320.0, y: 615.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 455.0, y: 550.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 280.0, y: 460.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 455.0, y: 380.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 280.0, y: 300.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 370.0, y: 190.0 }, None));
+                
+                self.insert_wall(Wall::new(Position { x: 380.0, y: 60.0 }, Size { width: 120.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 380.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
+                self.insert_exit_door(ExitDoor::new(Position { x: 425.0, y: 0.0 }, None));
+
+                self.insert_hide_place(HidePlace::new(Position { x: 380.0, y: 95.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 240.0, y: 95.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 140.0, y: 40.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 315.0, y: 0.0 }, None));
+            },
+
             1 => {
                 if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
                     player.move_to(Position { x: 90.0, y: 180.0 }, true);
