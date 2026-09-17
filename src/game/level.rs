@@ -1762,7 +1762,6 @@ impl<'a> GameLevel<'a> {
                 self.insert_exit_door(ExitDoor::new(Position { x: 0.0, y: 620.0 }, None));
             },
 
-            // TODO: fix all the camera in levels 4 and 5
             4 => {
                 if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
                     player.move_to(Position { x: 90.0, y: 790.0 }, true);
@@ -1998,7 +1997,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_hide_place(HidePlace::new(Position { x: 230.0, y: 85.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 265.0, y: 215.0 }, None));                      
-                self.insert_camera(Camera::new_without_repeat(Position { x: 185.0, y: 200.0 }, true, None, Some(330.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 185.0, y: 200.0 }, true, None, Some(30.0)));
                 self.insert_coin(Coin::new(Position { x: 300.0, y: 160.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 350.0, y: 90.0 }, Size { width: DEFAULT_SIZE, height: 340.0 }, None, None));
