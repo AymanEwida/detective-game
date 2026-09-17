@@ -149,17 +149,19 @@ impl Challenge {
 
             DISTURB_CAMERAS_CHALLENGE_TYPE => {
                 if !is_check_at_complete && at_complete == "true" {
-                    if !check_compare(compare, player.get_disturb_cameras_count(), count) {
-                        return ChallengeStatus::Failed;
+                    if check_compare(compare, player.get_disturb_cameras_count(), count) {
+                        print!("here, disturb camera\n");
+
+                        return ChallengeStatus::Completed;
                     }
 
                     return ChallengeStatus::NotDetermine;
                 }
 
-                if check_compare(compare, player.get_disturb_cameras_count(), count) {
-                    return ChallengeStatus::Completed;
-                } else if is_check_at_complete {
+                if !check_compare(compare, player.get_disturb_cameras_count(), count) {
                     return ChallengeStatus::Failed;
+                } else if is_check_at_complete {
+                    return ChallengeStatus::Completed;
                 }
 
                 return ChallengeStatus::NotDetermine;
@@ -184,14 +186,6 @@ impl Challenge {
             }
 
             COIN_COLLECTABLE_CHALLENGE_TYPE => {
-                if !is_check_at_complete && at_complete == "true" {
-                    if !check_compare(compare, player.get_level_coins_collected() as isize, count) {
-                        return ChallengeStatus::Failed;
-                    }
-
-                    return ChallengeStatus::NotDetermine;
-                }
-
                 if check_compare(compare, player.get_level_coins_collected() as isize, count) {
                     return ChallengeStatus::Completed;
                 } else if is_check_at_complete {
@@ -248,14 +242,6 @@ impl Challenge {
             }
 
             TRICK_ENEMIES_CHALLENGE_TYPE => {
-                if !is_check_at_complete && at_complete == "true" {
-                    if !check_compare(compare, player.get_enemies_trick_count(), count) {
-                        return ChallengeStatus::Failed;
-                    }
-
-                    return ChallengeStatus::NotDetermine;
-                }
-
                 if check_compare(compare, player.get_enemies_trick_count(), count) {
                     return ChallengeStatus::Completed;
                 } else if is_check_at_complete {
@@ -267,17 +253,17 @@ impl Challenge {
 
             NOTORIETY_LEVEL_CHALLENGE_TYPE => {
                 if !is_check_at_complete && at_complete == "true" {
-                    if !check_compare(compare, notoriety_level as isize, count) {
-                        return ChallengeStatus::Failed;
+                    if check_compare(compare, notoriety_level as isize, count) {
+                        return ChallengeStatus::Completed;
                     }
 
                     return ChallengeStatus::NotDetermine;
                 }
 
-                if check_compare(compare, notoriety_level as isize, count) {
-                    return ChallengeStatus::Completed;
-                } else if is_check_at_complete {
+                if !check_compare(compare, notoriety_level as isize, count) {
                     return ChallengeStatus::Failed;
+                } else if is_check_at_complete {
+                    return ChallengeStatus::Completed;
                 }
 
                 return ChallengeStatus::NotDetermine;

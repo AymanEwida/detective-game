@@ -1498,7 +1498,6 @@ impl<'a> GameLevel<'a> {
                 self.insert_coin(Coin::new(Position { x: 1627.0, y: 135.0 }, None));
             },
 
-            // TODO: fix some chanllenges are failing for no reason
             3 => {
                 if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
                     player.move_to(Position { x: 1790.0, y: 170.0 }, false);
