@@ -1,9 +1,20 @@
-use std::ops::Div;
+use std::ops::{Div, Mul};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Size<T = f32> {
     pub width: T,
     pub height: T,
+}
+
+impl Mul<f32> for Size {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            width: self.width * rhs,
+            height: self.height * rhs,
+        }
+    }
 }
 
 impl Div<f32> for Size {

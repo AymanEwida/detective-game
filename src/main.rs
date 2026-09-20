@@ -307,7 +307,7 @@ fn main() {
 
                         Key::W => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Up);
                                 }
                             }
@@ -316,7 +316,7 @@ fn main() {
 
                         Key::S => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Down);
                                 }
                             }
@@ -325,7 +325,7 @@ fn main() {
 
                         Key::A => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Left);
                                 }
                             }
@@ -334,7 +334,7 @@ fn main() {
 
                         Key::D => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Right);
                                 }
                             }
@@ -343,7 +343,7 @@ fn main() {
 
                         Key::Q => match action {
                             Action::Repeat => {
-                                if level.get_status() == &LevelStatus::NotDetermine {
+                                if !level.get_is_in_tutorial() && level.get_status() == &LevelStatus::NotDetermine {
                                     player.set_is_using_ability(true);
                                 }
                             }

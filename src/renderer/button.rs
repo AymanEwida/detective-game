@@ -175,7 +175,7 @@ impl<'a> Button<'a> {
             size.height = style_height;
         }
 
-        let text_size = render.display_text(
+        let (text_size, _) = render.display_text(
             self.get_text(),
             self.get_position(),
             self.get_text_scale(),

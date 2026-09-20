@@ -64,12 +64,37 @@ pub struct GameLevel<'a> {
     add_amount_after_lost: usize,
     is_paused: bool,
     start_idx_store_items: Rc<RefCell<usize>>,
-    end_idx_store_items: Rc<RefCell<usize>> 
+    end_idx_store_items: Rc<RefCell<usize>>,
+    tutorials: Vec<Vec<&'a str>>,
+    is_in_tutorial: Rc<RefCell<bool>>,
+    tutorial_idx: Rc<RefCell<usize>>
 }
 
 impl Default for GameLevel<'_> {
     fn default() -> Self {
-        // TODO: do tutorial here
+        let tutorials = vec![
+            vec![
+                "hello I am a detective, my goal is to reach ;assets/game/exit-door.png; without being detected by ;assets/game/regular-enemy.png;",
+                "you can move by ;assets/game/wsad.png;, and you have in inventory a ;assets/game/trick-can.png; and ;assets/game/camera-gun.webp; and you can equip them by 'l' and 'j', and use them both with the mouse",
+                "use the ;assets/game/trick-can.png; to distact ;assets/game/regular-enemy.png; and use the ;assets/game/camera-gun.webp; to turn off the ;assets/game/camera.png; and damage ;assets/game/regular-enemy.png;",
+                "you can hide in ;assets/game/hide-place1.webp;, to hide in it get close to it and press 'Space'",
+                "do not forget to collect ;assets/game/coin.png; and complete challenges to gain more ;assets/game/coin.png; to use them later in shop",
+                "in order to pass the level you need to reach ;assets/game/exit-door.png; and press 'Space' when you are close to it and not detect by enemies",
+                "Good Luck!!!"
+            ],
+            vec![
+                "here we see the ;assets/game/locked-door.png; and the ;assets/game/coded-door.png; for the first time",
+                "to open the ;assets/game/locked-door.png; you need to collect the right ;assets/game/key.png;",
+                "and to open the ;assets/game/coded-door.png; you need to collect the right ;assets/game/code-paper.webp;"
+            ],
+            vec![
+                "oh you first encounter with ;assets/game/teleport-door.webp; these are special doors, once you enter you teleport to the contected end of the door",
+                "to enter the ;assets/game/teleport-door.webp; get close to it and press 'Space'"
+            ],
+            vec![],
+            vec![],
+            vec![]
+        ];
 
         Self {
             border_top_left: Position { x: 50.0, y: 140.0 },
@@ -96,7 +121,10 @@ impl Default for GameLevel<'_> {
             add_amount_after_lost: 5,
             is_paused: false,
             start_idx_store_items: Rc::new(RefCell::new(0)),
-            end_idx_store_items: Rc::new(RefCell::new(3))
+            end_idx_store_items: Rc::new(RefCell::new(3)),
+            tutorials,
+            is_in_tutorial: Rc::new(RefCell::new(true)),
+            tutorial_idx: Rc::new(RefCell::new(0))
         }
     }
 }
@@ -119,6 +147,14 @@ pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<I
     } else {
         render.display_text("holding: nothing", start_position, scale, None, Color::White)?; 
     }
+
+    Ok(())
+}
+
+pub fn display_tutorial<'a>(tutorials: &Vec<Vec<&'a str>>, start_position: Position, end_x: f32, current_tutorial: u8, tutorial_idx: usize, render: &mut Render<'a>) -> Result<()> {
+    let tutorial_text = tutorials[current_tutorial as usize][tutorial_idx];
+
+    render.display_text_with_images(tutorial_text, start_position, end_x, Size { width: 30.0, height: 30.0 }, 0.4, None)?;
 
     Ok(())
 }
@@ -197,7 +233,7 @@ impl<'a> GameLevel<'a> {
                 render.draw_rectangle(Position { x: 175.0 + (idx as f32 * offset), y: 430.0 }, Size { width: 500.0, height: 500.0 }, Color::White, None, None, None);
 
                 render.load_image(store_item.get_image_path(), Position { x: 185.0 + (idx as f32 * offset), y: 440.0 }, Size { width: 480.0, height: 190.0 }, false, None, None, None, None)?;
-                let title_size = render.display_text(store_item.get_title(), Position { x: 275.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
+                let (title_size, _) = render.display_text(store_item.get_title(), Position { x: 275.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
                 render.display_text(store_item.get_description(), Position { x: 185.0 + (idx as f32 * offset), y: 645.0 + title_size.height + 10.0 }, 0.5, Some(490.0), Color::Black)?;
 
                 render.display_button(ButtonProps {
@@ -378,26 +414,28 @@ impl<'a> GameLevel<'a> {
                 return Ok(())
             }
 
-            for (idx , challenge) in self.challenges.iter_mut().enumerate() {
-                if challenge.get_status() == &ChallengeStatus::NotDetermine {
-                    challenge.set_status(challenge.check_challenge(player, false, self.notoriety_level));
-                }
-
-                let color = match challenge.get_status() {
-                    &ChallengeStatus::Completed => {
-                        Color::Green
-                    },
-
-                    &ChallengeStatus::Failed => {
-                        Color::Red
-                    },
-
-                    &ChallengeStatus::NotDetermine => {
-                        Color::White
+            if !(*self.is_in_tutorial.borrow()) {
+                for (idx , challenge) in self.challenges.iter_mut().enumerate() {
+                    if challenge.get_status() == &ChallengeStatus::NotDetermine {
+                        challenge.set_status(challenge.check_challenge(player, false, self.notoriety_level));
                     }
-                };
 
-                render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 25.0 + (idx as f32 * 35.0) }, 0.5, None, color)?;
+                    let color = match challenge.get_status() {
+                        &ChallengeStatus::Completed => {
+                            Color::Green
+                        },
+
+                        &ChallengeStatus::Failed => {
+                            Color::Red
+                        },
+
+                        &ChallengeStatus::NotDetermine => {
+                            Color::White
+                        }
+                    };
+
+                    render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 25.0 + (idx as f32 * 35.0) }, 0.5, None, color)?;
+                }
             }
 
             render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 850.0, y: 60.0 }, 0.8, None, Color::White)?;
@@ -699,16 +737,18 @@ impl<'a> GameLevel<'a> {
 
                 enemy.draw(render)?;
 
-                self.notoriety_level = enemy.move_enemy(
-                    player, 
-                    self.notoriety_level, 
-                    self.border_top_left + DEFAULT_SIZE, 
-                    Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
-                    &self.walls,
-                    &self.doors,
-                    &self.teleport_doors,
-                    &self.hide_places
-                );
+                if !(*self.is_in_tutorial.borrow()) {
+                    self.notoriety_level = enemy.move_enemy(
+                        player, 
+                        self.notoriety_level, 
+                        self.border_top_left + DEFAULT_SIZE, 
+                        Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
+                        &self.walls,
+                        &self.doors,
+                        &self.teleport_doors,
+                        &self.hide_places
+                    );
+                }
             }
 
             if player.get_is_teleported() {
@@ -867,6 +907,77 @@ impl<'a> GameLevel<'a> {
 
             player.draw(render)?;
             player.switch_items();
+
+            if *self.is_in_tutorial.borrow() {
+                let offset_x = if self.current_level == 2 { -150.0 } else { 0.0 };
+
+                render.draw_rectangle(Position { x: player.get_position().x - 75.0 + offset_x, y: player.get_position().y - 160.0 }, Size { width: 300.0, height: 150.0 }, Color::White, None, None, None);
+
+                if *self.tutorial_idx.borrow() != 0 {
+                    render.display_button(ButtonProps {
+                        position: Position { x: player.get_position().x - 60.0 + offset_x, y: player.get_position().y - 40.0 },
+                        width: None,
+                        height: None,
+                        padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                        bg_color: Color::RGB(169, 169, 169),
+                        text: String::from("Back"),
+                        text_scale: 0.4,
+                        text_color: Color::White,
+                        on_hover_styles: OnHoverStylesBuilder::new()
+                            .bg_color(Color::RGBA(169, 169, 169, 150))
+                            .build(),
+                        click_action: ButtonAction::None,
+                        on_click: {
+                            let tutorial_idx_clone = Rc::clone(&self.tutorial_idx);
+
+                            Box::new(move || {
+                                let mut tutorial_idx_value = tutorial_idx_clone.borrow_mut();
+
+                                *tutorial_idx_value -= 1;
+                            })
+                        },
+                        on_hover: Box::new(|| {}),
+                        on_hover_release: Box::new(|| {})
+                    });
+                }
+
+                render.display_button(ButtonProps {
+                    position: Position { x: player.get_position().x + 155.0 + offset_x, y: player.get_position().y - 40.0 },
+                    width: None,
+                    height: None,
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                    bg_color: Color::RGB(169, 169, 169),
+                    text: if *self.tutorial_idx.borrow() < (self.tutorials[self.current_level as usize].len()-1) { String::from("Next") } else { String::from("Finish") },
+                    text_scale: 0.4,
+                    text_color: Color::White,
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(169, 169, 169, 150))
+                        .build(),
+                    click_action: ButtonAction::None,
+                    on_click: {
+                        let tutorial_idx_clone = Rc::clone(&self.tutorial_idx);
+                        let is_in_tutorial_clone = Rc::clone(&self.is_in_tutorial);
+                        let tutorial_len = self.tutorials[self.current_level as usize].len();
+
+                        Box::new(move || {
+                            let mut tutorial_idx_value = tutorial_idx_clone.borrow_mut();
+
+                            *tutorial_idx_value += 1;
+
+                            if *tutorial_idx_value == tutorial_len {
+                               let mut is_in_tutorial_value = is_in_tutorial_clone.borrow_mut();
+                            
+                               *is_in_tutorial_value = false;
+                                *tutorial_idx_value = 0;
+                            }
+                        })
+                    },
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
+
+                display_tutorial(&self.tutorials, Position { x: player.get_position().x - 70.0 + offset_x, y: player.get_position().y - 155.0 }, player.get_position().x + 220.0 + offset_x, self.current_level, *self.tutorial_idx.borrow(), render)?;
+            }
         }
 
         Ok(())
@@ -882,6 +993,10 @@ impl<'a> GameLevel<'a> {
 
     pub fn set_is_paused(&mut self, new_val: bool) {
         self.is_paused = new_val;
+    }
+
+    pub fn get_is_in_tutorial(&self) -> bool {
+        *self.is_in_tutorial.borrow()
     }
 
     fn set_initial_object_position(&mut self, object: &mut impl GameObject<'a>) {

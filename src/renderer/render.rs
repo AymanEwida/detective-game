@@ -218,6 +218,46 @@ pub struct Render<'a> {
     button_click_action: ButtonAction,
 }
 
+fn convert_text_to_new_lines(
+    characters:&HashMap<char, Character>,
+    start_x: f32,
+    mut current_x: f32,
+    text: &str,
+    end_x: f32,
+    scale: f32,
+) -> Vec<String> {
+    let advance = 12.0 * scale;
+    let mut width = 0.0;
+    let words: Vec<&str> = text.split(' ').collect();
+    let mut current_text = "".to_owned();
+    let mut output = Vec::new();
+
+    for i in 0..words.len() {
+        let word = words[i];
+        let word_width = calculate_word_width(characters, word, scale);
+        
+        if current_x + width + word_width > end_x {
+            output.push(current_text);
+
+            width = word_width + advance;
+            current_text = word.to_string();
+            current_x = start_x;
+        } else {
+            width += word_width + advance;
+
+            if current_text.len() == 0 {
+                current_text = word.to_string();
+            } else {
+                current_text += &(String::from(" ") + word);
+            }
+        }
+    }
+
+    output.push(current_text);
+
+    return output;
+}
+
 impl Render<'_> {
     pub fn with_projection_size(
         window_size: Size,
@@ -667,7 +707,7 @@ impl<'a> Render<'a> {
         scale: f32,
         text_max_width: Option<f32>,
         color: Color,
-    ) -> Result<Size> {
+    ) -> Result<(Size, Position)> {
         assert!(scale > 0.0, "scale must be a positive number");
         let top_left_position = calculate_text_size(
             &self.characters,
@@ -699,7 +739,8 @@ impl<'a> Render<'a> {
 
         let lines: Vec<&str> = text.split('\n').collect();
 
-        for line in &lines {
+        for i in 0..lines.len() {
+            let line = lines[i];
             let mut is_new_word = false;
 
             for (idx, ch) in line.chars().enumerate() {
@@ -796,14 +837,63 @@ impl<'a> Render<'a> {
                 text_size.width = x - start_position.x;
             }
 
-            y += self.font_metrics.line_height * scale;
-            x = start_position.x;
+            if i != lines.len() - 1 {
+                y += self.font_metrics.line_height * scale;
+                x = start_position.x;
+            }
         }
 
         text_size.height =
             min_y + self.font_metrics.line_height * (lines.len() as f32 - 1.0) - max_y;
 
-        Ok(text_size)
+        Ok((
+            text_size,
+            Position {
+                x,
+                y: y - (start_position.y - top_left_position.y),
+            },
+        ))
+    }
+
+
+    pub fn display_text_with_images(&mut self, text: &'a str, start_position: Position, end_x: f32, image_size: Size, scale: f32, image_scale: Option<f32>) -> Result<()> {
+        let texts: Vec<&str> = text.split(';').collect();
+        
+        let mut current_position = start_position;
+
+        for i in 0..texts.len() {
+            let text = texts[i];
+
+            if i % 2 == 0 {
+                let texts_to_display = convert_text_to_new_lines(&self.characters, start_position.x, current_position.x, text, end_x, scale);
+
+                for i in 0..texts_to_display.len() {
+                    let text_to_display = &texts_to_display[i];
+
+                    let (_, end_position) = self.display_text(text_to_display, current_position, 0.4, Some(end_x - current_position.x), Color::Black)?; 
+                    if i != (texts_to_display.len()-1) {
+                        current_position = Position { x: start_position.x, y: current_position.y + 22.4 };
+                    } else {
+                        if current_position.x + 5.0 + image_size.width > end_x {
+                            current_position = Position { x: start_position.x, y: current_position.y + 22.4 };
+                        } else {
+                            current_position = Position { x: end_position.x + 5.0, y: end_position.y };
+                        }
+                    }
+                }
+
+            } else {
+                self.load_image(text, Position { x: current_position.x, y: current_position.y - 5.0 }, image_size, false, None, image_scale, None, None)?;
+                let end_position = Position { x: current_position.x + image_size.width, y: current_position.y };
+                if current_position.x + 5.0 > end_x {
+                    current_position = Position { x: start_position.x, y: current_position.y + 22.4 };
+                } else {
+                    current_position = Position { x: end_position.x, y: end_position.y };
+                }
+            }
+        }
+        
+        Ok(())
     }
 
     pub fn draw_equidistant_from_angle_and_length(

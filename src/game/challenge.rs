@@ -150,8 +150,6 @@ impl Challenge {
             DISTURB_CAMERAS_CHALLENGE_TYPE => {
                 if !is_check_at_complete && at_complete == "true" {
                     if check_compare(compare, player.get_disturb_cameras_count(), count) {
-                        print!("here, disturb camera\n");
-
                         return ChallengeStatus::Completed;
                     }
 
