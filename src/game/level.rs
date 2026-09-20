@@ -75,7 +75,7 @@ impl Default for GameLevel<'_> {
         let tutorials = vec![
             vec![
                 "hello I am a detective, my goal is to reach ;assets/game/exit-door.png; without being detected by ;assets/game/regular-enemy.png;",
-                "you can move by ;assets/game/wsad.png;, and you have in inventory a ;assets/game/trick-can.png; and ;assets/game/camera-gun.webp; and you can equip them by 'l' and 'j', and use them both with the mouse",
+                "you can move by ;assets/game/wsad.png;, and you have in inventory a ;assets/game/trick-can.png; and ;assets/game/camera-gun.webp; and you can equip them by 'k' and 'j', and use them both with the mouse",
                 "use the ;assets/game/trick-can.png; to distact ;assets/game/regular-enemy.png; and use the ;assets/game/camera-gun.webp; to turn off the ;assets/game/camera.png; and damage ;assets/game/regular-enemy.png;",
                 "you can hide in ;assets/game/hide-place1.webp;, to hide in it get close to it and press 'Space'",
                 "do not forget to collect ;assets/game/coin.png; and complete challenges to gain more ;assets/game/coin.png; to use them later in shop",
