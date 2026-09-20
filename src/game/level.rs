@@ -209,6 +209,13 @@ impl<'a> GameLevel<'a> {
                 on_hover_release: Box::new(|| {})
             });
         } else if self.status == LevelStatus::Win {
+            if self.current_level == 0 {
+                self.next_level();
+                self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
+
+                return Ok(());
+            }
+
             render.display_text("You Won", Position { x: (WIDTH as f32 / 2.0) - 140.0, y: 80.0 }, 1.5, None, Color::Green)?;
         
             for (idx , challenge) in self.challenges.iter().enumerate() {
