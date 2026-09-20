@@ -1,14 +1,18 @@
 extern crate freetype;
 extern crate glfw;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use detective_game::game::level::LevelStatus;
+use detective_game::game::level::{LevelStatus, DEFAULT_SIZE};
 use detective_game::game::player::{PlayerInteraction, PlayerMouseInteraction};
 use detective_game::game::store::StoreItem;
-use detective_game::renderer::button::ButtonAction;
-use detective_game::renderer::render::MouseInteraction;
+use detective_game::renderer::button::{ButtonAction, OnHoverStylesBuilder};
+use detective_game::renderer::color::Color;
+use detective_game::renderer::render::{ButtonProps, MouseInteraction};
+use detective_game::renderer::styles::Padding;
 use glfw::{
     fail_on_errors, flush_messages, Action, Context, Key, OpenGlProfileHint, WindowEvent,
     WindowHint, WindowMode,
@@ -77,10 +81,11 @@ fn main() {
 
     let mut player = Player::new(Position { x: 90.0, y: 180.0 }, true);
     let mut level = GameLevel::default();
-    level.set_level(1);
+    level.set_level(0);
     level
         .load_level(&mut player)
         .expect("Unable to load level!");
+    let is_game_started = Rc::new(RefCell::new(false));
 
     let mut store_items = vec![
         StoreItem {
@@ -302,7 +307,7 @@ fn main() {
 
                         Key::W => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Up);
                                 }
                             }
@@ -311,7 +316,7 @@ fn main() {
 
                         Key::S => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Down);
                                 }
                             }
@@ -320,7 +325,7 @@ fn main() {
 
                         Key::A => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Left);
                                 }
                             }
@@ -329,7 +334,7 @@ fn main() {
 
                         Key::D => match action {
                             Action::Press | Action::Repeat => {
-                                if !player.get_is_using_ability() {
+                                if !level.get_is_in_tutorial() && !player.get_is_using_ability() {
                                     player.move_player(Direction::Right);
                                 }
                             }
@@ -338,7 +343,7 @@ fn main() {
 
                         Key::Q => match action {
                             Action::Repeat => {
-                                if level.get_status() == &LevelStatus::NotDetermine {
+                                if !level.get_is_in_tutorial() && level.get_status() == &LevelStatus::NotDetermine {
                                     player.set_is_using_ability(true);
                                 }
                             }
@@ -381,19 +386,173 @@ fn main() {
         if delta >= Duration::from_secs_f32(1.0 / FPS) {
             last_update = now;
 
-            if player.is_off_window(Size {
-                width: WIDTH as f32,
-                height: HEIGHT as f32,
-            }) || player.is_off_border(
-                Some(level.get_boder_start_position()),
-                level.get_boder_size(),
-            ) {
-                player.move_to_prev_position();
-            }
+            if !(*is_game_started.borrow()) {
+                render
+                    .load_image(
+                        "assets/game/background.jpg",
+                        Position { x: 50.0, y: 140.0 },
+                        Size {
+                            width: 1820.0,
+                            height: 740.0,
+                        },
+                        false,
+                        None,
+                        None,
+                        None,
+                        None,
+                    )
+                    .expect("Unable to load image");
 
-            level
-                .draw(&mut player, &mut store_items, store_items_len, &mut render)
-                .expect("Unable to draw level");
+                for num in 0..8 {
+                    render
+                        .load_image(
+                            "assets/game/wall.jpg",
+                            Position {
+                                x: 50.0 + num as f32 * (1820.0 / 8.0),
+                                y: 140.0,
+                            },
+                            Size {
+                                width: 1820.0 / 8.0,
+                                height: DEFAULT_SIZE,
+                            },
+                            false,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .expect("Unable to load image");
+
+                    render
+                        .load_image(
+                            "assets/game/wall.jpg",
+                            Position {
+                                x: 50.0 + num as f32 * (1820.0 / 8.0),
+                                y: 140.0 + 740.0 - DEFAULT_SIZE,
+                            },
+                            Size {
+                                width: 1820.0 / 8.0,
+                                height: DEFAULT_SIZE,
+                            },
+                            false,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .expect("Unable to load image");
+                }
+
+                for num in 0..2 {
+                    render
+                        .load_image(
+                            "assets/game/wall.jpg",
+                            Position {
+                                x: 50.0 + 1820.0 - DEFAULT_SIZE,
+                                y: 140.0
+                                    + ((num as f32 - 1.0) * DEFAULT_SIZE).abs()
+                                    + num as f32 * (740.0 / 2.0),
+                            },
+                            Size {
+                                width: DEFAULT_SIZE,
+                                height: (740.0 - 60.0) / 2.0,
+                            },
+                            false,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .expect("Unable to load image");
+
+                    render
+                        .load_image(
+                            "assets/game/wall.jpg",
+                            Position {
+                                x: 50.0,
+                                y: 140.0
+                                    + ((num as f32 - 1.0) * DEFAULT_SIZE).abs()
+                                    + num as f32 * (740.0 / 2.0),
+                            },
+                            Size {
+                                width: DEFAULT_SIZE,
+                                height: (740.0 - 60.0) / 2.0,
+                            },
+                            false,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .expect("Unable to load image");
+                }
+
+                render.display_button(ButtonProps {
+                    position: Position {
+                        x: (WIDTH as f32 / 2.0) - 110.0,
+                        y: 460.0,
+                    },
+                    bg_color: Color::Green,
+                    width: None,
+                    height: None,
+                    text: String::from("Start Game"),
+                    text_scale: 1.0,
+                    text_color: Color::Black,
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(0, 255, 0, 150))
+                        .build(),
+                    click_action: ButtonAction::None,
+                    on_click: {
+                        let is_game_started_clone = Rc::clone(&is_game_started);
+
+                        Box::new(move || {
+                            let mut is_game_started_value = is_game_started_clone.borrow_mut();
+
+                            *is_game_started_value = true;
+                        })
+                    },
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {}),
+                });
+
+                render.display_button(ButtonProps {
+                    position: Position {
+                        x: (WIDTH as f32 / 2.0) - 35.0,
+                        y: 550.0,
+                    },
+                    bg_color: Color::Red,
+                    width: None,
+                    height: None,
+                    text: String::from("Exit"),
+                    text_scale: 1.0,
+                    text_color: Color::Black,
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(255, 0, 0, 150))
+                        .build(),
+                    click_action: ButtonAction::Exit,
+                    on_click: Box::new(|| {}),
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {}),
+                });
+            } else {
+                render.fill_with_color(Color::Black);
+
+                if player.is_off_window(Size {
+                    width: WIDTH as f32,
+                    height: HEIGHT as f32,
+                }) || player.is_off_border(
+                    Some(level.get_boder_start_position()),
+                    level.get_boder_size(),
+                ) {
+                    player.move_to_prev_position();
+                }
+
+                level
+                    .draw(&mut player, &mut store_items, store_items_len, &mut render)
+                    .expect("Unable to draw level");
+            }
 
             render
                 .handle_buttons_events(cursor_position)

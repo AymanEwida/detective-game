@@ -11,7 +11,7 @@ use crate::{
     library::{
         constants::DEFAULT_MOVEMENT_VALUE,
         utils::{
-            absolute_f32, calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape,
+            calc_equidistant_points, calc_mid_point_position_of_quadrilateral_shape,
             check_point_in_triangle, convert_angle_to_radians, round_position_to_full_numbers,
             simple_object_detect_check,
         },
@@ -61,11 +61,18 @@ pub struct Camera<'a> {
     is_destroyed: bool,
 }
 
-fn calc_detect_traingle(position: &Position, flip: bool, rotate: Option<f32>) -> DetectTraingle {
+fn calc_detect_traingle(
+    position: &Position,
+    flip: bool,
+    rotate: Option<f32>,
+    scale: Option<f32>,
+) -> DetectTraingle {
+    let scale = scale.unwrap_or(1.0);
+
     let (direction, mut angle) = if flip {
-        (Direction::Right, convert_angle_to_radians(45.0))
+        (Direction::Right, 45.0)
     } else {
-        (Direction::Left, convert_angle_to_radians(315.0))
+        (Direction::Left, -45.0)
     };
 
     let center = calc_mid_point_position_of_quadrilateral_shape(position, &DEFAULT_SIZE_FOR_CAMERA);
@@ -76,36 +83,27 @@ fn calc_detect_traingle(position: &Position, flip: bool, rotate: Option<f32>) ->
     };
 
     if let Some(rotate_deg) = rotate {
-        let rotate_deg = convert_angle_to_radians(rotate_deg);
-        let calc_position = position.clone().rotate(center, rotate_deg);
-
-        apex = Position {
-            x: calc_position.x,
-            y: calc_position.y,
+        let rotate_deg = if rotate_deg <= 360.0 || rotate_deg > 180.0 {
+            rotate_deg - 360.0
+        } else {
+            rotate_deg
         };
 
-        let y_offset = absolute_f32(position.y - apex.y);
-        if y_offset >= 25.0 {
-            let sing = if position.y > apex.y { 1.0 } else { -1.0 };
-
-            apex.y += y_offset * sing;
-        }
-
-        let x_offset = absolute_f32(position.x - apex.x);
-        if x_offset >= 25.0 {
-            let sing = if position.x > apex.x { 1.0 } else { -1.0 };
-
-            apex.x += x_offset * sing;
-        }
-
-        angle -= rotate_deg;
+        angle += rotate_deg;
     }
 
-    let mut detect_traingle = calc_equidistant_points(apex, 10.0, 150.0, direction);
+    apex = apex.rotate(center, convert_angle_to_radians(angle));
 
-    detect_traingle.0 = detect_traingle.0.rotate(center, angle);
-    detect_traingle.1 = detect_traingle.1.rotate(center, angle);
-    detect_traingle.2 = detect_traingle.2.rotate(center, angle);
+    let mut detect_traingle = calc_equidistant_points(apex, 10.0, 150.0 * scale, direction);
+    detect_traingle.0 = detect_traingle
+        .0
+        .rotate(apex, convert_angle_to_radians(angle));
+    detect_traingle.1 = detect_traingle
+        .1
+        .rotate(apex, convert_angle_to_radians(angle));
+    detect_traingle.2 = detect_traingle
+        .2
+        .rotate(apex, convert_angle_to_radians(angle));
 
     detect_traingle
 }
@@ -134,7 +132,7 @@ impl Camera<'_> {
             last_updated_time: Instant::now(),
             repeat_interval: None,
             original_repeat_interval: None,
-            detect_traingle: calc_detect_traingle(&position, flip, rotate),
+            detect_traingle: calc_detect_traingle(&position, flip, rotate, scale),
             looking_to,
             already_detected_player: false,
             is_disturbed: false,
@@ -175,7 +173,7 @@ impl Camera<'_> {
             last_updated_time: Instant::now(),
             repeat_interval: Some(interval),
             original_repeat_interval: Some(interval),
-            detect_traingle: calc_detect_traingle(&position, flip, rotate),
+            detect_traingle: calc_detect_traingle(&position, flip, rotate, scale),
             looking_to,
             already_detected_player: false,
             is_disturbed: false,
@@ -284,7 +282,8 @@ impl<'a> Camera<'a> {
     }
 
     fn set_detect_traingle(&mut self) {
-        self.detect_traingle = calc_detect_traingle(&self.position, self.flip, self.rotate);
+        self.detect_traingle =
+            calc_detect_traingle(&self.position, self.flip, self.rotate, self.scale);
     }
 
     pub fn get_size(&self) -> Size {

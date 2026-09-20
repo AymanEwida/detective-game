@@ -1,11 +1,24 @@
 use std::usize;
 
-use crate::{library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position}, renderer::{error::Result, render::Render, styles::Size, vertice::Position}};
+use crate::{
+    library::{constants::DEFAULT_MOVEMENT_VALUE, utils::calculate_calc_position},
+    renderer::{error::Result, render::Render, styles::Size, vertice::Position},
+};
 
-use super::{character::Character, level::{EndStartPositions, GameObject, DEFAULT_SIZE}, level_object::{LevelObject, ObjectType}};
+use super::{
+    character::Character,
+    level::{EndStartPositions, GameObject, DEFAULT_SIZE},
+    level_object::{LevelObject, ObjectType},
+};
 
-pub const DEFAULT_SIZE_FOR_TELEPORT_DOOR: Size = Size { width: DEFAULT_SIZE + 20.0, height: 70.0 };
-pub const DEFAULT_SIZE_FOR_EXIT_DOOR: Size = Size { width: 70.0, height: 60.0 };
+pub const DEFAULT_SIZE_FOR_TELEPORT_DOOR: Size = Size {
+    width: DEFAULT_SIZE + 20.0,
+    height: 70.0,
+};
+pub const DEFAULT_SIZE_FOR_EXIT_DOOR: Size = Size {
+    width: 70.0,
+    height: 60.0,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DoorType {
@@ -34,7 +47,16 @@ pub struct Door<'a> {
 
 impl<'a> GameObject<'a> for Door<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, self.rotate)?;
+        render.load_image(
+            self.image,
+            self.position,
+            self.size,
+            false,
+            None,
+            self.scale,
+            None,
+            self.rotate,
+        )?;
 
         Ok(())
     }
@@ -49,7 +71,7 @@ impl<'a> GameObject<'a> for Door<'a> {
     }
 
     fn get_size(&self) -> Size {
-        self.size        
+        self.size
     }
 
     fn get_calc_position(&self) -> EndStartPositions {
@@ -60,11 +82,20 @@ impl<'a> GameObject<'a> for Door<'a> {
 impl<'a> LevelObject<'a> for Door<'a> {
     fn get_type(&self) -> ObjectType {
         ObjectType::Door(self.door_type)
-    } 
+    }
 }
 
 impl Door<'_> {
-    pub fn new(id: usize, door_type: DoorType, position: Position, size: Size, is_locked: bool, opens_by: Option<usize>, scale: Option<f32>, rotate: Option<f32>) -> std::result::Result<Self, String> {
+    pub fn new(
+        id: usize,
+        door_type: DoorType,
+        position: Position,
+        size: Size,
+        is_locked: bool,
+        opens_by: Option<usize>,
+        scale: Option<f32>,
+        rotate: Option<f32>,
+    ) -> std::result::Result<Self, String> {
         if is_locked && opens_by.is_none() {
             return Err("Please provide a opens_by id to a locked door".to_string());
         }
@@ -77,29 +108,29 @@ impl Door<'_> {
                 return Err("Please provide only Regular, Locked, Coded".to_string());
             }
         };
-        
+
         Ok(Self {
             id,
             door_type,
-            position, 
+            position,
             calc_position: calculate_calc_position(position, size, DEFAULT_MOVEMENT_VALUE),
-            size, 
+            size,
             original_image: door_image_path,
             image: door_image_path,
             scale,
             rotate,
             is_closed: true,
             is_locked,
-            opens_by
+            opens_by,
         })
     }
-    
 }
 
 impl Door<'_> {
     fn set_calc_position(&mut self) {
-        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
-    } 
+        self.calc_position =
+            calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+    }
 
     pub fn get_door_type(&self) -> &DoorType {
         &self.door_type
@@ -116,7 +147,7 @@ impl Door<'_> {
     pub fn open(&mut self) {
         if !self.is_locked {
             self.is_closed = false;
-            self.image = "assets/game/regular-open-door.png"; 
+            self.image = "assets/game/regular-open-door.png";
         }
     }
 
@@ -150,12 +181,21 @@ pub struct TeleportDoor<'a> {
     scale: Option<f32>,
     rotate: Option<f32>,
     character_move_position: Position,
-    move_to_id: usize
+    move_to_id: usize,
 }
 
 impl<'a> GameObject<'a> for TeleportDoor<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, self.rotate)?;
+        render.load_image(
+            self.image,
+            self.position,
+            self.size,
+            false,
+            None,
+            self.scale,
+            None,
+            self.rotate,
+        )?;
 
         Ok(())
     }
@@ -170,7 +210,7 @@ impl<'a> GameObject<'a> for TeleportDoor<'a> {
     }
 
     fn get_size(&self) -> Size {
-        self.size        
+        self.size
     }
 
     fn get_calc_position(&self) -> EndStartPositions {
@@ -181,29 +221,41 @@ impl<'a> GameObject<'a> for TeleportDoor<'a> {
 impl<'a> LevelObject<'a> for TeleportDoor<'a> {
     fn get_type(&self) -> ObjectType {
         ObjectType::Door(DoorType::TeleportDoor)
-    } 
+    }
 }
 
 impl TeleportDoor<'_> {
-    pub fn new(id: usize, position: Position, character_move_position: Position, move_to_id: usize, scale: Option<f32>, rotate: Option<f32>) -> Self {
+    pub fn new(
+        id: usize,
+        position: Position,
+        character_move_position: Position,
+        move_to_id: usize,
+        scale: Option<f32>,
+        rotate: Option<f32>,
+    ) -> Self {
         Self {
             id,
-            position, 
-            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_TELEPORT_DOOR, DEFAULT_MOVEMENT_VALUE),
-            size: DEFAULT_SIZE_FOR_TELEPORT_DOOR, 
+            position,
+            calc_position: calculate_calc_position(
+                position,
+                DEFAULT_SIZE_FOR_TELEPORT_DOOR,
+                DEFAULT_MOVEMENT_VALUE,
+            ),
+            size: DEFAULT_SIZE_FOR_TELEPORT_DOOR,
             image: "assets/game/teleport-door.webp",
             scale,
             rotate,
             character_move_position,
-            move_to_id
+            move_to_id,
         }
     }
 }
 
 impl<'a> TeleportDoor<'a> {
     fn set_calc_position(&mut self) {
-        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
-    } 
+        self.calc_position =
+            calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+    }
 
     pub fn get_id(&self) -> usize {
         self.id
@@ -233,7 +285,16 @@ pub struct ExitDoor<'a> {
 
 impl<'a> GameObject<'a> for ExitDoor<'a> {
     fn draw(&self, render: &mut Render<'a>) -> Result<()> {
-        render.load_image(self.image, self.position, self.size, false, None, self.scale, None, None)?;
+        render.load_image(
+            self.image,
+            self.position,
+            self.size,
+            false,
+            None,
+            self.scale,
+            None,
+            None,
+        )?;
 
         Ok(())
     }
@@ -248,7 +309,7 @@ impl<'a> GameObject<'a> for ExitDoor<'a> {
     }
 
     fn get_size(&self) -> Size {
-        self.size        
+        self.size
     }
 
     fn get_calc_position(&self) -> EndStartPositions {
@@ -259,15 +320,19 @@ impl<'a> GameObject<'a> for ExitDoor<'a> {
 impl<'a> LevelObject<'a> for ExitDoor<'a> {
     fn get_type(&self) -> ObjectType {
         ObjectType::Door(DoorType::ExitDoor)
-    } 
+    }
 }
 
 impl ExitDoor<'_> {
     pub fn new(position: Position, scale: Option<f32>) -> Self {
         Self {
-            position, 
-            calc_position: calculate_calc_position(position, DEFAULT_SIZE_FOR_EXIT_DOOR, DEFAULT_MOVEMENT_VALUE),
-            size: DEFAULT_SIZE_FOR_EXIT_DOOR, 
+            position,
+            calc_position: calculate_calc_position(
+                position,
+                DEFAULT_SIZE_FOR_EXIT_DOOR,
+                DEFAULT_MOVEMENT_VALUE,
+            ),
+            size: DEFAULT_SIZE_FOR_EXIT_DOOR,
             image: "assets/game/exit-door.png",
             scale,
         }
@@ -276,6 +341,7 @@ impl ExitDoor<'_> {
 
 impl ExitDoor<'_> {
     fn set_calc_position(&mut self) {
-        self.calc_position = calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
+        self.calc_position =
+            calculate_calc_position(self.position, self.size, DEFAULT_MOVEMENT_VALUE);
     }
 }

@@ -64,21 +64,44 @@ pub struct GameLevel<'a> {
     add_amount_after_lost: usize,
     is_paused: bool,
     start_idx_store_items: Rc<RefCell<usize>>,
-    end_idx_store_items: Rc<RefCell<usize>> 
+    end_idx_store_items: Rc<RefCell<usize>>,
+    tutorials: Vec<Vec<&'a str>>,
+    is_in_tutorial: Rc<RefCell<bool>>,
+    tutorial_idx: Rc<RefCell<usize>>
 }
 
 impl Default for GameLevel<'_> {
     fn default() -> Self {
-        // TODO: do tutorial here
-
-        let enemies = vec![];
+        let tutorials = vec![
+            vec![
+                "hello I am a detective, my goal is to reach ;assets/game/exit-door.png; without being detected by ;assets/game/regular-enemy.png;",
+                "you can move by ;assets/game/wsad.png;, and you have in inventory a ;assets/game/trick-can.png; and ;assets/game/camera-gun.webp; and you can equip them by 'k' and 'j', and use them both with the mouse",
+                "use the ;assets/game/trick-can.png; to distact ;assets/game/regular-enemy.png; and use the ;assets/game/camera-gun.webp; to turn off the ;assets/game/camera.png; and damage ;assets/game/regular-enemy.png;",
+                "you can hide in ;assets/game/hide-place1.webp;, to hide in it get close to it and press 'Space'",
+                "do not forget to collect ;assets/game/coin.png; and complete challenges to gain more ;assets/game/coin.png; to use them later in shop",
+                "in order to pass the level you need to reach ;assets/game/exit-door.png; and press 'Space' when you are close to it and not detect by enemies",
+                "Good Luck!!!"
+            ],
+            vec![
+                "here we see the ;assets/game/locked-door.png; and the ;assets/game/coded-door.png; for the first time",
+                "to open the ;assets/game/locked-door.png; you need to collect the right ;assets/game/key.png;",
+                "and to open the ;assets/game/coded-door.png; you need to collect the right ;assets/game/code-paper.webp;"
+            ],
+            vec![
+                "oh you first encounter with ;assets/game/teleport-door.webp; these are special doors, once you enter you teleport to the contected end of the door",
+                "to enter the ;assets/game/teleport-door.webp; get close to it and press 'Space'"
+            ],
+            vec![],
+            vec![],
+            vec![]
+        ];
 
         Self {
             border_top_left: Position { x: 50.0, y: 140.0 },
             border_size: Size { width: 1820.0, height: 740.0 },
             background_image: "assets/game/background.jpg",
-            current_level: 0,
-            enemies,
+            current_level: 0, // level 0 is tutorial
+            enemies: Vec::new(),
             attached_enemies_ids: Vec::new(),
             walls: Vec::new(),
             doors: Vec::new(),
@@ -98,7 +121,10 @@ impl Default for GameLevel<'_> {
             add_amount_after_lost: 5,
             is_paused: false,
             start_idx_store_items: Rc::new(RefCell::new(0)),
-            end_idx_store_items: Rc::new(RefCell::new(3))
+            end_idx_store_items: Rc::new(RefCell::new(3)),
+            tutorials,
+            is_in_tutorial: Rc::new(RefCell::new(true)),
+            tutorial_idx: Rc::new(RefCell::new(0))
         }
     }
 }
@@ -125,6 +151,14 @@ pub fn display_holding_item<'a>(start_position: Position, holding_item: Option<I
     Ok(())
 }
 
+pub fn display_tutorial<'a>(tutorials: &Vec<Vec<&'a str>>, start_position: Position, end_x: f32, current_tutorial: u8, tutorial_idx: usize, render: &mut Render<'a>) -> Result<()> {
+    let tutorial_text = tutorials[current_tutorial as usize][tutorial_idx];
+
+    render.display_text_with_images(tutorial_text, start_position, end_x, Size { width: 30.0, height: 30.0 }, 0.4, None)?;
+
+    Ok(())
+}
+
 impl<'a> GameLevel<'a> {
     pub fn get_boder_size(&self) -> Size {
         Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) }
@@ -138,9 +172,9 @@ impl<'a> GameLevel<'a> {
         if self.get_status() == &LevelStatus::ReLoadLevel {
             self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
         } else if self.get_status() == &LevelStatus::Lose {
-            render.display_text("You Lost!", Position { x: (WIDTH as f32 / 2.0) - 135.0, y: (HEIGHT as f32 / 4.0) + 350.0 }, 1.5, None, Color::Red)?;
+            render.display_text("You Lost!", Position { x: (WIDTH as f32 / 2.0) - 135.0, y: (HEIGHT as f32 / 4.0) + 30.0 }, 1.5, None, Color::Red)?;
             render.display_button(ButtonProps {
-                position: Position { x: (WIDTH as f32 / 2.0) - 100.0, y: 530.0 },
+                position: Position { x: (WIDTH as f32 / 2.0) - 100.0, y: 460.0 },
                 bg_color: Color::Green,
                 width: None,
                 height: None,
@@ -158,8 +192,8 @@ impl<'a> GameLevel<'a> {
             });
 
             render.display_button(ButtonProps {
-                position: Position { x: (WIDTH as f32 / 2.0) - 90.0, y: 620.0 },
-                bg_color: Color::Green,
+                position: Position { x: (WIDTH as f32 / 2.0) - 90.0, y: 550.0 },
+                bg_color: Color::Red,
                 width: None,
                 height: None,
                 text: String::from("Exit Game"),
@@ -167,7 +201,7 @@ impl<'a> GameLevel<'a> {
                 text_color: Color::Black,
                 padding: Padding::new(10.0, 10.0, 20.0, 20.0),
                 on_hover_styles: OnHoverStylesBuilder::new()
-                                .bg_color(Color::RGBA(0, 255, 0, 150))
+                                .bg_color(Color::RGBA(255, 0, 0, 150))
                                 .build(),
                 click_action: ButtonAction::Exit,
                 on_click: Box::new(|| {}),
@@ -175,6 +209,13 @@ impl<'a> GameLevel<'a> {
                 on_hover_release: Box::new(|| {})
             });
         } else if self.status == LevelStatus::Win {
+            if self.current_level == 0 {
+                self.next_level();
+                self.load_level(player).expect(&format!("Can not load level: {}", self.current_level));
+
+                return Ok(());
+            }
+
             render.display_text("You Won", Position { x: (WIDTH as f32 / 2.0) - 140.0, y: 80.0 }, 1.5, None, Color::Green)?;
         
             for (idx , challenge) in self.challenges.iter().enumerate() {
@@ -199,7 +240,7 @@ impl<'a> GameLevel<'a> {
                 render.draw_rectangle(Position { x: 175.0 + (idx as f32 * offset), y: 430.0 }, Size { width: 500.0, height: 500.0 }, Color::White, None, None, None);
 
                 render.load_image(store_item.get_image_path(), Position { x: 185.0 + (idx as f32 * offset), y: 440.0 }, Size { width: 480.0, height: 190.0 }, false, None, None, None, None)?;
-                let title_size = render.display_text(store_item.get_title(), Position { x: 275.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
+                let (title_size, _) = render.display_text(store_item.get_title(), Position { x: 275.0 + (idx as f32 * offset), y: 645.0 }, 0.6, Some(370.0), Color::Black)?;
                 render.display_text(store_item.get_description(), Position { x: 185.0 + (idx as f32 * offset), y: 645.0 + title_size.height + 10.0 }, 0.5, Some(490.0), Color::Black)?;
 
                 render.display_button(ButtonProps {
@@ -380,26 +421,28 @@ impl<'a> GameLevel<'a> {
                 return Ok(())
             }
 
-            for (idx , challenge) in self.challenges.iter_mut().enumerate() {
-                if challenge.get_status() == &ChallengeStatus::NotDetermine {
-                    challenge.set_status(challenge.check_challenge(player, false, self.notoriety_level));
-                }
-
-                let color = match challenge.get_status() {
-                    &ChallengeStatus::Completed => {
-                        Color::Green
-                    },
-
-                    &ChallengeStatus::Failed => {
-                        Color::Red
-                    },
-
-                    &ChallengeStatus::NotDetermine => {
-                        Color::White
+            if !(*self.is_in_tutorial.borrow()) {
+                for (idx , challenge) in self.challenges.iter_mut().enumerate() {
+                    if challenge.get_status() == &ChallengeStatus::NotDetermine {
+                        challenge.set_status(challenge.check_challenge(player, false, self.notoriety_level));
                     }
-                };
 
-                render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 25.0 + (idx as f32 * 35.0) }, 0.5, None, color)?;
+                    let color = match challenge.get_status() {
+                        &ChallengeStatus::Completed => {
+                            Color::Green
+                        },
+
+                        &ChallengeStatus::Failed => {
+                            Color::Red
+                        },
+
+                        &ChallengeStatus::NotDetermine => {
+                            Color::White
+                        }
+                    };
+
+                    render.display_text(&format!("{} - {} coins", challenge.get_challenge_text(), challenge.get_reward()), Position { x: 50.0, y: 25.0 + (idx as f32 * 35.0) }, 0.5, None, color)?;
+                }
             }
 
             render.display_text(&format!("notoriety level: {}", self.notoriety_level), Position { x: 850.0, y: 60.0 }, 0.8, None, Color::White)?;
@@ -525,6 +568,7 @@ impl<'a> GameLevel<'a> {
             for coin in self.coins.iter_mut() {
                 if !coin.is_collected() && player.collide(coin) {
                     player.add_coin();
+                    player.add_level_coin();
 
                     coin.set_is_collected(true);
                 }
@@ -700,16 +744,18 @@ impl<'a> GameLevel<'a> {
 
                 enemy.draw(render)?;
 
-                self.notoriety_level = enemy.move_enemy(
-                    player, 
-                    self.notoriety_level, 
-                    self.border_top_left + DEFAULT_SIZE, 
-                    Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
-                    &self.walls,
-                    &self.doors,
-                    &self.teleport_doors,
-                    &self.hide_places
-                );
+                if !(*self.is_in_tutorial.borrow()) {
+                    self.notoriety_level = enemy.move_enemy(
+                        player, 
+                        self.notoriety_level, 
+                        self.border_top_left + DEFAULT_SIZE, 
+                        Size { width: self.border_size.width - (DEFAULT_SIZE * 2.0), height: self.border_size.height - (DEFAULT_SIZE * 2.0) },
+                        &self.walls,
+                        &self.doors,
+                        &self.teleport_doors,
+                        &self.hide_places
+                    );
+                }
             }
 
             if player.get_is_teleported() {
@@ -868,6 +914,77 @@ impl<'a> GameLevel<'a> {
 
             player.draw(render)?;
             player.switch_items();
+
+            if *self.is_in_tutorial.borrow() {
+                let offset_x = if self.current_level == 2 { -150.0 } else { 0.0 };
+
+                render.draw_rectangle(Position { x: player.get_position().x - 75.0 + offset_x, y: player.get_position().y - 160.0 }, Size { width: 300.0, height: 150.0 }, Color::White, None, None, None);
+
+                if *self.tutorial_idx.borrow() != 0 {
+                    render.display_button(ButtonProps {
+                        position: Position { x: player.get_position().x - 60.0 + offset_x, y: player.get_position().y - 40.0 },
+                        width: None,
+                        height: None,
+                        padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                        bg_color: Color::RGB(169, 169, 169),
+                        text: String::from("Back"),
+                        text_scale: 0.4,
+                        text_color: Color::White,
+                        on_hover_styles: OnHoverStylesBuilder::new()
+                            .bg_color(Color::RGBA(169, 169, 169, 150))
+                            .build(),
+                        click_action: ButtonAction::None,
+                        on_click: {
+                            let tutorial_idx_clone = Rc::clone(&self.tutorial_idx);
+
+                            Box::new(move || {
+                                let mut tutorial_idx_value = tutorial_idx_clone.borrow_mut();
+
+                                *tutorial_idx_value -= 1;
+                            })
+                        },
+                        on_hover: Box::new(|| {}),
+                        on_hover_release: Box::new(|| {})
+                    });
+                }
+
+                render.display_button(ButtonProps {
+                    position: Position { x: player.get_position().x + 155.0 + offset_x, y: player.get_position().y - 40.0 },
+                    width: None,
+                    height: None,
+                    padding: Padding::new(10.0, 10.0, 20.0, 20.0),
+                    bg_color: Color::RGB(169, 169, 169),
+                    text: if *self.tutorial_idx.borrow() < (self.tutorials[self.current_level as usize].len()-1) { String::from("Next") } else { String::from("Finish") },
+                    text_scale: 0.4,
+                    text_color: Color::White,
+                    on_hover_styles: OnHoverStylesBuilder::new()
+                        .bg_color(Color::RGBA(169, 169, 169, 150))
+                        .build(),
+                    click_action: ButtonAction::None,
+                    on_click: {
+                        let tutorial_idx_clone = Rc::clone(&self.tutorial_idx);
+                        let is_in_tutorial_clone = Rc::clone(&self.is_in_tutorial);
+                        let tutorial_len = self.tutorials[self.current_level as usize].len();
+
+                        Box::new(move || {
+                            let mut tutorial_idx_value = tutorial_idx_clone.borrow_mut();
+
+                            *tutorial_idx_value += 1;
+
+                            if *tutorial_idx_value == tutorial_len {
+                               let mut is_in_tutorial_value = is_in_tutorial_clone.borrow_mut();
+                            
+                               *is_in_tutorial_value = false;
+                                *tutorial_idx_value = 0;
+                            }
+                        })
+                    },
+                    on_hover: Box::new(|| {}),
+                    on_hover_release: Box::new(|| {})
+                });
+
+                display_tutorial(&self.tutorials, Position { x: player.get_position().x - 70.0 + offset_x, y: player.get_position().y - 155.0 }, player.get_position().x + 220.0 + offset_x, self.current_level, *self.tutorial_idx.borrow(), render)?;
+            }
         }
 
         Ok(())
@@ -883,6 +1000,10 @@ impl<'a> GameLevel<'a> {
 
     pub fn set_is_paused(&mut self, new_val: bool) {
         self.is_paused = new_val;
+    }
+
+    pub fn get_is_in_tutorial(&self) -> bool {
+        *self.is_in_tutorial.borrow()
     }
 
     fn set_initial_object_position(&mut self, object: &mut impl GameObject<'a>) {
@@ -988,13 +1109,13 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn set_level(&mut self, level: u8) {
-        assert!(level >= 1 && level <= 5, "level must be between 1 to 5 (include)");
+        assert!(level <= 5, "level must be between 0 to 5 (include)");
 
         self.current_level = level;
     }
 
     pub fn next_level(&mut self) {
-        assert!(self.current_level < 5, "level must be between 1 to 5 (include)");
+        assert!(self.current_level < 5, "level must be between 0 to 5 (include)");
         
         self.current_level += 1;
         self.start_idx_store_items = Rc::new(RefCell::new(0));
@@ -1002,7 +1123,7 @@ impl<'a> GameLevel<'a> {
     }
 
     pub fn clear_level_objects(&mut self) {
-        if self.status != LevelStatus::Lose {
+        if self.status != LevelStatus::Lose && self.current_level != 0 {
             self.challenges = get_level_challenges(self.current_level).expect("Unable to get level challenges");
         }
 
@@ -1015,6 +1136,7 @@ impl<'a> GameLevel<'a> {
         self.coins.clear();
         self.cameras.clear();
         self.cans = Queue::new();
+        self.detecting_ranges.clear();
         self.bullets = Queue::new();
         self.checkpoint_flag = None;
 
@@ -1048,9 +1170,62 @@ impl<'a> GameLevel<'a> {
 
         if self.status == LevelStatus::ReLoadLevel {
             self.enemies.clear();
+            self.cans = Queue::new();
+            self.detecting_ranges.clear();
+            self.bullets = Queue::new();
         }
         
         match self.current_level {
+            0 => {
+                if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
+                    player.move_to(Position { x: 90.0, y: 180.0 }, true);
+                }
+
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 360.0 }, player.get_enemy_detect_range(), "19l/0 17u/3000 19r/0 17d/4500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 200.0, y: 620.0 }, player.get_enemy_detect_range(), "17u/4500 19l/0 17d/0 19r/4500", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 290.0, y: 620.0 }, player.get_enemy_detect_range(), "8r/0 16u/3000 16d/0 8l/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 450.0, y: 200.0 }, player.get_enemy_detect_range(), "8l/0 15d/3000 15u/0 8r/5000", false));
+                self.insert_enemy(Enemy::new(EnemyType::Regular, Position { x: 330.0, y: 0.0 }, player.get_enemy_detect_range(), "18l/0 10d/0 35r/3500 35l/0 10u/0 18r/5000", false));
+
+                self.insert_wall(Wall::new(Position { x: 500.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 680.0 }, None, None));
+                
+                self.insert_wall(Wall::new(Position { x: 110.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 190.0 }, None, None));
+                self.insert_wall(Wall::new(Position { x: 55.0, y: 160.0 }, Size { width: 55.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 160.0 }, Size { width:  55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+                self.insert_wall(Wall::new(Position { x: 140.0, y: 160.0 }, Size { width: 305.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 445.0, y: 160.0 }, Size { width:  55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+
+                self.insert_wall(Wall::new(Position { x: 250.0, y: 190.0 }, Size { width: DEFAULT_SIZE, height: 430.0 }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 245.0, y: 620.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
+                
+                self.insert_hide_place(HidePlace::new(Position { x: 130.0, y: 355.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 230.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 205.0, y: 210.0 }, None));
+
+                self.insert_wall(Wall::new(Position { x: 0.0, y: 420.0 }, Size { width: 195.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 195.0, y: 420.0 }, Size { width:  55.0, height: DEFAULT_SIZE }, false, None, None, None)?);
+
+                self.insert_hide_place(HidePlace::new(Position { x: 165.0, y: 615.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 530.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 130.0, y: 450.0 }, None));
+                
+                self.insert_hide_place(HidePlace::new(Position { x: 320.0, y: 615.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 455.0, y: 550.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 280.0, y: 460.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 455.0, y: 380.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 280.0, y: 300.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 370.0, y: 190.0 }, None));
+                
+                self.insert_wall(Wall::new(Position { x: 380.0, y: 60.0 }, Size { width: 120.0, height: DEFAULT_SIZE }, None, None));
+                self.insert_door(Door::new(0, DoorType::Regular, Position { x: 380.0, y: 0.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
+                self.insert_exit_door(ExitDoor::new(Position { x: 425.0, y: 0.0 }, None));
+
+                self.insert_hide_place(HidePlace::new(Position { x: 380.0, y: 95.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 240.0, y: 95.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 140.0, y: 40.0 }, None));
+                self.insert_hide_place(HidePlace::new(Position { x: 315.0, y: 0.0 }, None));
+            },
+
             1 => {
                 if self.status != LevelStatus::ReLoadLevel || self.checkpoint_flag.is_none() {
                     player.move_to(Position { x: 90.0, y: 180.0 }, true);
@@ -1333,7 +1508,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_hide_place(HidePlace::new(Position { x: 840.0, y: 417.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 880.0, y: 530.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 795.0, y: 550.0 }, true, None, Some(350.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 795.0, y: 550.0 }, true, None, Some(20.0)));
 
                 self.insert_teleport_door(TeleportDoor::new(1, Position { x: 475.0, y: 615.0 }, Position { x: 560.0, y: 790.0 }, 1, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 0.0, y: 577.0 }, Size { width: 65.0, height: DEFAULT_SIZE }, false, None, None, None)?);
@@ -1365,7 +1540,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 70.0, y: 235.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 0.0, y: 130.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 35.0, y: 0.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: -30.0, y: 80.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: -30.0, y: 80.0 }, true, None, Some(280.0)));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 220.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 220.0, y: 70.0 }, None));
@@ -1468,12 +1643,12 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1415.0, y: 150.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1360.0, y: 275.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1360.0, y: 415.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1440.0, y: 380.0 }, false, None, Some(25.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1440.0, y: 380.0 }, false, None, Some(330.0)));
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1490.0, y: 150.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1545.0, y: 275.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1520.0, y: 415.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1460.0, y: 250.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_with_repeat(Position { x: 1460.0, y: 250.0 }, false, None, Some(280.0), Some(4000))); // here
 
                 self.insert_hide_place(HidePlace::new(Position { x: 1470.0, y: 55.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1360.0, y: 0.0 }, None));
@@ -1482,7 +1657,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1650.0, y: 415.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1715.0, y: 315.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1640.0, y: 210.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1590.0, y: 320.0 }, true, None, Some(80.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1590.0, y: 320.0 }, true, None, Some(280.0)));
 
                 self.insert_door(Door::new(4, DoorType::Locked, Position { x: 1613.0, y: 63.0 }, Size { width: 70.0, height: DEFAULT_SIZE }, true, Some(3), None, None)?);
                 self.insert_wall(Wall::new(Position { x: 1677.0, y: 63.0 }, Size { width: DEFAULT_SIZE - 10.0, height: 117.0 }, None, None));
@@ -1561,7 +1736,7 @@ impl<'a> GameLevel<'a> {
                 
                 self.insert_hide_place(HidePlace::new(Position { x: 980.0, y: 0.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 940.0, y: 125.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1035.0, y: 80.0 }, false, None, Some(45.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1035.0, y: 80.0 }, false, None, Some(335.0)));
 
                 self.insert_wall(Wall::new(Position { x: 1060.0, y: 0.0 }, Size { width: DEFAULT_SIZE, height: 130.0 }, None, None));
                 self.insert_door(Door::new(0, DoorType::Regular, Position { x: 1057.0, y: 130.0 }, Size { width: DEFAULT_SIZE + 5.0, height: 60.0 }, false, None, None, None)?);
@@ -1612,7 +1787,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_teleport_door(TeleportDoor::new(5, Position { x: 1550.0, y: 385.0 }, Position { x: 540.0, y: 300.0 }, 4, None, None));
                 self.insert_teleport_door(TeleportDoor::new(6, Position { x: 1550.0, y: 215.0 }, Position { x: 1410.0, y: 390.0 }, 7, None, None));
                 
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1490.0, y: 310.0 }, true, Some(0.99), Some(100.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1490.0, y: 310.0 }, true, Some(0.99), Some(280.0)));
                 self.insert_coin(Coin::new(Position { x: 1555.0, y: 340.0 }, None));
                 self.insert_door_collectable(DoorCollectable::new(2, DoorCollectableType::CodePaper, Position { x: 1555.0, y: 290.0 }, vec![2, 3, 4, 8], None));
 
@@ -1652,7 +1827,7 @@ impl<'a> GameLevel<'a> {
                 self.insert_hide_place(HidePlace::new(Position { x: 1140.0, y: 220.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1064.0, y: 320.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 1104.0, y: 430.0 }, None));
-                self.insert_camera(Camera::new_without_repeat(Position { x: 1214.0, y: 400.0 }, false, None, Some(25.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 1214.0, y: 400.0 }, false, None, Some(335.0)));
                 self.insert_camera(Camera::new_without_repeat(Position { x: 1140.0, y: 495.0 }, false, None, None));
                 self.insert_coin(Coin::new(Position { x: 1150.0, y: 330.0 }, None));
                 self.insert_coin(Coin::new(Position { x: 1135.0, y: 535.0 }, None));
@@ -1992,7 +2167,7 @@ impl<'a> GameLevel<'a> {
 
                 self.insert_hide_place(HidePlace::new(Position { x: 230.0, y: 85.0 }, None));
                 self.insert_hide_place(HidePlace::new(Position { x: 265.0, y: 215.0 }, None));                      
-                self.insert_camera(Camera::new_without_repeat(Position { x: 185.0, y: 200.0 }, true, None, Some(330.0)));
+                self.insert_camera(Camera::new_without_repeat(Position { x: 185.0, y: 200.0 }, true, None, Some(30.0)));
                 self.insert_coin(Coin::new(Position { x: 300.0, y: 160.0 }, None));
 
                 self.insert_wall(Wall::new(Position { x: 350.0, y: 90.0 }, Size { width: DEFAULT_SIZE, height: 340.0 }, None, None));

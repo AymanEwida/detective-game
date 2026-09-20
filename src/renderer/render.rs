@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path, ptr};
 
 use gl::types::GLenum;
-use glam::{Mat4, Vec3};
+use glam::Mat4;
 use glfw::{Action, MouseButton};
 
 use crate::{
@@ -66,30 +66,43 @@ impl<'a> Object<'a> {
 }
 
 impl Object<'_> {
-    pub fn scale(&mut self, scale: Vec3) {
-        let scaling_matrix = Mat4::from_scale(scale);
+    pub fn create_transform_matrix(
+        &mut self,
+        translate: Option<Position>,
+        angle: Option<f32>,
+        scale: Option<f32>,
+        center: Position,
+    ) {
+        let translate_matrix = if translate.is_some() {
+            let translate_vector = translate.unwrap();
 
-        self.transform_matrix = self.transform_matrix * scaling_matrix;
-    }
+            Mat4::from_translation(glam::vec3(translate_vector.x, translate_vector.y, 0.0))
+        } else {
+            Mat4::IDENTITY
+        };
 
-    pub fn rotate(&mut self, angle: f32, rotation_point: Position) {
-        let translate_to_origin =
-            Mat4::from_translation(-glam::vec3(rotation_point.x, rotation_point.y, 0.0));
+        let scaling_matrix = if scale.is_some() {
+            let scale_val = scale.unwrap();
 
-        let rotation_matrix =
-            Mat4::from_axis_angle(glam::vec3(0.0, 0.0, 1.0), convert_angle_to_radians(angle));
+            Mat4::from_scale(glam::vec3(scale_val, scale_val, 1.0))
+        } else {
+            Mat4::IDENTITY
+        };
 
-        let translate_back =
-            Mat4::from_translation(glam::vec3(rotation_point.x, rotation_point.y, 0.0));
+        let rotation_matrix = Mat4::from_axis_angle(
+            glam::vec3(0.0, 0.0, 1.0),
+            convert_angle_to_radians(angle.unwrap_or(0.0)),
+        );
 
-        self.transform_matrix =
-            self.transform_matrix * translate_back * rotation_matrix * translate_to_origin;
-    }
+        let translate_to_origin = Mat4::from_translation(-glam::vec3(center.x, center.y, 0.0));
 
-    pub fn translate(&mut self, translate: Vec3) {
-        let translation_matrix = Mat4::from_translation(translate);
+        let translate_back = Mat4::from_translation(glam::vec3(center.x, center.y, 0.0));
 
-        self.transform_matrix = self.transform_matrix * translation_matrix;
+        self.transform_matrix = translate_matrix
+            * translate_back
+            * rotation_matrix
+            * scaling_matrix
+            * translate_to_origin;
     }
 }
 
@@ -203,6 +216,46 @@ pub struct Render<'a> {
     mouse_interaction: Option<MouseInteraction>,
     was_hovering_on_button: (bool, Option<usize>),
     button_click_action: ButtonAction,
+}
+
+fn convert_text_to_new_lines(
+    characters:&HashMap<char, Character>,
+    start_x: f32,
+    mut current_x: f32,
+    text: &str,
+    end_x: f32,
+    scale: f32,
+) -> Vec<String> {
+    let advance = 12.0 * scale;
+    let mut width = 0.0;
+    let words: Vec<&str> = text.split(' ').collect();
+    let mut current_text = "".to_owned();
+    let mut output = Vec::new();
+
+    for i in 0..words.len() {
+        let word = words[i];
+        let word_width = calculate_word_width(characters, word, scale);
+        
+        if current_x + width + word_width > end_x {
+            output.push(current_text);
+
+            width = word_width + advance;
+            current_text = word.to_string();
+            current_x = start_x;
+        } else {
+            width += word_width + advance;
+
+            if current_text.len() == 0 {
+                current_text = word.to_string();
+            } else {
+                current_text += &(String::from(" ") + word);
+            }
+        }
+    }
+
+    output.push(current_text);
+
+    return output;
 }
 
 impl Render<'_> {
@@ -325,12 +378,9 @@ impl<'a> Render<'a> {
     pub fn fill_with_image(&mut self, image_path: &str) -> Result<()> {
         let background_image_vertices: [_TextureVerticeData; 4] = [
             _TextureVerticeData([0.0, 0.0], [0.0, 0.0]),
-            _TextureVerticeData([self.window_size.width, 0.0], [1.0, 0.0]),
-            _TextureVerticeData(
-                [self.window_size.width, self.window_size.height],
-                [1.0, 1.0],
-            ),
-            _TextureVerticeData([0.0, self.window_size.height], [0.0, 1.0]),
+            _TextureVerticeData([self.size.width, 0.0], [1.0, 0.0]),
+            _TextureVerticeData([self.size.width, self.size.height], [1.0, 1.0]),
+            _TextureVerticeData([0.0, self.size.height], [0.0, 1.0]),
         ];
 
         let background_indices: [i32; 6] = [0, 1, 2, 2, 3, 0];
@@ -400,22 +450,10 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center =
+            calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0);
 
-        if let Some(rotate) = rotate {
-            object.rotate(
-                rotate,
-                calc_mid_point_position_of_triangle(first_point.0, second_point.0, third_point.0),
-            );
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -461,22 +499,9 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLES);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center = calc_mid_point_position_of_quadrilateral_shape(&position, &size);
 
-        if let Some(rotate) = rotate {
-            object.rotate(
-                rotate,
-                calc_mid_point_position_of_quadrilateral_shape(&position, &size),
-            );
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -513,19 +538,7 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::TRIANGLE_FAN);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
-
-        if let Some(rotate) = rotate {
-            object.rotate(rotate, center);
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -564,19 +577,9 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center = calc_mid_point(&start, &end);
 
-        if let Some(rotate) = rotate {
-            object.rotate(rotate, calc_mid_point(&start, &end));
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -598,19 +601,9 @@ impl<'a> Render<'a> {
 
         let mut object = Object::new(vertices_data, Some(indices), None, None, gl::LINE_STRIP);
 
-        if let Some(translate) = translate {
-            object.translate(glam::vec3(translate.x, translate.y, 0.0));
-        }
+        let center = calc_mid_point(&start, &end);
 
-        if let Some(rotate) = rotate {
-            object.rotate(rotate, calc_mid_point(&start, &end));
-        }
-
-        if let Some(scale) = scale {
-            assert!(scale > 0.0, "scale must be a positive number");
-
-            object.scale(glam::vec3(scale, scale, 1.0));
-        }
+        object.create_transform_matrix(translate, rotate, scale, center);
 
         self.objects.push(object);
     }
@@ -669,22 +662,9 @@ impl<'a> Render<'a> {
                 gl::TRIANGLES,
             );
 
-            if let Some(translate) = translate {
-                object.translate(glam::vec3(translate.x, translate.y, 0.0));
-            }
+            let center = calc_mid_point_position_of_quadrilateral_shape(&position, &size);
 
-            if let Some(rotate) = rotate {
-                object.rotate(
-                    rotate,
-                    calc_mid_point_position_of_quadrilateral_shape(&position, &size),
-                );
-            }
-
-            if let Some(scale) = scale {
-                assert!(scale > 0.0, "scale must be a positive number");
-
-                object.scale(glam::vec3(scale, scale, 1.0));
-            }
+            object.create_transform_matrix(translate, rotate, scale, center);
 
             self.objects.push(object);
 
@@ -710,22 +690,9 @@ impl<'a> Render<'a> {
                 gl::TRIANGLES,
             );
 
-            if let Some(translate) = translate {
-                object.translate(glam::vec3(translate.x, translate.y, 0.0));
-            }
+            let center = calc_mid_point_position_of_quadrilateral_shape(&position, &size);
 
-            if let Some(rotate) = rotate {
-                object.rotate(
-                    rotate,
-                    calc_mid_point_position_of_quadrilateral_shape(&position, &size),
-                );
-            }
-
-            if let Some(scale) = scale {
-                assert!(scale > 0.0, "scale must be a positive number");
-
-                object.scale(glam::vec3(scale, scale, 1.0));
-            }
+            object.create_transform_matrix(translate, rotate, scale, center);
 
             self.objects.push(object);
         }
@@ -740,7 +707,7 @@ impl<'a> Render<'a> {
         scale: f32,
         text_max_width: Option<f32>,
         color: Color,
-    ) -> Result<Size> {
+    ) -> Result<(Size, Position)> {
         assert!(scale > 0.0, "scale must be a positive number");
         let top_left_position = calculate_text_size(
             &self.characters,
@@ -772,7 +739,8 @@ impl<'a> Render<'a> {
 
         let lines: Vec<&str> = text.split('\n').collect();
 
-        for line in &lines {
+        for i in 0..lines.len() {
+            let line = lines[i];
             let mut is_new_word = false;
 
             for (idx, ch) in line.chars().enumerate() {
@@ -869,14 +837,63 @@ impl<'a> Render<'a> {
                 text_size.width = x - start_position.x;
             }
 
-            y += self.font_metrics.line_height * scale;
-            x = start_position.x;
+            if i != lines.len() - 1 {
+                y += self.font_metrics.line_height * scale;
+                x = start_position.x;
+            }
         }
 
         text_size.height =
             min_y + self.font_metrics.line_height * (lines.len() as f32 - 1.0) - max_y;
 
-        Ok(text_size)
+        Ok((
+            text_size,
+            Position {
+                x,
+                y: y - (start_position.y - top_left_position.y),
+            },
+        ))
+    }
+
+
+    pub fn display_text_with_images(&mut self, text: &'a str, start_position: Position, end_x: f32, image_size: Size, scale: f32, image_scale: Option<f32>) -> Result<()> {
+        let texts: Vec<&str> = text.split(';').collect();
+        
+        let mut current_position = start_position;
+
+        for i in 0..texts.len() {
+            let text = texts[i];
+
+            if i % 2 == 0 {
+                let texts_to_display = convert_text_to_new_lines(&self.characters, start_position.x, current_position.x, text, end_x, scale);
+
+                for i in 0..texts_to_display.len() {
+                    let text_to_display = &texts_to_display[i];
+
+                    let (_, end_position) = self.display_text(text_to_display, current_position, 0.4, Some(end_x - current_position.x), Color::Black)?; 
+                    if i != (texts_to_display.len()-1) {
+                        current_position = Position { x: start_position.x, y: current_position.y + 22.4 };
+                    } else {
+                        if current_position.x + 5.0 + image_size.width > end_x {
+                            current_position = Position { x: start_position.x, y: current_position.y + 22.4 };
+                        } else {
+                            current_position = Position { x: end_position.x + 5.0, y: end_position.y };
+                        }
+                    }
+                }
+
+            } else {
+                self.load_image(text, Position { x: current_position.x, y: current_position.y - 5.0 }, image_size, false, None, image_scale, None, None)?;
+                let end_position = Position { x: current_position.x + image_size.width, y: current_position.y };
+                if current_position.x + 5.0 > end_x {
+                    current_position = Position { x: start_position.x, y: current_position.y + 22.4 };
+                } else {
+                    current_position = Position { x: end_position.x, y: end_position.y };
+                }
+            }
+        }
+        
+        Ok(())
     }
 
     pub fn draw_equidistant_from_angle_and_length(

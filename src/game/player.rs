@@ -255,6 +255,7 @@ pub struct Player<'a> {
     camera_disturb_lifttime: Duration,
     notoriety_camera_disturb_lifttime: Duration,
     coins: u32,
+    level_coins_collected: u32,
     is_detected_by_enemy: bool,
     seen_by_enemies: Vec<usize>,
     is_teleported: bool,
@@ -314,6 +315,7 @@ impl Player<'_> {
             camera_disturb_lifttime: Duration::from_secs(10),
             notoriety_camera_disturb_lifttime: Duration::from_secs(10),
             coins: 0,
+            level_coins_collected: 0,
             is_detected_by_enemy: false,
             seen_by_enemies: Vec::new(),
             is_teleported: false,
@@ -508,6 +510,14 @@ impl<'a> Player<'a> {
         self.coins
     }
 
+    pub fn get_level_coins_collected(&self) -> u32 {
+        self.level_coins_collected
+    }
+
+    pub fn add_level_coin(&mut self) {
+        self.level_coins_collected = self.level_coins_collected + 1;
+    }
+
     pub fn add_coin(&mut self) {
         self.coins = self.coins + 1;
     }
@@ -694,6 +704,7 @@ impl<'a> Player<'a> {
         self.detect_count = 0;
         self.disturb_cameras_count = 0;
         self.enemies_trick_count = 0;
+        self.level_coins_collected = 0;
     }
 
     pub fn get_detect_count(&self) -> isize {
